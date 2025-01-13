@@ -4,7 +4,20 @@ namespace App\Models;
 
 use CodeIgniter\Model;
 
-class UserContact extends Model
+class NewsModel extends Model
 {
-    // insert() method already implemented in parent
+    // Sets the table name.
+    protected $table = 'news';
+
+    public function setNews($title, $slug, $text)
+    {
+        $data = [
+            'title' => $title,
+            'slug'  => $slug,
+            'text'  => $text,
+        ];
+
+        // Gets the Query Builder for the table, and calls `insert()`.
+        return $this->builder()->insert($data);
+    }
 }

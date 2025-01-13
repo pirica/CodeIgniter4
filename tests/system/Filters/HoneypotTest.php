@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -11,33 +13,37 @@
 
 namespace CodeIgniter\Filters;
 
-use CodeIgniter\Config\Services;
 use CodeIgniter\Honeypot\Exceptions\HoneypotException;
 use CodeIgniter\HTTP\CLIRequest;
 use CodeIgniter\HTTP\IncomingRequest;
+use CodeIgniter\HTTP\RequestInterface;
 use CodeIgniter\HTTP\Response;
 use CodeIgniter\Test\CIUnitTestCase;
 use Config\Honeypot;
+use PHPUnit\Framework\Attributes\BackupGlobals;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\PreserveGlobalState;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
+use PHPUnit\Framework\Attributes\WithoutErrorHandler;
 
 /**
- * @backupGlobals enabled
- *
  * @internal
- *
- * @group SeparateProcess
  */
+#[BackupGlobals(true)]
+#[Group('SeparateProcess')]
 final class HoneypotTest extends CIUnitTestCase
 {
     private \Config\Filters $config;
     private Honeypot $honey;
 
     /**
-     * @var CLIRequest|IncomingRequest|null
+     * @var CLIRequest|IncomingRequest
      */
-    private $request;
+    private RequestInterface $request;
 
     private ?Response $response = null;
 
+    #[WithoutErrorHandler]
     protected function setUp(): void
     {
         parent::setUp();
@@ -49,15 +55,15 @@ final class HoneypotTest extends CIUnitTestCase
         $_POST[$this->honey->name] = 'hey';
     }
 
-    public function testBeforeTriggered()
+    public function testBeforeTriggered(): void
     {
         $this->config->globals = [
             'before' => ['honeypot'],
             'after'  => [],
         ];
 
-        $this->request  = Services::request(null, false);
-        $this->response = Services::response();
+        $this->request  = service('request', null, false);
+        $this->response = service('response');
 
         $filters = new Filters($this->config, $this->request, $this->response);
         $uri     = 'admin/foo/bar';
@@ -66,7 +72,7 @@ final class HoneypotTest extends CIUnitTestCase
         $filters->run($uri, 'before');
     }
 
-    public function testBeforeClean()
+    public function testBeforeClean(): void
     {
         $this->config->globals = [
             'before' => ['honeypot'],
@@ -74,8 +80,8 @@ final class HoneypotTest extends CIUnitTestCase
         ];
 
         unset($_POST[$this->honey->name]);
-        $this->request  = Services::request(null, false);
-        $this->response = Services::response();
+        $this->request  = service('request', null, false);
+        $this->response = service('response');
 
         $expected = $this->request;
 
@@ -86,19 +92,17 @@ final class HoneypotTest extends CIUnitTestCase
         $this->assertSame($expected, $request);
     }
 
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState disabled
-     */
-    public function testAfter()
+    #[PreserveGlobalState(false)]
+    #[RunInSeparateProcess]
+    public function testAfter(): void
     {
         $this->config->globals = [
             'before' => [],
             'after'  => ['honeypot'],
         ];
 
-        $this->request  = Services::request(null, false);
-        $this->response = Services::response();
+        $this->request  = service('request', null, false);
+        $this->response = service('response');
 
         $filters = new Filters($this->config, $this->request, $this->response);
         $uri     = 'admin/foo/bar';
@@ -108,19 +112,17 @@ final class HoneypotTest extends CIUnitTestCase
         $this->assertStringContainsString($this->honey->name, $this->response->getBody());
     }
 
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState disabled
-     */
-    public function testAfterNotApplicable()
+    #[PreserveGlobalState(false)]
+    #[RunInSeparateProcess]
+    public function testAfterNotApplicable(): void
     {
         $this->config->globals = [
             'before' => [],
             'after'  => ['honeypot'],
         ];
 
-        $this->request  = Services::request(null, false);
-        $this->response = Services::response();
+        $this->request  = service('request', null, false);
+        $this->response = service('response');
 
         $filters = new Filters($this->config, $this->request, $this->response);
         $uri     = 'admin/foo/bar';

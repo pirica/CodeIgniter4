@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -15,6 +17,7 @@ use CodeIgniter\Database\Exceptions\DataException;
 use CodeIgniter\Entity\Entity;
 use CodeIgniter\I18n\Time;
 use CodeIgniter\Model;
+use PHPUnit\Framework\Attributes\Group;
 use stdClass;
 use Tests\Support\Models\EntityModel;
 use Tests\Support\Models\JobModel;
@@ -24,10 +27,9 @@ use Tests\Support\Models\ValidModel;
 use Tests\Support\Models\WithoutAutoIncrementModel;
 
 /**
- * @group DatabaseLive
- *
  * @internal
  */
+#[Group('DatabaseLive')]
 final class SaveModelTest extends LiveModelTestCase
 {
     public function testSaveNewRecordObject(): void
@@ -39,6 +41,24 @@ final class SaveModelTest extends LiveModelTestCase
         $data->description = 'Makes peoples things dissappear.';
 
         $this->model->protect(false)->save($data);
+        $this->seeInDatabase('job', ['name' => 'Magician']);
+    }
+
+    /**
+     * @see https://github.com/codeigniter4/CodeIgniter4/issues/8613
+     */
+    public function testSaveNewRecordArrayWithEmptyStringId(): void
+    {
+        $this->createModel(JobModel::class);
+
+        $data = [
+            'id'          => '',
+            'name'        => 'Magician',
+            'description' => 'Makes peoples things dissappear.',
+        ];
+
+        $this->model->save($data);
+
         $this->seeInDatabase('job', ['name' => 'Magician']);
     }
 
@@ -281,7 +301,7 @@ final class SaveModelTest extends LiveModelTestCase
 
         $this->setPrivateProperty($testModel, 'useTimestamps', true);
         $this->assertTrue($testModel->save($entity));
-        $testModel->truncate();
+        $testModel->db->table('empty')->truncate();
     }
 
     public function testInvalidAllowedFieldException(): void
@@ -344,5 +364,45 @@ final class SaveModelTest extends LiveModelTestCase
 
         $this->assertSame($insert['key'], $this->model->getInsertID());
         $this->seeInDatabase('without_auto_increment', $update);
+    }
+
+    /**
+     * @see https://github.com/codeigniter4/CodeIgniter4/issues/9306
+     */
+    public function testSaveNewEntityWithMappedPrimaryKey(): void
+    {
+        $entity = new class () extends Entity {
+            protected string $name;
+            protected $attributes = [
+                'id'   => null,
+                'name' => null,
+            ];
+            protected $original = [
+                'id'   => null,
+                'name' => null,
+            ];
+            protected $datamap = [
+                'new_kid_in_the_block' => 'id',
+            ];
+        };
+
+        $testModel = new class () extends Model {
+            protected $table         = 'empty';
+            protected $allowedFields = [
+                'name',
+            ];
+            protected $returnType = 'object';
+        };
+
+        $entity->name = 'New';
+        $this->assertTrue($testModel->save($entity));
+        $this->seeInDatabase('empty', ['id' => 1, 'name' => 'New']);
+
+        $entity->new_kid_in_the_block = 1;
+        $entity->name                 = 'Updated';
+        $this->assertTrue($testModel->save($entity));
+
+        $this->seeInDatabase('empty', ['id' => 1, 'name' => 'Updated']);
+        $testModel->db->table('empty')->truncate();
     }
 }

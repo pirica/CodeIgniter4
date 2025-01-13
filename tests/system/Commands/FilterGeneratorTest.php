@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -13,12 +15,12 @@ namespace CodeIgniter\Commands;
 
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\StreamFilterTrait;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * @internal
- *
- * @group Others
  */
+#[Group('Others')]
 final class FilterGeneratorTest extends CIUnitTestCase
 {
     use StreamFilterTrait;
@@ -32,13 +34,13 @@ final class FilterGeneratorTest extends CIUnitTestCase
         }
     }
 
-    public function testGenerateFilter()
+    public function testGenerateFilter(): void
     {
         command('make:filter admin');
         $this->assertFileExists(APPPATH . 'Filters/Admin.php');
     }
 
-    public function testGenerateFilterWithOptionSuffix()
+    public function testGenerateFilterWithOptionSuffix(): void
     {
         command('make:filter admin -suffix');
         $this->assertFileExists(APPPATH . 'Filters/AdminFilter.php');

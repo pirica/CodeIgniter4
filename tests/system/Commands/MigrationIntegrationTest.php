@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -13,12 +15,12 @@ namespace CodeIgniter\Commands;
 
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\StreamFilterTrait;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
- * @group DatabaseLive
- *
  * @internal
  */
+#[Group('DatabaseLive')]
 final class MigrationIntegrationTest extends CIUnitTestCase
 {
     use StreamFilterTrait;
@@ -59,7 +61,7 @@ final class MigrationIntegrationTest extends CIUnitTestCase
         command('migrate -n App');
         $this->assertStringContainsString(
             '(App) 20160428212500_App\Database\Migrations\Migration_Create_test_tables',
-            $this->getStreamFilterBuffer()
+            $this->getStreamFilterBuffer(),
         );
 
         $this->resetStreamFilterBuffer();
@@ -67,7 +69,7 @@ final class MigrationIntegrationTest extends CIUnitTestCase
         command('migrate:rollback -n App');
         $this->assertStringContainsString(
             '(App) 20160428212500_App\Database\Migrations\Migration_Create_test_tables',
-            $this->getStreamFilterBuffer()
+            $this->getStreamFilterBuffer(),
         );
     }
 }

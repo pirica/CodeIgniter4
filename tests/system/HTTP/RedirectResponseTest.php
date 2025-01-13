@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -19,13 +21,17 @@ use CodeIgniter\Test\Mock\MockIncomingRequest;
 use CodeIgniter\Validation\Validation;
 use Config\App;
 use Config\Modules;
+use Config\Routing;
 use Config\Services;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\PreserveGlobalState;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
+use PHPUnit\Framework\Attributes\WithoutErrorHandler;
 
 /**
  * @internal
- *
- * @group SeparateProcess
  */
+#[Group('SeparateProcess')]
 final class RedirectResponseTest extends CIUnitTestCase
 {
     /**
@@ -36,6 +42,7 @@ final class RedirectResponseTest extends CIUnitTestCase
     private MockIncomingRequest $request;
     private App $config;
 
+    #[WithoutErrorHandler]
     protected function setUp(): void
     {
         parent::setUp();
@@ -47,19 +54,19 @@ final class RedirectResponseTest extends CIUnitTestCase
         $this->config          = new App();
         $this->config->baseURL = 'http://example.com/';
 
-        $this->routes = new RouteCollection(Services::locator(), new Modules());
+        $this->routes = new RouteCollection(service('locator'), new Modules(), new Routing());
         Services::injectMock('routes', $this->routes);
 
         $this->request = new MockIncomingRequest(
             $this->config,
-            new URI('http://example.com'),
+            new SiteURI($this->config),
             null,
-            new UserAgent()
+            new UserAgent(),
         );
         Services::injectMock('request', $this->request);
     }
 
-    public function testRedirectToFullURI()
+    public function testRedirectToFullURI(): void
     {
         $response = new RedirectResponse(new App());
 
@@ -69,7 +76,7 @@ final class RedirectResponseTest extends CIUnitTestCase
         $this->assertSame('http://example.com/foo', $response->getHeaderLine('Location'));
     }
 
-    public function testRedirectRoute()
+    public function testRedirectRoute(): void
     {
         $response = new RedirectResponse(new App());
 
@@ -88,7 +95,7 @@ final class RedirectResponseTest extends CIUnitTestCase
         $this->assertSame('http://example.com/index.php/exampleRoute2', $response->getHeaderLine('Location'));
     }
 
-    public function testRedirectRouteBadNamedRoute()
+    public function testRedirectRouteBadNamedRoute(): void
     {
         $this->expectException(HTTPException::class);
         $this->expectExceptionMessage('The route for "differentRoute" cannot be found.');
@@ -100,7 +107,7 @@ final class RedirectResponseTest extends CIUnitTestCase
         $response->route('differentRoute');
     }
 
-    public function testRedirectRouteBadControllerMethod()
+    public function testRedirectRouteBadControllerMethod(): void
     {
         $this->expectException(HTTPException::class);
         $this->expectExceptionMessage('The route for "Bad::badMethod" cannot be found.');
@@ -112,7 +119,7 @@ final class RedirectResponseTest extends CIUnitTestCase
         $response->route('Bad::badMethod');
     }
 
-    public function testRedirectRelativeConvertsToFullURI()
+    public function testRedirectRelativeConvertsToFullURI(): void
     {
         $response = new RedirectResponse($this->config);
 
@@ -122,11 +129,9 @@ final class RedirectResponseTest extends CIUnitTestCase
         $this->assertSame('http://example.com/index.php/foo', $response->getHeaderLine('Location'));
     }
 
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState disabled
-     */
-    public function testWithInput()
+    #[PreserveGlobalState(false)]
+    #[RunInSeparateProcess]
+    public function testWithInput(): void
     {
         $_SESSION = [];
         $_GET     = ['foo' => 'bar'];
@@ -142,11 +147,9 @@ final class RedirectResponseTest extends CIUnitTestCase
         $this->assertSame('baz', $_SESSION['_ci_old_input']['post']['bar']);
     }
 
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState disabled
-     */
-    public function testWithValidationErrors()
+    #[PreserveGlobalState(false)]
+    #[RunInSeparateProcess]
+    public function testWithValidationErrors(): void
     {
         $_SESSION = [];
 
@@ -162,11 +165,9 @@ final class RedirectResponseTest extends CIUnitTestCase
         $this->assertArrayHasKey('_ci_validation_errors', $_SESSION);
     }
 
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState disabled
-     */
-    public function testWith()
+    #[PreserveGlobalState(false)]
+    #[RunInSeparateProcess]
+    public function testWith(): void
     {
         $_SESSION = [];
 
@@ -178,14 +179,13 @@ final class RedirectResponseTest extends CIUnitTestCase
         $this->assertArrayHasKey('foo', $_SESSION);
     }
 
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState disabled
-     */
-    public function testRedirectBack()
+    #[PreserveGlobalState(false)]
+    #[RunInSeparateProcess]
+    public function testRedirectBack(): void
     {
         $_SERVER['HTTP_REFERER'] = 'http://somewhere.com';
-        $this->request           = new MockIncomingRequest($this->config, new URI('http://somewhere.com'), null, new UserAgent());
+
+        $this->request = new MockIncomingRequest($this->config, new SiteURI($this->config), null, new UserAgent());
         Services::injectMock('request', $this->request);
 
         $response = new RedirectResponse(new App());
@@ -194,11 +194,9 @@ final class RedirectResponseTest extends CIUnitTestCase
         $this->assertSame('http://somewhere.com', $returned->header('location')->getValue());
     }
 
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState disabled
-     */
-    public function testRedirectBackMissing()
+    #[PreserveGlobalState(false)]
+    #[RunInSeparateProcess]
+    public function testRedirectBackMissing(): void
     {
         $_SESSION = [];
 
@@ -210,18 +208,17 @@ final class RedirectResponseTest extends CIUnitTestCase
     }
 
     /**
-     * @runInSeparateProcess
-     * @preserveGlobalState disabled
-     *
      * @see https://github.com/codeigniter4/CodeIgniter4/issues/2119
      */
-    public function testRedirectRouteBaseUrl()
+    #[PreserveGlobalState(false)]
+    #[RunInSeparateProcess]
+    public function testRedirectRouteBaseUrl(): void
     {
         $config          = new App();
         $config->baseURL = 'http://example.com/test/';
         Factories::injectMock('config', 'App', $config);
 
-        $request = new MockIncomingRequest($config, new URI('http://example.com/test/'), null, new UserAgent());
+        $request = new MockIncomingRequest($config, new SiteURI($config), null, new UserAgent());
         Services::injectMock('request', $request);
 
         $response = new RedirectResponse(new App());
@@ -236,11 +233,11 @@ final class RedirectResponseTest extends CIUnitTestCase
         Factories::reset('config');
     }
 
-    public function testWithCookies()
+    public function testWithCookies(): void
     {
         $_SESSION = [];
 
-        $baseResponse = Services::response();
+        $baseResponse = service('response');
         $baseResponse->setCookie('foo', 'bar');
 
         $response = new RedirectResponse(new App());
@@ -250,11 +247,9 @@ final class RedirectResponseTest extends CIUnitTestCase
         $this->assertTrue($response->hasCookie('foo', 'bar'));
     }
 
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState disabled
-     */
-    public function testWithCookiesWithEmptyCookies()
+    #[PreserveGlobalState(false)]
+    #[RunInSeparateProcess]
+    public function testWithCookiesWithEmptyCookies(): void
     {
         $_SESSION = [];
 
@@ -264,7 +259,7 @@ final class RedirectResponseTest extends CIUnitTestCase
         $this->assertEmpty($response->getCookies());
     }
 
-    public function testWithHeaders()
+    public function testWithHeaders(): void
     {
         $_SESSION = [];
 
@@ -282,7 +277,7 @@ final class RedirectResponseTest extends CIUnitTestCase
         }
     }
 
-    public function testWithHeadersWithEmptyHeaders()
+    public function testWithHeadersWithEmptyHeaders(): void
     {
         $_SESSION = [];
 
@@ -293,7 +288,7 @@ final class RedirectResponseTest extends CIUnitTestCase
         }
 
         $response = new RedirectResponse(new App());
-        $response = $response->withHeaders();
+        $response->withHeaders();
 
         $this->assertEmpty($baseResponse->headers());
     }

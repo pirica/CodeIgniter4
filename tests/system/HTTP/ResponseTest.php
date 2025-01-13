@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -12,20 +14,19 @@
 namespace CodeIgniter\HTTP;
 
 use CodeIgniter\Config\Factories;
-use CodeIgniter\Cookie\Exceptions\CookieException;
 use CodeIgniter\HTTP\Exceptions\HTTPException;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\Mock\MockResponse;
 use Config\App;
-use Config\Services;
 use DateTime;
 use DateTimeZone;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * @internal
- *
- * @group Others
  */
+#[Group('Others')]
 final class ResponseTest extends CIUnitTestCase
 {
     private array $server;
@@ -46,7 +47,7 @@ final class ResponseTest extends CIUnitTestCase
         $_SERVER = $this->server;
     }
 
-    public function testCanSetStatusCode()
+    public function testCanSetStatusCode(): void
     {
         $response = new Response(new App());
 
@@ -55,7 +56,7 @@ final class ResponseTest extends CIUnitTestCase
         $this->assertSame(200, $response->getStatusCode());
     }
 
-    public function testSetStatusCodeThrowsExceptionForBadCodes()
+    public function testSetStatusCodeThrowsExceptionForBadCodes(): void
     {
         $response = new Response(new App());
 
@@ -63,7 +64,7 @@ final class ResponseTest extends CIUnitTestCase
         $response->setStatusCode(54322);
     }
 
-    public function testConstructWithCSPEnabled()
+    public function testConstructWithCSPEnabled(): void
     {
         $config             = new App();
         $config->CSPEnabled = true;
@@ -72,7 +73,7 @@ final class ResponseTest extends CIUnitTestCase
         $this->assertInstanceOf(Response::class, $response);
     }
 
-    public function testSetStatusCodeSetsReason()
+    public function testSetStatusCodeSetsReason(): void
     {
         $response = new Response(new App());
 
@@ -81,7 +82,7 @@ final class ResponseTest extends CIUnitTestCase
         $this->assertSame('OK', $response->getReasonPhrase());
     }
 
-    public function testCanSetCustomReasonCode()
+    public function testCanSetCustomReasonCode(): void
     {
         $response = new Response(new App());
 
@@ -90,7 +91,7 @@ final class ResponseTest extends CIUnitTestCase
         $this->assertSame('Not the mama', $response->getReasonPhrase());
     }
 
-    public function testRequiresMessageWithUnknownStatusCode()
+    public function testRequiresMessageWithUnknownStatusCode(): void
     {
         $response = new Response(new App());
 
@@ -99,7 +100,7 @@ final class ResponseTest extends CIUnitTestCase
         $response->setStatusCode(115);
     }
 
-    public function testRequiresMessageWithSmallStatusCode()
+    public function testRequiresMessageWithSmallStatusCode(): void
     {
         $response = new Response(new App());
 
@@ -108,7 +109,7 @@ final class ResponseTest extends CIUnitTestCase
         $response->setStatusCode(95);
     }
 
-    public function testRequiresMessageWithLargeStatusCode()
+    public function testRequiresMessageWithLargeStatusCode(): void
     {
         $response = new Response(new App());
 
@@ -117,7 +118,7 @@ final class ResponseTest extends CIUnitTestCase
         $response->setStatusCode(695);
     }
 
-    public function testSetStatusCodeInterpretsReason()
+    public function testSetStatusCodeInterpretsReason(): void
     {
         $response = new Response(new App());
 
@@ -126,7 +127,7 @@ final class ResponseTest extends CIUnitTestCase
         $this->assertSame('Multiple Choices', $response->getReasonPhrase());
     }
 
-    public function testSetStatusCodeSavesCustomReason()
+    public function testSetStatusCodeSavesCustomReason(): void
     {
         $response = new Response(new App());
 
@@ -135,14 +136,14 @@ final class ResponseTest extends CIUnitTestCase
         $this->assertSame('My Little Pony', $response->getReasonPhrase());
     }
 
-    public function testGetReasonDefaultsToOK()
+    public function testGetReasonDefaultsToOK(): void
     {
         $response = new Response(new App());
 
         $this->assertSame('OK', $response->getReasonPhrase());
     }
 
-    public function testSetDateRemembersDateInUTC()
+    public function testSetDateRemembersDateInUTC(): void
     {
         $response = new Response(new App());
 
@@ -157,7 +158,7 @@ final class ResponseTest extends CIUnitTestCase
         $this->assertSame($date->format('D, d M Y H:i:s') . ' GMT', $header);
     }
 
-    public function testSetLink()
+    public function testSetLink(): void
     {
         // Ensure our URL is not getting overridden
         $config          = new App();
@@ -167,34 +168,34 @@ final class ResponseTest extends CIUnitTestCase
         $this->resetServices();
 
         $response = new Response($config);
-        $pager    = Services::pager();
+        $pager    = service('pager');
 
         $pager->store('default', 3, 10, 200);
         $response->setLink($pager);
 
         $this->assertSame(
-            '<http://example.com/test/index.php?page=1>; rel="first",<http://example.com/test/index.php?page=2>; rel="prev",<http://example.com/test/index.php?page=4>; rel="next",<http://example.com/test/index.php?page=20>; rel="last"',
-            $response->header('Link')->getValue()
+            '<http://example.com/test/index.php/?page=1>; rel="first",<http://example.com/test/index.php/?page=2>; rel="prev",<http://example.com/test/index.php/?page=4>; rel="next",<http://example.com/test/index.php/?page=20>; rel="last"',
+            $response->header('Link')->getValue(),
         );
 
         $pager->store('default', 1, 10, 200);
         $response->setLink($pager);
 
         $this->assertSame(
-            '<http://example.com/test/index.php?page=2>; rel="next",<http://example.com/test/index.php?page=20>; rel="last"',
-            $response->header('Link')->getValue()
+            '<http://example.com/test/index.php/?page=2>; rel="next",<http://example.com/test/index.php/?page=20>; rel="last"',
+            $response->header('Link')->getValue(),
         );
 
         $pager->store('default', 20, 10, 200);
         $response->setLink($pager);
 
         $this->assertSame(
-            '<http://example.com/test/index.php?page=1>; rel="first",<http://example.com/test/index.php?page=19>; rel="prev"',
-            $response->header('Link')->getValue()
+            '<http://example.com/test/index.php/?page=1>; rel="first",<http://example.com/test/index.php/?page=19>; rel="prev"',
+            $response->header('Link')->getValue(),
         );
     }
 
-    public function testSetContentType()
+    public function testSetContentType(): void
     {
         $response = new Response(new App());
 
@@ -203,7 +204,7 @@ final class ResponseTest extends CIUnitTestCase
         $this->assertSame('text/json; charset=UTF-8', $response->getHeaderLine('Content-Type'));
     }
 
-    public function testNoCache()
+    public function testNoCache(): void
     {
         $response = new Response(new App());
 
@@ -212,7 +213,7 @@ final class ResponseTest extends CIUnitTestCase
         $this->assertSame('no-store, max-age=0, no-cache', $response->getHeaderLine('Cache-control'));
     }
 
-    public function testSetCache()
+    public function testSetCache(): void
     {
         $response = new Response(new App());
 
@@ -232,7 +233,7 @@ final class ResponseTest extends CIUnitTestCase
         $this->assertSame('max-age=300, must-revalidate', $response->getHeaderLine('Cache-Control'));
     }
 
-    public function testSetCacheNoOptions()
+    public function testSetCacheNoOptions(): void
     {
         $response = new Response(new App());
 
@@ -243,7 +244,7 @@ final class ResponseTest extends CIUnitTestCase
         $this->assertSame('no-store, max-age=0, no-cache', $response->getHeaderLine('Cache-Control'));
     }
 
-    public function testSetLastModifiedWithDateTimeObject()
+    public function testSetLastModifiedWithDateTimeObject(): void
     {
         $response = new Response(new App());
 
@@ -258,7 +259,7 @@ final class ResponseTest extends CIUnitTestCase
         $this->assertSame($date->format('D, d M Y H:i:s') . ' GMT', $header);
     }
 
-    public function testRedirectSetsDefaultCodeAndLocationHeader()
+    public function testRedirectSetsDefaultCodeAndLocationHeader(): void
     {
         $response = new Response(new App());
 
@@ -269,33 +270,90 @@ final class ResponseTest extends CIUnitTestCase
         $this->assertSame(302, $response->getStatusCode());
     }
 
-    public function testRedirectSetsCode()
-    {
-        $response = new Response(new App());
+    #[DataProvider('provideRedirect')]
+    public function testRedirect(
+        string $server,
+        string $protocol,
+        string $method,
+        ?int $code,
+        int $expectedCode,
+    ): void {
+        $_SERVER['SERVER_SOFTWARE'] = $server;
+        $_SERVER['SERVER_PROTOCOL'] = $protocol;
+        $_SERVER['REQUEST_METHOD']  = $method;
 
-        $response->redirect('example.com', 'auto', 307);
+        $response = new Response(new App());
+        $response->redirect('example.com', 'auto', $code);
 
         $this->assertTrue($response->hasHeader('location'));
         $this->assertSame('example.com', $response->getHeaderLine('Location'));
-        $this->assertSame(307, $response->getStatusCode());
+        $this->assertSame($expectedCode, $response->getStatusCode());
     }
 
-    public function testRedirectWithIIS()
+    public static function provideRedirect(): iterable
     {
-        $_SERVER['SERVER_SOFTWARE'] = 'Microsoft-IIS';
-        $response                   = new Response(new App());
-        $response->redirect('example.com', 'auto', 307);
-        $this->assertSame('0;url=example.com', $response->getHeaderLine('Refresh'));
+        yield from [
+            ['Apache/2.4.17', 'HTTP/1.1', 'GET', null, 302],
+            ['Apache/2.4.17', 'HTTP/1.1', 'GET', 307, 307],
+            ['Apache/2.4.17', 'HTTP/1.1', 'GET', 302, 302],
+            ['Apache/2.4.17', 'HTTP/1.1', 'POST', null, 303],
+            ['Apache/2.4.17', 'HTTP/1.1', 'POST', 307, 307],
+            ['Apache/2.4.17', 'HTTP/1.1', 'POST', 302, 302],
+            ['Apache/2.4.17', 'HTTP/1.1', 'HEAD', null, 307],
+            ['Apache/2.4.17', 'HTTP/1.1', 'HEAD', 307, 307],
+            ['Apache/2.4.17', 'HTTP/1.1', 'HEAD', 302, 302],
+            ['Apache/2.4.17', 'HTTP/1.1', 'OPTIONS', null, 307],
+            ['Apache/2.4.17', 'HTTP/1.1', 'OPTIONS', 307, 307],
+            ['Apache/2.4.17', 'HTTP/1.1', 'OPTIONS', 302, 302],
+            ['Apache/2.4.17', 'HTTP/1.1', 'PUT', null, 303],
+            ['Apache/2.4.17', 'HTTP/1.1', 'PUT', 307, 307],
+            ['Apache/2.4.17', 'HTTP/1.1', 'PUT', 302, 302],
+            ['Apache/2.4.17', 'HTTP/1.1', 'DELETE', null, 303],
+            ['Apache/2.4.17', 'HTTP/1.1', 'DELETE', 307, 307],
+            ['Apache/2.4.17', 'HTTP/1.1', 'DELETE', 302, 302],
+        ];
     }
 
-    public function testSetCookieFails()
+    #[DataProvider('provideRedirectWithIIS')]
+    public function testRedirectWithIIS(
+        string $protocol,
+        string $method,
+        ?int $code,
+        int $expectedCode,
+    ): void {
+        $_SERVER['SERVER_SOFTWARE'] = 'Microsoft-IIS';
+        $_SERVER['SERVER_PROTOCOL'] = 'HTTP/1.1';
+        $_SERVER['REQUEST_METHOD']  = 'POST';
+
+        $response = new Response(new App());
+        $response->redirect('example.com', 'auto', $code);
+
+        $this->assertSame('0;url=example.com', $response->getHeaderLine('Refresh'));
+        $this->assertSame($expectedCode, $response->getStatusCode());
+
+        unset($_SERVER['SERVER_SOFTWARE']);
+    }
+
+    public static function provideRedirectWithIIS(): iterable
+    {
+        yield from [
+            ['HTTP/1.1', 'GET', null, 302],
+            ['HTTP/1.1', 'GET', 307, 307],
+            ['HTTP/1.1', 'GET', 302, 302],
+            ['HTTP/1.1', 'POST', null, 302],
+            ['HTTP/1.1', 'POST', 307, 307],
+            ['HTTP/1.1', 'POST', 302, 302],
+        ];
+    }
+
+    public function testSetCookieFails(): void
     {
         $response = new Response(new App());
 
         $this->assertFalse($response->hasCookie('foo'));
     }
 
-    public function testSetCookieMatch()
+    public function testSetCookieMatch(): void
     {
         $response = new Response(new App());
         $response->setCookie('foo', 'bar');
@@ -304,7 +362,7 @@ final class ResponseTest extends CIUnitTestCase
         $this->assertTrue($response->hasCookie('foo', 'bar'));
     }
 
-    public function testSetCookieFailDifferentPrefix()
+    public function testSetCookieFailDifferentPrefix(): void
     {
         $response = new Response(new App());
         $response->setCookie('foo', 'bar', '', '', '', 'ack');
@@ -312,7 +370,7 @@ final class ResponseTest extends CIUnitTestCase
         $this->assertFalse($response->hasCookie('foo'));
     }
 
-    public function testSetCookieSuccessOnPrefix()
+    public function testSetCookieSuccessOnPrefix(): void
     {
         $response = new Response(new App());
         $response->setCookie('foo', 'bar', '', '', '', 'ack');
@@ -321,7 +379,7 @@ final class ResponseTest extends CIUnitTestCase
         $this->assertFalse($response->hasCookie('foo', null, 'nak'));
     }
 
-    public function testJSONWithArray()
+    public function testJSONWithArray(): void
     {
         $body = [
             'foo' => 'bar',
@@ -331,7 +389,7 @@ final class ResponseTest extends CIUnitTestCase
                 3,
             ],
         ];
-        $expected = Services::format()->getFormatter('application/json')->format($body);
+        $expected = service('format')->getFormatter('application/json')->format($body);
 
         $response = new Response(new App());
         $response->setJSON($body);
@@ -340,7 +398,7 @@ final class ResponseTest extends CIUnitTestCase
         $this->assertStringContainsString('application/json', $response->getHeaderLine('content-type'));
     }
 
-    public function testJSONGetFromNormalBody()
+    public function testJSONGetFromNormalBody(): void
     {
         $body = [
             'foo' => 'bar',
@@ -350,7 +408,7 @@ final class ResponseTest extends CIUnitTestCase
                 3,
             ],
         ];
-        $expected = Services::format()->getFormatter('application/json')->format($body);
+        $expected = service('format')->getFormatter('application/json')->format($body);
 
         $response = new Response(new App());
         $response->setBody($body);
@@ -358,7 +416,7 @@ final class ResponseTest extends CIUnitTestCase
         $this->assertSame($expected, $response->getJSON());
     }
 
-    public function testXMLWithArray()
+    public function testXMLWithArray(): void
     {
         $body = [
             'foo' => 'bar',
@@ -368,7 +426,7 @@ final class ResponseTest extends CIUnitTestCase
                 3,
             ],
         ];
-        $expected = Services::format()->getFormatter('application/xml')->format($body);
+        $expected = service('format')->getFormatter('application/xml')->format($body);
 
         $response = new Response(new App());
         $response->setXML($body);
@@ -377,7 +435,7 @@ final class ResponseTest extends CIUnitTestCase
         $this->assertStringContainsString('application/xml', $response->getHeaderLine('content-type'));
     }
 
-    public function testXMLGetFromNormalBody()
+    public function testXMLGetFromNormalBody(): void
     {
         $body = [
             'foo' => 'bar',
@@ -387,7 +445,7 @@ final class ResponseTest extends CIUnitTestCase
                 3,
             ],
         ];
-        $expected = Services::format()->getFormatter('application/xml')->format($body);
+        $expected = service('format')->getFormatter('application/xml')->format($body);
 
         $response = new Response(new App());
         $response->setBody($body);
@@ -395,7 +453,7 @@ final class ResponseTest extends CIUnitTestCase
         $this->assertSame($expected, $response->getXML());
     }
 
-    public function testGetDownloadResponseByData()
+    public function testGetDownloadResponseByData(): void
     {
         $response = new Response(new App());
 
@@ -413,7 +471,7 @@ final class ResponseTest extends CIUnitTestCase
         $this->assertSame('data', $actualOutput);
     }
 
-    public function testGetDownloadResponseByFilePath()
+    public function testGetDownloadResponseByFilePath(): void
     {
         $response = new Response(new App());
 
@@ -431,7 +489,7 @@ final class ResponseTest extends CIUnitTestCase
         $this->assertSame(file_get_contents(__FILE__), $actualOutput);
     }
 
-    public function testVagueDownload()
+    public function testVagueDownload(): void
     {
         $response = new Response(new App());
 
@@ -440,7 +498,7 @@ final class ResponseTest extends CIUnitTestCase
         $this->assertNull($actual);
     }
 
-    public function testPretendMode()
+    public function testPretendMode(): void
     {
         $response = new MockResponse(new App());
         $response->pretend(true);
@@ -449,7 +507,7 @@ final class ResponseTest extends CIUnitTestCase
         $this->assertFalse($response->getPretend());
     }
 
-    public function testMisbehaving()
+    public function testMisbehaving(): void
     {
         $response = new MockResponse(new App());
         $response->misbehave();
@@ -458,7 +516,7 @@ final class ResponseTest extends CIUnitTestCase
         $response->getStatusCode();
     }
 
-    public function testTemporaryRedirect11()
+    public function testTemporaryRedirectHTTP11(): void
     {
         $_SERVER['SERVER_PROTOCOL'] = 'HTTP/1.1';
         $_SERVER['REQUEST_METHOD']  = 'POST';
@@ -470,7 +528,7 @@ final class ResponseTest extends CIUnitTestCase
         $this->assertSame(303, $response->getStatusCode());
     }
 
-    public function testTemporaryRedirectGet11()
+    public function testTemporaryRedirectGetHTTP11(): void
     {
         $_SERVER['SERVER_PROTOCOL'] = 'HTTP/1.1';
         $_SERVER['REQUEST_METHOD']  = 'GET';
@@ -479,26 +537,26 @@ final class ResponseTest extends CIUnitTestCase
         $response->setProtocolVersion('HTTP/1.1');
         $response->redirect('/foo');
 
-        $this->assertSame(307, $response->getStatusCode());
+        $this->assertSame(302, $response->getStatusCode());
     }
 
     // Make sure cookies are set by RedirectResponse this way
     // See https://github.com/codeigniter4/CodeIgniter4/issues/1393
-    public function testRedirectResponseCookies()
+    public function testRedirectResponseCookies(): void
     {
         $loginTime = time();
 
         $response = new Response(new App());
         $answer1  = $response->redirect('/login')
             ->setCookie('foo', 'bar', YEAR)
-            ->setCookie('login_time', $loginTime, YEAR);
+            ->setCookie('login_time', (string) $loginTime, YEAR);
 
         $this->assertTrue($answer1->hasCookie('foo'));
         $this->assertTrue($answer1->hasCookie('login_time'));
     }
 
     // Make sure we don't blow up if pretending to send headers
-    public function testPretendOutput()
+    public function testPretendOutput(): void
     {
         $response = new Response(new App());
         $response->pretend(true);
@@ -511,15 +569,5 @@ final class ResponseTest extends CIUnitTestCase
         ob_end_clean();
 
         $this->assertSame('Happy days', $actual);
-    }
-
-    public function testInvalidSameSiteCookie()
-    {
-        $config                 = new App();
-        $config->cookieSameSite = 'Invalid';
-
-        $this->expectException(CookieException::class);
-        $this->expectExceptionMessage(lang('Cookie.invalidSameSite', ['Invalid']));
-        new Response($config);
     }
 }

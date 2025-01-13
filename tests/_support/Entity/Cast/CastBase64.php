@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -18,10 +20,8 @@ class CastBase64 extends BaseCast
     /**
      * Get
      *
-     * @param mixed $value  Data
-     * @param array $params Additional param
-     *
-     * @return mixed
+     * @param string $value  Data
+     * @param array  $params Additional param
      */
     public static function get($value, array $params = []): string
     {
@@ -31,10 +31,8 @@ class CastBase64 extends BaseCast
     /**
      * Set
      *
-     * @param mixed $value  Data
-     * @param array $params Additional param
-     *
-     * @return mixed
+     * @param string $value  Data
+     * @param array  $params Additional param
      */
     public static function set($value, array $params = []): string
     {

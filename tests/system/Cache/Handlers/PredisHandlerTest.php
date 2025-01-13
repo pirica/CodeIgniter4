@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -14,13 +16,13 @@ namespace CodeIgniter\Cache\Handlers;
 use CodeIgniter\CLI\CLI;
 use CodeIgniter\I18n\Time;
 use Config\Cache;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
- * @group CacheLive
- *
  * @internal
  */
-final class PredisHandlerTest extends AbstractHandlerTest
+#[Group('CacheLive')]
+final class PredisHandlerTest extends AbstractHandlerTestCase
 {
     private Cache $config;
 
@@ -51,12 +53,12 @@ final class PredisHandlerTest extends AbstractHandlerTest
         }
     }
 
-    public function testNew()
+    public function testNew(): void
     {
         $this->assertInstanceOf(PredisHandler::class, $this->handler);
     }
 
-    public function testDestruct()
+    public function testDestruct(): void
     {
         $this->handler = new PredisHandler($this->config);
         $this->handler->initialize();
@@ -70,7 +72,7 @@ final class PredisHandlerTest extends AbstractHandlerTest
      *
      * @timeLimit 3.5
      */
-    public function testGet()
+    public function testGet(): void
     {
         $this->handler->save(self::$key1, 'value', 2);
 
@@ -87,9 +89,9 @@ final class PredisHandlerTest extends AbstractHandlerTest
      *
      * @timeLimit 3.5
      */
-    public function testRemember()
+    public function testRemember(): void
     {
-        $this->handler->remember(self::$key1, 2, static fn () => 'value');
+        $this->handler->remember(self::$key1, 2, static fn (): string => 'value');
 
         $this->assertSame('value', $this->handler->get(self::$key1));
         $this->assertNull($this->handler->get(self::$dummy));
@@ -98,12 +100,12 @@ final class PredisHandlerTest extends AbstractHandlerTest
         $this->assertNull($this->handler->get(self::$key1));
     }
 
-    public function testSave()
+    public function testSave(): void
     {
         $this->assertTrue($this->handler->save(self::$key1, 'value'));
     }
 
-    public function testSavePermanent()
+    public function testSavePermanent(): void
     {
         $this->assertTrue($this->handler->save(self::$key1, 'value', 0));
         $metaData = $this->handler->getMetaData(self::$key1);
@@ -115,7 +117,7 @@ final class PredisHandlerTest extends AbstractHandlerTest
         $this->assertTrue($this->handler->delete(self::$key1));
     }
 
-    public function testDelete()
+    public function testDelete(): void
     {
         $this->handler->save(self::$key1, 'value');
 
@@ -123,7 +125,7 @@ final class PredisHandlerTest extends AbstractHandlerTest
         $this->assertFalse($this->handler->delete(self::$dummy));
     }
 
-    public function testDeleteMatchingPrefix()
+    public function testDeleteMatchingPrefix(): void
     {
         // Save 101 items to match on
         for ($i = 1; $i <= 101; $i++) {
@@ -141,7 +143,7 @@ final class PredisHandlerTest extends AbstractHandlerTest
         $this->assertSame('88', $this->handler->getCacheInfo()['Keyspace']['db0']['keys']);
     }
 
-    public function testDeleteMatchingSuffix()
+    public function testDeleteMatchingSuffix(): void
     {
         // Save 101 items to match on
         for ($i = 1; $i <= 101; $i++) {
@@ -159,7 +161,7 @@ final class PredisHandlerTest extends AbstractHandlerTest
         $this->assertSame('90', $this->handler->getCacheInfo()['Keyspace']['db0']['keys']);
     }
 
-    public function testClean()
+    public function testClean(): void
     {
         $this->handler->save(self::$key1, 1);
         $this->handler->save(self::$key2, 'value');
@@ -167,14 +169,14 @@ final class PredisHandlerTest extends AbstractHandlerTest
         $this->assertTrue($this->handler->clean());
     }
 
-    public function testGetCacheInfo()
+    public function testGetCacheInfo(): void
     {
         $this->handler->save(self::$key1, 'value');
 
         $this->assertIsArray($this->handler->getCacheInfo());
     }
 
-    public function testIsSupported()
+    public function testIsSupported(): void
     {
         $this->assertTrue($this->handler->isSupported());
     }

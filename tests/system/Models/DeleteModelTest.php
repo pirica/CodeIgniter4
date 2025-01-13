@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -13,15 +15,16 @@ namespace CodeIgniter\Models;
 
 use CodeIgniter\Database\Exceptions\DatabaseException;
 use CodeIgniter\Exceptions\ModelException;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use Tests\Support\Models\JobModel;
 use Tests\Support\Models\StringifyPkeyModel;
 use Tests\Support\Models\UserModel;
 
 /**
- * @group DatabaseLive
- *
  * @internal
  */
+#[Group('DatabaseLive')]
 final class DeleteModelTest extends LiveModelTestCase
 {
     public function testDeleteBasics(): void
@@ -152,10 +155,9 @@ final class DeleteModelTest extends LiveModelTestCase
      * When executing a soft delete
      * Then an exception should not be thrown
      *
-     * @dataProvider emptyPkValues
-     *
      * @param int|string|null $emptyValue
      */
+    #[DataProvider('emptyPkValues')]
     public function testDontThrowExceptionWhenSoftDeleteConditionIsSetWithEmptyValue($emptyValue): void
     {
         $this->createModel(UserModel::class);
@@ -166,10 +168,9 @@ final class DeleteModelTest extends LiveModelTestCase
     }
 
     /**
-     * @dataProvider emptyPkValues
-     *
      * @param int|string|null $emptyValue
      */
+    #[DataProvider('emptyPkValues')]
     public function testThrowExceptionWhenSoftDeleteParamIsEmptyValue($emptyValue): void
     {
         $this->expectException(DatabaseException::class);
@@ -181,17 +182,16 @@ final class DeleteModelTest extends LiveModelTestCase
     }
 
     /**
-     * @dataProvider emptyPkValues
-     *
      * @param int|string|null $emptyValue
      */
+    #[DataProvider('emptyPkValues')]
     public function testDontDeleteRowsWhenSoftDeleteParamIsEmpty($emptyValue): void
     {
         $this->seeInDatabase('user', ['name' => 'Derek Jones', 'deleted_at IS NULL' => null]);
 
         try {
             $this->createModel(UserModel::class)->delete($emptyValue);
-        } catch (DatabaseException $e) {
+        } catch (DatabaseException) {
             // Do nothing.
         }
 
@@ -241,16 +241,15 @@ final class DeleteModelTest extends LiveModelTestCase
     }
 
     /**
-     * @dataProvider emptyPkValues
-     *
      * @param int|string|null $id
      */
+    #[DataProvider('emptyPkValues')]
     public function testDeleteThrowDatabaseExceptionWithoutWhereClause($id): void
     {
         // BaseBuilder throws Exception.
         $this->expectException(DatabaseException::class);
         $this->expectExceptionMessage(
-            'Deletes are not allowed unless they contain a "where" or "like" clause.'
+            'Deletes are not allowed unless they contain a "where" or "like" clause.',
         );
 
         // $useSoftDeletes = false
@@ -260,16 +259,15 @@ final class DeleteModelTest extends LiveModelTestCase
     }
 
     /**
-     * @dataProvider emptyPkValues
-     *
      * @param int|string|null $id
      */
+    #[DataProvider('emptyPkValues')]
     public function testDeleteWithSoftDeleteThrowDatabaseExceptionWithoutWhereClause($id): void
     {
         // Model throws Exception.
         $this->expectException(DatabaseException::class);
         $this->expectExceptionMessage(
-            'Deletes are not allowed unless they contain a "where" or "like" clause.'
+            'Deletes are not allowed unless they contain a "where" or "like" clause.',
         );
 
         // $useSoftDeletes = true

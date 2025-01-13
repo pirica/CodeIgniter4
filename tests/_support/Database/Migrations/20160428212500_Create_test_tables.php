@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -15,7 +17,7 @@ use CodeIgniter\Database\Migration;
 
 class Migration_Create_test_tables extends Migration
 {
-    public function up()
+    public function up(): void
     {
         // User Table
         $this->forge->addField([
@@ -46,16 +48,23 @@ class Migration_Create_test_tables extends Migration
         ])->addKey('id', true)->createTable('misc', true);
 
         // Database Type test table
-        // missing types :
-        // TINYINT,MEDIUMINT,BIT,YEAR,BINARY , VARBINARY, TINYTEXT,LONGTEXT,YEAR,JSON,Spatial data types
-        // id must be interger else SQLite3 error on not null for autoinc field
-        $data_type_fields = [
-            'id'              => ['type' => 'INTEGER', 'constraint' => 20, 'auto_increment' => true],
-            'type_varchar'    => ['type' => 'VARCHAR', 'constraint' => 40, 'null' => true],
-            'type_char'       => ['type' => 'CHAR', 'constraint' => 10, 'null' => true],
-            'type_text'       => ['type' => 'TEXT', 'null' => true],
-            'type_smallint'   => ['type' => 'SMALLINT', 'null' => true],
-            'type_integer'    => ['type' => 'INTEGER', 'null' => true],
+        // missing types:
+        //   TINYINT,MEDIUMINT,BIT,YEAR,BINARY,VARBINARY,TINYTEXT,LONGTEXT,
+        //   JSON,Spatial data types
+        // `id` must be INTEGER else SQLite3 error on not null for autoincrement field.
+        $dataTypeFields = [
+            'id'           => ['type' => 'INTEGER', 'constraint' => 20, 'auto_increment' => true],
+            'type_varchar' => ['type' => 'VARCHAR', 'constraint' => 40, 'null' => true],
+            'type_char'    => ['type' => 'CHAR', 'constraint' => 10, 'null' => true],
+            // TEXT should not be used on SQLSRV. It is deprecated.
+            'type_text'     => ['type' => 'TEXT', 'null' => true],
+            'type_smallint' => ['type' => 'SMALLINT', 'null' => true],
+            'type_integer'  => ['type' => 'INTEGER', 'null' => true],
+            // FLOAT should not be used on MySQL.
+            //   CREATE TABLE t (f FLOAT, d DOUBLE);
+            //   INSERT INTO t VALUES(99.9, 99.9);
+            //   SELECT * FROM t WHERE f=99.9; // Empty set
+            //   SELECT * FROM t WHERE d=99.9; // 1 row
             'type_float'      => ['type' => 'FLOAT', 'null' => true],
             'type_numeric'    => ['type' => 'NUMERIC', 'constraint' => '18,2', 'null' => true],
             'type_date'       => ['type' => 'DATE', 'null' => true],
@@ -75,26 +84,26 @@ class Migration_Create_test_tables extends Migration
 
         if ($this->db->DBDriver === 'Postgre') {
             unset(
-                $data_type_fields['type_real'],
-                $data_type_fields['type_decimal']
+                $dataTypeFields['type_real'],
+                $dataTypeFields['type_decimal'],
+                $dataTypeFields['type_enum'],
             );
         }
 
         if ($this->db->DBDriver === 'SQLSRV') {
-            unset($data_type_fields['type_timestamp']);
+            unset($dataTypeFields['type_timestamp']);
+            $dataTypeFields['type_text'] = ['type' => 'NVARCHAR(max)', 'null' => true];
         }
 
         if ($this->db->DBDriver === 'Postgre' || $this->db->DBDriver === 'SQLSRV') {
             unset(
-                $data_type_fields['type_enum'],
-                $data_type_fields['type_set'],
-                $data_type_fields['type_mediumtext'],
-                $data_type_fields['type_double'],
-                $data_type_fields['type_blob']
+                $dataTypeFields['type_set'],
+                $dataTypeFields['type_mediumtext'],
+                $dataTypeFields['type_double'],
             );
         }
 
-        $this->forge->addField($data_type_fields)->addKey('id', true)->createTable('type_test', true);
+        $this->forge->addField($dataTypeFields)->addKey('id', true)->createTable('type_test', true);
 
         // Empty Table
         $this->forge->addField([
@@ -160,7 +169,7 @@ class Migration_Create_test_tables extends Migration
         }
     }
 
-    public function down()
+    public function down(): void
     {
         $this->forge->dropTable('user', true);
         $this->forge->dropTable('job', true);

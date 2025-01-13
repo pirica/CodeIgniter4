@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -13,16 +15,16 @@ namespace CodeIgniter\HTTP;
 
 use CodeIgniter\Test\CIUnitTestCase;
 use Error;
+use PHPUnit\Framework\Attributes\Group;
 use stdClass;
 
 /**
  * @internal
- *
- * @group Others
  */
+#[Group('Others')]
 final class HeaderTest extends CIUnitTestCase
 {
-    public function testHeaderStoresBasics()
+    public function testHeaderStoresBasics(): void
     {
         $name  = 'foo';
         $value = 'bar';
@@ -33,7 +35,7 @@ final class HeaderTest extends CIUnitTestCase
         $this->assertSame($value, $header->getValue());
     }
 
-    public function testHeaderStoresBasicsWithNull()
+    public function testHeaderStoresBasicsWithNull(): void
     {
         $name  = 'foo';
         $value = null;
@@ -44,7 +46,7 @@ final class HeaderTest extends CIUnitTestCase
         $this->assertSame('', $header->getValue());
     }
 
-    public function testHeaderStoresBasicWithInt()
+    public function testHeaderStoresBasicWithInt(): void
     {
         $name  = 'foo';
         $value = 123;
@@ -55,7 +57,7 @@ final class HeaderTest extends CIUnitTestCase
         $this->assertSame((string) $value, $header->getValue());
     }
 
-    public function testHeaderStoresBasicWithObject()
+    public function testHeaderStoresBasicWithObject(): void
     {
         $this->expectException(Error::class);
         $this->expectExceptionMessage('Object of class stdClass could not be converted to string');
@@ -66,7 +68,7 @@ final class HeaderTest extends CIUnitTestCase
         new Header($name, $value);
     }
 
-    public function testHeaderStoresArrayValues()
+    public function testHeaderStoresArrayValues(): void
     {
         $name  = 'foo';
         $value = [
@@ -80,7 +82,7 @@ final class HeaderTest extends CIUnitTestCase
         $this->assertSame($value, $header->getValue());
     }
 
-    public function testHeaderStoresArrayKeyValue()
+    public function testHeaderStoresArrayKeyValue(): void
     {
         $name  = 'foo';
         $value = [
@@ -94,7 +96,7 @@ final class HeaderTest extends CIUnitTestCase
         $this->assertSame('key=val', $header->getValueLine());
     }
 
-    public function testHeaderSetters()
+    public function testHeaderSetters(): void
     {
         $name  = 'foo';
         $value = [
@@ -114,7 +116,7 @@ final class HeaderTest extends CIUnitTestCase
         $this->assertSame($name . ': bar, 123', (string) $header);
     }
 
-    public function testHeaderAppendsValueSkippedForNull()
+    public function testHeaderAppendsValueSkippedForNull(): void
     {
         $name     = 'foo';
         $value    = 'bar';
@@ -128,7 +130,7 @@ final class HeaderTest extends CIUnitTestCase
         $this->assertSame($expected, $header->getValue());
     }
 
-    public function testHeaderConvertsSingleToArray()
+    public function testHeaderConvertsSingleToArray(): void
     {
         $name  = 'foo';
         $value = 'bar';
@@ -146,7 +148,7 @@ final class HeaderTest extends CIUnitTestCase
         $this->assertSame($expected, $header->getValue());
     }
 
-    public function testHeaderPrependsValueSkippedForNull()
+    public function testHeaderPrependsValueSkippedForNull(): void
     {
         $name     = 'foo';
         $value    = 'bar';
@@ -160,7 +162,7 @@ final class HeaderTest extends CIUnitTestCase
         $this->assertSame($expected, $header->getValue());
     }
 
-    public function testHeaderPrependsValue()
+    public function testHeaderPrependsValue(): void
     {
         $name  = 'foo';
         $value = 'bar';
@@ -178,7 +180,7 @@ final class HeaderTest extends CIUnitTestCase
         $this->assertSame($expected, $header->getValue());
     }
 
-    public function testHeaderLineSimple()
+    public function testHeaderLineSimple(): void
     {
         $name  = 'foo';
         $value = [
@@ -194,7 +196,7 @@ final class HeaderTest extends CIUnitTestCase
         $this->assertSame($expected, $header->getValueLine());
     }
 
-    public function testHeaderSetValueWithNullWillMarkAsEmptyString()
+    public function testHeaderSetValueWithNullWillMarkAsEmptyString(): void
     {
         $name     = 'foo';
         $expected = '';
@@ -206,7 +208,7 @@ final class HeaderTest extends CIUnitTestCase
         $this->assertSame($expected, $header->getValueLine());
     }
 
-    public function testHeaderLineWithArrayValues()
+    public function testHeaderLineWithArrayValues(): void
     {
         $name = 'foo';
 
@@ -220,7 +222,7 @@ final class HeaderTest extends CIUnitTestCase
         $this->assertSame($expected, $header->getValueLine());
     }
 
-    public function testHeaderToStringShowsEntireHeader()
+    public function testHeaderToStringShowsEntireHeader(): void
     {
         $name = 'foo';
 

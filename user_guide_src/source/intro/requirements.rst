@@ -10,11 +10,17 @@ Server Requirements
 PHP and Required Extensions
 ***************************
 
-`PHP <https://www.php.net/>`_ version 7.4 or newer is required, with the following PHP extensions are enabled:
+`PHP <https://www.php.net/>`_ version 8.1 or newer is required, with the following PHP extensions are enabled:
 
   - `intl <https://www.php.net/manual/en/intl.requirements.php>`_
   - `mbstring <https://www.php.net/manual/en/mbstring.requirements.php>`_
   - `json <https://www.php.net/manual/en/json.requirements.php>`_
+
+.. warning::
+    - The end of life date for PHP 7.4 was November 28, 2022.
+    - The end of life date for PHP 8.0 was November 26, 2023.
+    - If you are still using PHP 7.4 or 8.0, you should upgrade immediately.
+    - The end of life date for PHP 8.1 will be December 31, 2025.
 
 ***********************
 Optional PHP Extensions
@@ -49,11 +55,11 @@ Supported Databases
 A database is required for most web application programming.
 Currently supported databases are:
 
-  - MySQL via the *MySQLi* driver (version 5.1 and above only)
-  - PostgreSQL via the *Postgre* driver
-  - SQLite3 via the *SQLite3* driver
-  - MSSQL via the *SQLSRV* driver (version 2005 and above only)
-  - Oracle via the *OCI8* driver (version 12.1 and above only)
+  - MySQL via the ``MySQLi`` driver (version 5.1 and above only)
+  - PostgreSQL via the ``Postgre`` driver (version 7.4 and above only)
+  - SQLite3 via the ``SQLite3`` driver
+  - Microsoft SQL Server via the ``SQLSRV`` driver (version 2012 and above only)
+  - Oracle Database via the ``OCI8`` driver (version 12.1 and above only)
 
 Not all of the drivers have been converted/rewritten for CodeIgniter4.
 The list below shows the outstanding ones.

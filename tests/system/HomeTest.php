@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -14,21 +16,21 @@ namespace CodeIgniter;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\FeatureTestTrait;
 use CodeIgniter\Test\TestResponse;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * @internal
- *
- * @group Others
  */
+#[Group('Others')]
 final class HomeTest extends CIUnitTestCase
 {
     use FeatureTestTrait;
 
-    public function testPageLoadsSuccessfully()
+    public function testPageLoadsSuccessfully(): void
     {
         $this->withRoutes([
             [
-                'get',
+                'GET',
                 'home',
                 '\App\Controllers\Home::index',
             ],

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -13,6 +15,7 @@ namespace CodeIgniter\Pager;
 
 use CodeIgniter\Config\Factories;
 use CodeIgniter\HTTP\IncomingRequest;
+use CodeIgniter\HTTP\SiteURI;
 use CodeIgniter\HTTP\URI;
 use CodeIgniter\HTTP\UserAgent;
 use CodeIgniter\Pager\Exceptions\PagerException;
@@ -20,14 +23,14 @@ use CodeIgniter\Test\CIUnitTestCase;
 use Config\App;
 use Config\Pager as PagerConfig;
 use Config\Services;
+use PHPUnit\Framework\Attributes\BackupGlobals;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
- * @backupGlobals enabled
- *
  * @internal
- *
- * @group Others
  */
+#[BackupGlobals(true)]
+#[Group('Others')]
 final class PagerTest extends CIUnitTestCase
 {
     private ?Pager $pager        = null;
@@ -53,27 +56,27 @@ final class PagerTest extends CIUnitTestCase
 
         $request = new IncomingRequest(
             $config,
-            new URI($config->baseURL . ltrim($requestUri, '/')),
+            new SiteURI($config, ltrim($requestUri, '/')),
             'php://input',
-            new UserAgent()
+            new UserAgent(),
         );
         $request = $request->withMethod('GET');
         Services::injectMock('request', $request);
 
         $this->config = new PagerConfig();
-        $this->pager  = new Pager($this->config, Services::renderer());
+        $this->pager  = new Pager($this->config, service('renderer'));
     }
 
-    public function testSetPathRemembersPath()
+    public function testSetPathRemembersPath(): void
     {
         $this->pager->setPath('foo/bar');
 
         $details = $this->pager->getDetails();
 
-        $this->assertSame('foo/bar', $details['uri']->getPath());
+        $this->assertSame('foo/bar', $details['uri']->getRoutePath());
     }
 
-    public function testGetDetailsRecognizesPageQueryVar()
+    public function testGetDetailsRecognizesPageQueryVar(): void
     {
         $_GET['page'] = 2;
 
@@ -85,7 +88,7 @@ final class PagerTest extends CIUnitTestCase
         $this->assertSame(2, $details['currentPage']);
     }
 
-    public function testGetDetailsRecognizesGroupedPageQueryVar()
+    public function testGetDetailsRecognizesGroupedPageQueryVar(): void
     {
         $_GET['page_foo'] = 2;
 
@@ -97,14 +100,14 @@ final class PagerTest extends CIUnitTestCase
         $this->assertSame(2, $details['currentPage']);
     }
 
-    public function testGetDetailsThrowExceptionIfGroupNotFound()
+    public function testGetDetailsThrowExceptionIfGroupNotFound(): void
     {
         $this->expectException(PagerException::class);
 
         $this->pager->getDetails('foo');
     }
 
-    public function testDetailsHasConfiguredPerPageValue()
+    public function testDetailsHasConfiguredPerPageValue(): void
     {
         // Need this to create the group.
         $this->pager->setPath('foo/bar', 'foo');
@@ -114,43 +117,43 @@ final class PagerTest extends CIUnitTestCase
         $this->assertSame($this->config->perPage, $details['perPage']);
     }
 
-    public function testStoreDoesBasicCalcs()
+    public function testStoreDoesBasicCalcs(): void
     {
         $this->pager->store('foo', 3, 25, 100);
 
         $details = $this->pager->getDetails('foo');
 
-        $this->assertSame($details['total'], 100);
-        $this->assertSame($details['perPage'], 25);
-        $this->assertSame($details['currentPage'], 3);
+        $this->assertSame(100, $details['total']);
+        $this->assertSame(25, $details['perPage']);
+        $this->assertSame(3, $details['currentPage']);
     }
 
-    public function testStoreDoesBasicCalcsOnPerPageReadFromPagerConfig()
+    public function testStoreDoesBasicCalcsOnPerPageReadFromPagerConfig(): void
     {
         $this->pager->store('foo', 3, null, 100);
 
         $details = $this->pager->getDetails('foo');
 
-        $this->assertSame($details['total'], 100);
-        $this->assertSame($details['perPage'], 20);
-        $this->assertSame($details['currentPage'], 3);
+        $this->assertSame(100, $details['total']);
+        $this->assertSame(20, $details['perPage']);
+        $this->assertSame(3, $details['currentPage']);
     }
 
-    public function testStoreAndHasMore()
+    public function testStoreAndHasMore(): void
     {
         $this->pager->store('foo', 3, 25, 100);
 
         $this->assertTrue($this->pager->hasMore('foo'));
     }
 
-    public function testStoreAndHasMoreCanBeFalse()
+    public function testStoreAndHasMoreCanBeFalse(): void
     {
         $this->pager->store('foo', 3, 25, 70);
 
         $this->assertFalse($this->pager->hasMore('foo'));
     }
 
-    public function testStoreWithQueries()
+    public function testStoreWithQueries(): void
     {
         $_GET['page'] = 3;
         $_GET['foo']  = 'bar';
@@ -162,11 +165,15 @@ final class PagerTest extends CIUnitTestCase
         $this->assertSame('http://example.com/?page=5&foo=bar', $this->pager->getPageURI(5));
         $this->assertSame(
             'http://example.com/?foo=bar&page=5',
-            $this->pager->only(['foo'])->getPageURI(5)
+            $this->pager->only(['foo'])->getPageURI(5),
+        );
+        $this->assertSame(
+            'http://example.com/?page=5',
+            $this->pager->only([])->getPageURI(5),
         );
     }
 
-    public function testStoreWithSegments()
+    public function testStoreWithSegments(): void
     {
         $_GET['page'] = 3;
         $_GET['foo']  = 'bar';
@@ -178,11 +185,15 @@ final class PagerTest extends CIUnitTestCase
         $this->assertSame('http://example.com/5?page=3&foo=bar', $this->pager->getPageURI(5));
         $this->assertSame(
             'http://example.com/5?foo=bar',
-            $this->pager->only(['foo'])->getPageURI(5)
+            $this->pager->only(['foo'])->getPageURI(5),
+        );
+        $this->assertSame(
+            'http://example.com/5',
+            $this->pager->only([])->getPageURI(5),
         );
     }
 
-    public function testGetPageURIWithURIReturnObject()
+    public function testGetPageURIWithURIReturnObject(): void
     {
         $this->pager->store('bar', 5, 25, 100, 1);
 
@@ -191,50 +202,50 @@ final class PagerTest extends CIUnitTestCase
         $this->assertInstanceOf(URI::class, $uri);
     }
 
-    public function testHasMoreDefaultsToFalse()
+    public function testHasMoreDefaultsToFalse(): void
     {
         $this->assertFalse($this->pager->hasMore('foo'));
     }
 
-    public function testPerPageHasDefaultValue()
+    public function testPerPageHasDefaultValue(): void
     {
         $this->assertSame($this->config->perPage, $this->pager->getPerPage());
     }
 
-    public function testPerPageKeepsStoredValue()
+    public function testPerPageKeepsStoredValue(): void
     {
         $this->pager->store('foo', 3, 13, 70);
 
         $this->assertSame(13, $this->pager->getPerPage('foo'));
     }
 
-    public function testGetCurrentPageDefaultsToOne()
+    public function testGetCurrentPageDefaultsToOne(): void
     {
         $this->assertSame(1, $this->pager->getCurrentPage());
     }
 
-    public function testGetCurrentPageRemembersStoredPage()
+    public function testGetCurrentPageRemembersStoredPage(): void
     {
         $this->pager->store('foo', 3, 13, 70);
 
         $this->assertSame(3, $this->pager->getCurrentPage('foo'));
     }
 
-    public function testGetCurrentPageDetectsURI()
+    public function testGetCurrentPageDetectsURI(): void
     {
         $_GET['page'] = 2;
 
         $this->assertSame(2, $this->pager->getCurrentPage());
     }
 
-    public function testGetCurrentPageDetectsGroupedURI()
+    public function testGetCurrentPageDetectsGroupedURI(): void
     {
         $_GET['page_foo'] = 2;
 
         $this->assertSame(2, $this->pager->getCurrentPage('foo'));
     }
 
-    public function testGetCurrentPageFromSegment()
+    public function testGetCurrentPageFromSegment(): void
     {
         $this->createPager('/page/2');
 
@@ -244,26 +255,26 @@ final class PagerTest extends CIUnitTestCase
         $this->assertSame(2, $this->pager->getCurrentPage());
     }
 
-    public function testGetTotalPagesDefaultsToOne()
+    public function testGetTotalPagesDefaultsToOne(): void
     {
         $this->assertSame(1, $this->pager->getPageCount());
     }
 
-    public function testGetTotalCorrectValue()
+    public function testGetTotalCorrectValue(): void
     {
         $this->pager->store('foo', 3, 12, 70);
 
         $this->assertSame(70, $this->pager->getTotal('foo'));
     }
 
-    public function testGetTotalPagesCalcsCorrectValue()
+    public function testGetTotalPagesCalcsCorrectValue(): void
     {
         $this->pager->store('foo', 3, 12, 70);
 
         $this->assertSame(6, $this->pager->getPageCount('foo'));
     }
 
-    public function testGetNextURIUsesCurrentURI()
+    public function testGetNextURIUsesCurrentURI(): void
     {
         $_GET['page_foo'] = 2;
 
@@ -275,14 +286,14 @@ final class PagerTest extends CIUnitTestCase
         $this->assertSame($expected, $this->pager->getNextPageURI('foo'));
     }
 
-    public function testGetNextURIReturnsNullOnLastPage()
+    public function testGetNextURIReturnsNullOnLastPage(): void
     {
         $this->pager->store('foo', 6, 12, 70);
 
         $this->assertNull($this->pager->getNextPageURI('foo'));
     }
 
-    public function testGetNextURICorrectOnFirstPage()
+    public function testGetNextURICorrectOnFirstPage(): void
     {
         $this->pager->store('foo', 1, 12, 70);
 
@@ -292,7 +303,7 @@ final class PagerTest extends CIUnitTestCase
         $this->assertSame($expected, $this->pager->getNextPageURI('foo'));
     }
 
-    public function testGetPreviousURIUsesCurrentURI()
+    public function testGetPreviousURIUsesCurrentURI(): void
     {
         $_GET['page_foo'] = 2;
 
@@ -304,14 +315,14 @@ final class PagerTest extends CIUnitTestCase
         $this->assertSame($expected, $this->pager->getPreviousPageURI('foo'));
     }
 
-    public function testGetNextURIReturnsNullOnFirstPage()
+    public function testGetNextURIReturnsNullOnFirstPage(): void
     {
         $this->pager->store('foo', 1, 12, 70);
 
         $this->assertNull($this->pager->getPreviousPageURI('foo'));
     }
 
-    public function testGetNextURIWithQueryStringUsesCurrentURI()
+    public function testGetNextURIWithQueryStringUsesCurrentURI(): void
     {
         $_GET = [
             'page_foo' => 3,
@@ -326,7 +337,7 @@ final class PagerTest extends CIUnitTestCase
         $this->assertSame($expected, $this->pager->getNextPageURI('foo'));
     }
 
-    public function testGetPreviousURIWithQueryStringUsesCurrentURI()
+    public function testGetPreviousURIWithQueryStringUsesCurrentURI(): void
     {
         $_GET = [
             'page_foo' => 1,
@@ -340,7 +351,7 @@ final class PagerTest extends CIUnitTestCase
         $this->assertSame($expected, $this->pager->getPreviousPageURI('foo'));
     }
 
-    public function testGetOnlyQueries()
+    public function testGetOnlyQueries(): void
     {
         $_GET = [
             'page'     => 2,
@@ -360,19 +371,19 @@ final class PagerTest extends CIUnitTestCase
 
         $this->assertSame(
             $this->pager->only($onlyQueries)->getPreviousPageURI(),
-            (string) $uri->setQuery('search=foo&order=asc&page=1')
+            (string) $uri->setQuery('search=foo&order=asc&page=1'),
         );
         $this->assertSame(
             $this->pager->only($onlyQueries)->getNextPageURI(),
-            (string) $uri->setQuery('search=foo&order=asc&page=3')
+            (string) $uri->setQuery('search=foo&order=asc&page=3'),
         );
         $this->assertSame(
             $this->pager->only($onlyQueries)->getPageURI(4),
-            (string) $uri->setQuery('search=foo&order=asc&page=4')
+            (string) $uri->setQuery('search=foo&order=asc&page=4'),
         );
     }
 
-    public function testBadTemplate()
+    public function testBadTemplate(): void
     {
         $this->expectException(PagerException::class);
         $this->pager->links('default', 'bogus');
@@ -381,65 +392,65 @@ final class PagerTest extends CIUnitTestCase
     // the tests below are looking for specific <ul> elements.
     // not the most rigorous, but a start :-/
 
-    public function testLinks()
+    public function testLinks(): void
     {
         $this->assertStringContainsString('<ul class="pagination">', $this->pager->links());
     }
 
-    public function testSimpleLinks()
+    public function testSimpleLinks(): void
     {
         $this->assertStringContainsString('<ul class="pager">', $this->pager->simpleLinks());
     }
 
-    public function testMakeLinks()
+    public function testMakeLinks(): void
     {
         $this->assertStringContainsString(
             '<ul class="pagination">',
-            $this->pager->makeLinks(4, 10, 50)
+            $this->pager->makeLinks(4, 10, 50),
         );
         $this->assertStringContainsString(
             '<ul class="pagination">',
-            $this->pager->makeLinks(4, 10, 50, 'default_full')
+            $this->pager->makeLinks(4, 10, 50, 'default_full'),
         );
         $this->assertStringContainsString(
             '<ul class="pager">',
-            $this->pager->makeLinks(4, 10, 50, 'default_simple')
+            $this->pager->makeLinks(4, 10, 50, 'default_simple'),
         );
         $this->assertStringContainsString(
             '<link rel="canonical"',
-            $this->pager->makeLinks(4, 10, 50, 'default_head')
+            $this->pager->makeLinks(4, 10, 50, 'default_head'),
         );
         $this->assertStringContainsString(
             '?page=1',
-            $this->pager->makeLinks(1, 10, 1, 'default_full', 0)
+            $this->pager->makeLinks(1, 10, 1, 'default_full', 0),
         );
         $this->assertStringContainsString(
             '?page=1',
-            $this->pager->makeLinks(1, 10, 1, 'default_full', 0, '')
+            $this->pager->makeLinks(1, 10, 1, 'default_full', 0, ''),
         );
         $this->assertStringContainsString(
             '?page=1',
-            $this->pager->makeLinks(1, 10, 1, 'default_full', 0, 'default')
+            $this->pager->makeLinks(1, 10, 1, 'default_full', 0, 'default'),
         );
         $this->assertStringContainsString(
             '?page_custom=1',
-            $this->pager->makeLinks(1, 10, 1, 'default_full', 0, 'custom')
+            $this->pager->makeLinks(1, 10, 1, 'default_full', 0, 'custom'),
         );
         $this->assertStringContainsString(
             '?page_custom=1',
-            $this->pager->makeLinks(1, null, 1, 'default_full', 0, 'custom')
+            $this->pager->makeLinks(1, null, 1, 'default_full', 0, 'custom'),
         );
         $this->assertStringContainsString(
             '/1',
-            $this->pager->makeLinks(1, 10, 1, 'default_full', 1)
+            $this->pager->makeLinks(1, 10, 1, 'default_full', 1),
         );
         $this->assertStringContainsString(
             '<li class="active">',
-            $this->pager->makeLinks(1, 10, 1, 'default_full', 1)
+            $this->pager->makeLinks(1, 10, 1, 'default_full', 1),
         );
     }
 
-    public function testHeadLinks()
+    public function testHeadLinks(): void
     {
         $firstPage = $this->pager->makeLinks(1, 10, 50, 'default_head');
 
@@ -460,7 +471,7 @@ final class PagerTest extends CIUnitTestCase
         $this->assertStringNotContainsString('<link rel="next"', $lastPage);
     }
 
-    public function testBasedURI()
+    public function testBasedURI(): void
     {
         $_SERVER['HTTP_HOST']   = 'example.com';
         $_SERVER['REQUEST_URI'] = '/ci/v4/x/y';
@@ -474,15 +485,15 @@ final class PagerTest extends CIUnitTestCase
 
         $request = new IncomingRequest(
             $config,
-            new URI(),
+            new SiteURI($config, 'x/y'),
             'php://input',
-            new UserAgent()
+            new UserAgent(),
         );
         $request = $request->withMethod('GET');
         Services::injectMock('request', $request);
 
         $this->config = new PagerConfig();
-        $this->pager  = new Pager($this->config, Services::renderer());
+        $this->pager  = new Pager($this->config, service('renderer'));
 
         $_GET['page_foo'] = 2;
 
@@ -494,13 +505,13 @@ final class PagerTest extends CIUnitTestCase
         $this->assertSame($expected, $this->pager->getPreviousPageURI('foo'));
     }
 
-    public function testAccessPageMoreThanPageCountGetLastPage()
+    public function testAccessPageMoreThanPageCountGetLastPage(): void
     {
         $this->pager->store('default', 11, 1, 10);
         $this->assertSame(10, $this->pager->getCurrentPage());
     }
 
-    public function testSegmentOutOfBound()
+    public function testSegmentOutOfBound(): void
     {
         $this->pager->store('default', 10, 1, 10, 1000);
         $this->assertSame(1, $this->pager->getCurrentPage());

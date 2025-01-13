@@ -15,40 +15,75 @@ the application configuration files in the **app/Config** folder.
     :local:
     :depth: 2
 
-Working With Configuration Files
+
+What are Configuration Classes?
+*******************************
+
+Configuration classes are utilized to define system default configuration values.
+System configuration values are typically *static*. Configuration classes are
+intended to retain the settings that configure how the application operates,
+rather than responding to each user's individual settings.
+
+It is not recommended to alter values set during the instantiation of a
+configuration class later during execution. In other words, it is recommended to
+treat configuration classes as immutable or readonly classes. This is especially
+important if you utilize :ref:`factories-config-caching`.
+
+Configuration values can be hard-coded in the class files or obtained from
+environment variables at instantiation.
+
+Working with Configuration Files
 ********************************
+
+Getting a Config Object
+=======================
 
 You can access configuration files for your classes in several different ways.
 
-- By using the ``new`` keyword to create an instance:
+new keyword
+-----------
 
-  .. literalinclude:: configuration/001.php
+By using the ``new`` keyword to create an instance:
 
-- By using the ``config()`` function:
+.. literalinclude:: configuration/001.php
 
-  .. literalinclude:: configuration/002.php
+.. _configuration-config:
 
-All configuration object properties are public, so you access the settings like any other property:
+config()
+--------
 
-.. literalinclude:: configuration/003.php
+By using the :php:func:`config()` function:
 
-If no namespace is provided, it will look for the file in all defined namespaces
-as well as **app/Config/**.
+.. literalinclude:: configuration/002.php
+
+If no namespace is provided, it will look for the file in the **app/Config**
+folder first, and if not found, look for in the **Config** folder in all defined
+namespaces.
 
 All of the configuration files that ship with CodeIgniter are namespaced with
 ``Config``. Using this namespace in your application will provide the best
 performance since it knows exactly where to find the files.
 
-You can put configuration files in any folder you want by using a different namespace.
-This allows you to put configuration files on the production server in a folder
-that is not web-accessible while keeping it under **/app** for easy access
-during development.
+.. note:: Prior to v4.4.0, ``config()`` finds the file in **app/Config/** when there
+    is a class with the same shortname,
+    even if you specify a fully qualified class name like ``config(\Acme\Blog\Config\Blog::class)``.
+    This behavior has been fixed in v4.4.0, and returns the specified instance.
+
+Getting a Config Property
+=========================
+
+All configuration object properties are public, so you access the settings like any other property:
+
+.. literalinclude:: configuration/003.php
 
 Creating Configuration Files
 ****************************
 
 When you need a new configuration, first you create a new file at your desired location.
 The default file location (recommended for most cases) is **app/Config**.
+
+You can put configuration files in any **Config** folder by using a different namespace.
+
 The class should use the appropriate namespace, and it should extend
 ``CodeIgniter\Config\BaseConfig`` to ensure that it can receive environment-specific settings.
 
@@ -63,19 +98,28 @@ One of today's best practices for application setup is to use Environment Variab
 
 Environment Variables should also be used for anything private such as passwords, API keys, or other sensitive data.
 
-Environment Variables and CodeIgniter
-=====================================
+.. _dotenv-file:
+
+Dotenv File
+===========
 
 CodeIgniter makes it simple and painless to set Environment Variables by using a "dotenv" file. The term comes from the file name, which starts with a dot before the text "env".
 
-CodeIgniter expects **.env** to be at the root of your project alongside the
-``app`` directories. There is a template file distributed with CodeIgniter that's
-located at the project root named **env** (Notice there's no dot (**.**) at the start?).
+Creating Dotenv File
+--------------------
+
+CodeIgniter expects the **.env** file to be at the root of your project alongside the
+**app** directories. There is a template file distributed with CodeIgniter that's
+located at the project root named **env** (Notice there's no dot (``.``) at the start?).
+
 It has a large collection of variables your project might use that have been assigned
 empty, dummy, or default values. You can use this file as a starting place for your
 application by either renaming the template to **.env**, or by making a copy of it named **.env**.
 
-.. important:: Make sure the **.env** file is NOT tracked by your version control system. For *git* that means adding it to **.gitignore**. Failure to do so could result in sensitive credentials being exposed to the public.
+.. warning:: Make sure the **.env** file is NOT tracked by your version control system. For *git* that means adding it to **.gitignore**. Failure to do so could result in sensitive credentials being exposed to the public.
+
+Setting Variables
+-----------------
 
 Settings are stored in **.env** files as a simple a collection of name/value pairs separated by an equal sign.
 ::
@@ -86,27 +130,32 @@ Settings are stored in **.env** files as a simple a collection of name/value pai
 
 When your application runs, **.env** will be loaded automatically, and the variables put
 into the environment. If a variable already exists in the environment, it will NOT be
-overwritten. The loaded Environment variables are accessed using any of the following:
+overwritten.
+
+Getting Variables
+-----------------
+
+The loaded environment variables are accessed using any of the following:
 ``getenv()``, ``$_SERVER``, or ``$_ENV``.
 
 .. literalinclude:: configuration/005.php
 
-.. warning:: Note that your settings from the **.env** file are added to Environment Variables. As a side effect, this means that if your CodeIgniter application is (for example) generating a ``var_dump($_ENV)`` or ``phpinfo()`` (for debugging or other valid reasons) **your secure credentials are publicly exposed**.
+.. warning:: Note that your settings from the **.env** file are added to ``$_SERVER`` and ``$_ENV``. As a side effect, this means that if your CodeIgniter application is (for example) generating a ``var_dump($_ENV)`` or ``phpinfo()`` (for debugging or other valid reasons), or a detailed error report in the ``development`` environment is shown, **your secure credentials are publicly exposed**.
 
 Nesting Variables
-=================
+-----------------
 
 To save on typing, you can reuse variables that you've already specified in the file by wrapping the
 variable name within ``${...}``:
 
 ::
 
-    BASE_DIR="/var/webroot/project-root"
-    CACHE_DIR="${BASE_DIR}/cache"
-    TMP_DIR="${BASE_DIR}/tmp"
+    BASE_DIR = "/var/webroot/project-root"
+    CACHE_DIR = "${BASE_DIR}/cache"
+    TMP_DIR = "${BASE_DIR}/tmp"
 
 Namespaced Variables
-====================
+--------------------
 
 There will be times when you will have several variables with the same name.
 The system needs a way of knowing what the correct setting should be.
@@ -120,7 +169,7 @@ prefix followed by a dot (.), and then the variable name itself.
 
     // not namespaced variables
     name = "George"
-    db=my_db
+    db = my_db
 
     // namespaced variables
     address.city = "Berlin"
@@ -142,11 +191,20 @@ Some environments, e.g., Docker, CloudFormation, do not permit variable name wit
     app_forceGlobalSecureRequests = true
     app_CSPEnabled = true
 
+.. _configuration-classes-and-environment-variables:
+
 Configuration Classes and Environment Variables
 ***********************************************
 
 When you instantiate a configuration class, any *namespaced* environment variables
 are considered for merging into the configuration object's properties.
+
+.. important:: You cannot add a new property by setting environment variables,
+    nor change a scalar value to an array. See :ref:`env-var-replacements-for-data`.
+
+.. note:: This feature is implemented in the ``CodeIgniter\Config\BaseConfig``
+    class. So it will not work with a few files in the **app/Config** folder
+    that do not extends the class.
 
 If the prefix of a namespaced variable exactly matches the namespace of the configuration
 class, then the trailing part of the setting (after the dot) is treated as a configuration
@@ -178,20 +236,29 @@ Since v4.1.5, you can also write with underscores::
 
 .. note:: When using the *short prefix* the property names must still exactly match the class defined name.
 
+.. _env-var-replacements-for-data:
+
 Environment Variables as Replacements for Data
 ==============================================
 
-It is very important to always remember that environment variables contained in your **.env** are
-**only replacements for existing data**. This means that you cannot expect to fill your **.env** with all
-the replacements for your configurations but have nothing to receive these replacements in the
-related configuration file(s).
+It is very important to always remember that environment variables contained in
+your **.env** are **only replacements for existing scalar values**.
 
-The **.env** only serves to fill or replace the values in your configuration files. That said, your
-configuration files should have a container or receiving property for those. Adding so many variables in
-your **.env** with nothing to contain them in the receiving end is useless.
+Simply put, you can change only the property's scalar value that exists in the
+Config class by setting it in your **.env**.
 
-Simply put, you cannot just put ``app.myNewConfig = foo`` in your **.env** and expect your ``Config\App``
-to magically have that property and value at run time.
+    1. You cannot add a property that is not defined in the Config class.
+    2. You cannot change a scalar value in a property to an array.
+    3. You cannot add an element to an existing array.
+
+For example, you cannot just put ``app.myNewConfig = foo`` in your **.env** and
+expect your ``Config\App`` to magically have that property and value at run time.
+
+When you have the property ``$default = ['encrypt' => false]`` in your
+``Config\Database``, you cannot change the ``encrypt`` value to an array even if
+you put ``database.default.encrypt.ssl_verify = true`` in your **.env**.
+If you want to do like that, see
+:ref:`Database Configuration <database-config-with-env-file>`.
 
 Treating Environment Variables as Arrays
 ========================================
@@ -243,17 +310,29 @@ Registrars
 
 "Registrars" are any other classes which might provide additional configuration properties.
 Registrars provide a means of altering a configuration at runtime across namespaces and files.
-There are two ways to implement a Registrar: implicit and explicit.
+
+Registrars work if :ref:`auto-discovery` is enabled in :doc:`Modules </general/modules>`.
+It alters configuration properties when the Config object is instantiated.
+
+.. note:: This feature is implemented in the ``CodeIgniter\Config\BaseConfig``
+    class. So it will not work with a few files in the **app/Config** folder
+    that do not extends the class.
+
+There are two ways to implement a Registrar: **implicit** and **explicit**.
 
 .. note:: Values from **.env** always take priority over Registrars.
 
 Implicit Registrars
 ===================
 
-Any namespace may define registrars by using the **Config/Registrar.php** file, if discovery
-is enabled in :doc:`Modules </general/modules>`. These files are classes whose methods are
-named for each configuration class you wish to extend. For example, a third-party module might
-wish to supply an additional template to ``Pager`` without overwriting whatever a develop has
+Implicit Registrars can change any Config class properties.
+
+Any namespace may define implicit registrars by using the **Config/Registrar.php**
+file. These files are classes whose methods are named for each configuration class
+you wish to extend.
+
+For example, a third-party module or Composer package might
+wish to supply an additional template to ``Config\Pager`` without overwriting whatever a developer has
 already configured. In **src/Config/Registrar.php** there would be a ``Registrar`` class with
 the single ``Pager()`` method (note the case-sensitivity):
 
@@ -265,6 +344,9 @@ overwrite priority.
 
 Explicit Registrars
 ===================
+
+Explicit Registrars can only change the Config class properties in which they are
+registered.
 
 A configuration file can also specify any number of registrars explicitly.
 This is done by adding a ``$registrars`` property to your configuration file,
@@ -293,3 +375,56 @@ the three properties declared, but the value of the ``$target`` property will be
 by treating ``RegionalSales`` as a "registrar". The resulting configuration properties:
 
 .. literalinclude:: configuration/011.php
+
+.. _confirming-config-values:
+
+Confirming Config Values
+************************
+
+The actual Config object property values are changed at runtime by the :ref:`registrars`
+and :ref:`Environment Variables <configuration-classes-and-environment-variables>`,
+and :ref:`factories-config-caching`.
+
+CodeIgniter has the following :doc:`command <../cli/spark_commands>` to check
+the actual Config values.
+
+.. _spark-config-check:
+
+config:check
+============
+
+.. versionadded:: 4.5.0
+
+For example, if you want to check the ``Config\App`` instance:
+
+.. code-block:: console
+
+    php spark config:check App
+
+The output is like the following:
+
+.. code-block:: none
+
+    Config\App#6 (12) (
+        public 'baseURL' -> string (22) "http://localhost:8080/"
+        public 'allowedHostnames' -> array (0) []
+        public 'indexPage' -> string (9) "index.php"
+        public 'uriProtocol' -> string (11) "REQUEST_URI"
+        public 'defaultLocale' -> string (2) "en"
+        public 'negotiateLocale' -> boolean false
+        public 'supportedLocales' -> array (1) [
+            0 => string (2) "en"
+        ]
+        public 'appTimezone' -> string (3) "UTC"
+        public 'charset' -> string (5) "UTF-8"
+        public 'forceGlobalSecureRequests' -> boolean false
+        public 'proxyIPs' -> array (0) []
+        public 'CSPEnabled' -> boolean false
+    )
+
+    Config Caching: Disabled
+
+You can see if Config Caching is eabled or not.
+
+.. note:: If Config Caching is enabled, the cached values are used permanently.
+    See :ref:`factories-config-caching` for details.

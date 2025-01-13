@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -15,29 +17,50 @@ use CodeIgniter\Encryption\Exceptions\EncryptionException;
 use CodeIgniter\Test\CIUnitTestCase;
 use Config\Encryption as EncryptionConfig;
 use Config\Services;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * @internal
- *
- * @group Others
  */
+#[Group('Others')]
 final class EncryptionTest extends CIUnitTestCase
 {
     private Encryption $encryption;
 
+    public static function setUpBeforeClass(): void
+    {
+        parent::setUpBeforeClass();
+
+        if (is_file(ROOTPATH . '.env')) {
+            rename(ROOTPATH . '.env', ROOTPATH . '.env.bak');
+
+            putenv('encryption.key');
+            unset($_ENV['encryption.key'], $_SERVER['encryption.key']);
+        }
+    }
+
     protected function setUp(): void
     {
+        parent::setUp();
+
         $this->encryption = new Encryption();
     }
 
+    public static function tearDownAfterClass(): void
+    {
+        parent::tearDownAfterClass();
+
+        if (is_file(ROOTPATH . '.env.bak')) {
+            rename(ROOTPATH . '.env.bak', ROOTPATH . '.env');
+        }
+    }
+
     /**
-     * __construct test
-     *
      * Covers behavior with config encryption key set or not
      */
-    public function testConstructor()
+    public function testConstructor(): void
     {
-        // Assume no configuration from set_up()
+        // Assume no configuration from setUp()
         $this->assertEmpty($this->encryption->key);
 
         // Try with an empty value
@@ -55,7 +78,7 @@ final class EncryptionTest extends CIUnitTestCase
     /**
      * Covers behavior with invalid parameters
      */
-    public function testBadDriver()
+    public function testBadDriver(): void
     {
         $this->expectException(EncryptionException::class);
 
@@ -70,7 +93,7 @@ final class EncryptionTest extends CIUnitTestCase
     /**
      * Covers behavior with invalid parameters
      */
-    public function testMissingDriver()
+    public function testMissingDriver(): void
     {
         $this->expectException(EncryptionException::class);
 
@@ -82,14 +105,14 @@ final class EncryptionTest extends CIUnitTestCase
         $this->encryption->initialize($config);
     }
 
-    public function testKeyCreation()
+    public function testKeyCreation(): void
     {
         $this->assertNotEmpty($this->encryption->createKey());
         $this->assertSame(32, strlen($this->encryption->createKey()));
         $this->assertSame(16, strlen($this->encryption->createKey(16)));
     }
 
-    public function testServiceSuccess()
+    public function testServiceSuccess(): void
     {
         $config         = new EncryptionConfig();
         $config->driver = 'OpenSSL';
@@ -99,7 +122,7 @@ final class EncryptionTest extends CIUnitTestCase
         $this->assertInstanceOf(EncrypterInterface::class, $encrypter);
     }
 
-    public function testServiceFailure()
+    public function testServiceFailure(): void
     {
         $this->expectException(EncryptionException::class);
 
@@ -111,14 +134,14 @@ final class EncryptionTest extends CIUnitTestCase
         Services::encrypter($config);
     }
 
-    public function testServiceWithoutKey()
+    public function testServiceWithoutKey(): void
     {
         $this->expectException(EncryptionException::class);
 
         Services::encrypter();
     }
 
-    public function testServiceShared()
+    public function testServiceShared(): void
     {
         $config         = new EncryptionConfig();
         $config->driver = 'OpenSSL';
@@ -131,27 +154,45 @@ final class EncryptionTest extends CIUnitTestCase
         $this->assertSame('anything', $encrypter->key);
     }
 
-    public function testMagicIssetTrue()
+    public function testMagicIssetTrue(): void
     {
         $this->assertTrue(isset($this->encryption->digest));
     }
 
-    public function testMagicIssetFalse()
+    public function testMagicIssetFalse(): void
     {
         $this->assertFalse(isset($this->encryption->bogus));
     }
 
-    public function testMagicGet()
+    public function testMagicGet(): void
     {
         $this->assertSame('SHA512', $this->encryption->digest);
     }
 
-    public function testMagicGetMissing()
+    public function testMagicGetMissing(): void
     {
         $this->assertNull($this->encryption->bogus);
     }
 
-    public function testDecryptEncryptedDataByCI3()
+    public function testDecryptEncryptedDataByCI3AES128CBC(): void
+    {
+        $config                 = new EncryptionConfig();
+        $config->driver         = 'OpenSSL';
+        $config->key            = hex2bin('64c70b0b8d45b80b9eba60b8b3c8a34d0193223d20fea46f8644b848bf7ce67f');
+        $config->cipher         = 'AES-128-CBC'; // CI3's default config
+        $config->rawData        = false;
+        $config->encryptKeyInfo = 'encryption';
+        $config->authKeyInfo    = 'authentication';
+        $encrypter              = Services::encrypter($config, false);
+
+        $encrypted = '211c55b9d1948187557bff88c1e77e0f6b965e3711d477d97fb0b60907a7336028714dbb8dfe90598039e9bc7147b54e552d739b378cd864fb91dde9ad6d4ffalIvVxFDDLTPBYGaHLNDzUSJExBKbQJ0NW27KDaR83bYqz8MDz/mXXpE+HHdaWjEE';
+        $decrypted = $encrypter->decrypt($encrypted);
+
+        $expected = 'This is a plain-text message.';
+        $this->assertSame($expected, $decrypted);
+    }
+
+    public function testDecryptEncryptedDataByCI3AES256CTR(): void
     {
         $config                 = new EncryptionConfig();
         $config->driver         = 'OpenSSL';
@@ -168,7 +209,7 @@ final class EncryptionTest extends CIUnitTestCase
         $this->assertSame($expected, $decrypted);
     }
 
-    public function testDecryptEncryptedDataByCI42()
+    public function testDecryptEncryptedDataByCI42(): void
     {
         $config      = new EncryptionConfig();
         $config->key = hex2bin('64c70b0b8d45b80b9eba60b8b3c8a34d0193223d20fea46f8644b848bf7ce67f');

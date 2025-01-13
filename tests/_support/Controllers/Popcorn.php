@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -33,7 +35,7 @@ class Popcorn extends Controller
         return $this->respond('Oops', 567, 'Surprise');
     }
 
-    public function popper()
+    public function popper(): void
     {
         throw new RuntimeException('Surprise', 500);
     }
@@ -61,12 +63,12 @@ class Popcorn extends Controller
         return $this->response->setJSON(['lang' => $this->request->getLocale()]);
     }
 
-    public function canyon()
+    public function canyon(): void
     {
         echo 'Hello-o-o ' . $this->request->getGet('foo');
     }
 
-    public function cat()
+    public function cat(): void
     {
     }
 

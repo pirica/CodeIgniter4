@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -12,12 +14,12 @@
 namespace CodeIgniter\HTTP;
 
 use CodeIgniter\Test\CIUnitTestCase;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * @internal
- *
- * @group Others
  */
+#[Group('Others')]
 final class UserAgentTest extends CIUnitTestCase
 {
     private string $_user_agent = 'Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10_6_7; en-us) AppleWebKit/533.20.25 (KHTML, like Gecko) Version/5.0.4 Safari/533.20.27';
@@ -34,7 +36,7 @@ final class UserAgentTest extends CIUnitTestCase
         $this->agent = new UserAgent();
     }
 
-    public function testMobile()
+    public function testMobile(): void
     {
         // Mobile Not Set
         $_SERVER['HTTP_USER_AGENT'] = $this->_mobile_ua;
@@ -42,7 +44,7 @@ final class UserAgentTest extends CIUnitTestCase
         unset($_SERVER['HTTP_USER_AGENT']);
     }
 
-    public function testIsFunctions()
+    public function testIsFunctions(): void
     {
         $this->assertTrue($this->agent->isBrowser());
         $this->assertTrue($this->agent->isBrowser('Safari'));
@@ -51,7 +53,7 @@ final class UserAgentTest extends CIUnitTestCase
         $this->assertFalse($this->agent->isMobile());
     }
 
-    public function testReferrer()
+    public function testReferrer(): void
     {
         $_SERVER['HTTP_REFERER'] = 'http://codeigniter.com/user_guide/';
         $this->assertTrue($this->agent->isReferral());
@@ -63,12 +65,12 @@ final class UserAgentTest extends CIUnitTestCase
         $this->assertSame('', $this->agent->getReferrer());
     }
 
-    public function testAgentString()
+    public function testAgentString(): void
     {
         $this->assertSame($this->_user_agent, $this->agent->getAgentString());
     }
 
-    public function testBrowserInfo()
+    public function testBrowserInfo(): void
     {
         $this->assertSame('Mac OS X', $this->agent->getPlatform());
         $this->assertSame('Safari', $this->agent->getBrowser());
@@ -76,7 +78,7 @@ final class UserAgentTest extends CIUnitTestCase
         $this->assertSame('', $this->agent->getRobot());
     }
 
-    public function testParse()
+    public function testParse(): void
     {
         $newAgent = 'Mozilla/5.0 (Android; Mobile; rv:13.0) Gecko/13.0 Firefox/13.0';
         $this->agent->parse($newAgent);
@@ -93,7 +95,7 @@ final class UserAgentTest extends CIUnitTestCase
         $this->assertTrue($this->agent->isMobile('android'));
     }
 
-    public function testParseBot()
+    public function testParseBot(): void
     {
         $newAgent = 'Mozilla/5.0 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)';
         $this->agent->parse($newAgent);
@@ -104,7 +106,7 @@ final class UserAgentTest extends CIUnitTestCase
         $this->assertFalse($this->agent->isMobile());
     }
 
-    public function testEmptyUserAgentVariable()
+    public function testEmptyUserAgentVariable(): void
     {
         unset($_SERVER['HTTP_USER_AGENT']);
         $agent = new UserAgent();

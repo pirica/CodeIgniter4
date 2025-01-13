@@ -60,8 +60,14 @@ jobs:
           sudo apt-get install -y imagemagick
           sudo apt-get install --fix-broken
 
+      - name: Checkout base branch for PR
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.base_ref }}
+
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -79,7 +85,7 @@ jobs:
           echo "ARTIFACT_NAME=${{ inputs.job-id || github.job }}-php-${{ inputs.php-version }}" >> $GITHUB_ENV
 
       - name: Cache Composer dependencies
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ${{ env.COMPOSER_CACHE_FILES_DIR }}
           key: ${{ inputs.job-id || github.job }}-php-${{ inputs.php-version }}-${{ hashFiles('**/composer.*') }}
@@ -89,7 +95,7 @@ jobs:
 
       - name: Cache PHPUnit's static analysis cache
         if: ${{ inputs.enable-artifact-upload }}
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: build/.phpunit.cache/code-coverage
           key: phpunit-code-coverage-${{ hashFiles('**/phpunit.*') }}
@@ -116,7 +122,7 @@ jobs:
 
       - name: Upload coverage results as artifact
         if: ${{ inputs.enable-artifact-upload }}
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ env.ARTIFACT_NAME }}
           path: build/cov/coverage-${{ env.ARTIFACT_NAME }}.cov

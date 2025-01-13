@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -15,11 +17,11 @@ use CodeIgniter\Controller;
 
 class Mycontroller extends Controller
 {
-    public function getIndex()
+    public function getIndex(): void
     {
     }
 
-    public function getSomemethod($first = '')
+    public function getSomemethod($first = ''): void
     {
     }
 }

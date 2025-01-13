@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -14,15 +16,15 @@ namespace CodeIgniter\Database;
 use CodeIgniter\Test\CIUnitTestCase;
 use Config\Database;
 use Faker\Generator;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * @internal
- *
- * @group Others
  */
+#[Group('Others')]
 final class DatabaseSeederTest extends CIUnitTestCase
 {
-    public function testInstantiateNoSeedPath()
+    public function testInstantiateNoSeedPath(): void
     {
         $this->expectException('InvalidArgumentException');
 
@@ -31,7 +33,7 @@ final class DatabaseSeederTest extends CIUnitTestCase
         new Seeder($config);
     }
 
-    public function testInstantiateNotDirSeedPath()
+    public function testInstantiateNotDirSeedPath(): void
     {
         $this->expectException('InvalidArgumentException');
 
@@ -43,12 +45,12 @@ final class DatabaseSeederTest extends CIUnitTestCase
     /**
      * @TODO remove this when Seeder::faker() is removed
      */
-    public function testFakerGet()
+    public function testFakerGet(): void
     {
         $this->assertInstanceOf(Generator::class, Seeder::faker());
     }
 
-    public function testCallOnEmptySeeder()
+    public function testCallOnEmptySeeder(): void
     {
         $this->expectException('InvalidArgumentException');
 

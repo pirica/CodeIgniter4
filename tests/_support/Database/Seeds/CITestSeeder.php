@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -15,7 +17,7 @@ use CodeIgniter\Database\Seeder;
 
 class CITestSeeder extends Seeder
 {
-    public function run()
+    public function run(): void
     {
         // Job Data
         $data = [
@@ -84,6 +86,26 @@ class CITestSeeder extends Seeder
                     'key'   => 'key',
                     'value' => 'value',
                 ],
+                [
+                    'key'   => 'multibyte characters pl',
+                    'value' => 'śćźżłąęó',
+                ],
+                [
+                    'key'   => 'multibyte characters fa',
+                    'value' => 'خٌوب',
+                ],
+                [
+                    'key'   => 'multibyte characters bn',
+                    'value' => 'টাইপ',
+                ],
+                [
+                    'key'   => 'multibyte characters ko',
+                    'value' => '캐스팅',
+                ],
+                [
+                    'key'   => 'multibyte characters ml',
+                    'value' => 'ടൈപ്പ്',
+                ],
             ],
             'type_test' => [
                 [
@@ -105,7 +127,7 @@ class CITestSeeder extends Seeder
                     'type_time'       => '2020-07-18T15:22:00.000+02:00',
                     'type_datetime'   => '2020-06-18T05:12:24.000+02:00',
                     'type_timestamp'  => '2019-07-18T21:53:21.000+02:00',
-                    'type_bigint'     => 2342342,
+                    'type_bigint'     => 2_342_342,
                     'type_boolean'    => 1,
                 ],
             ],
@@ -129,7 +151,7 @@ class CITestSeeder extends Seeder
                 $data['type_test'][0]['type_real'],
                 $data['type_test'][0]['type_double'],
                 $data['type_test'][0]['type_decimal'],
-                $data['type_test'][0]['type_blob']
+                $data['type_test'][0]['type_blob'],
             );
         }
 
@@ -144,7 +166,7 @@ class CITestSeeder extends Seeder
                 $data['type_test'][0]['type_set'],
                 $data['type_test'][0]['type_mediumtext'],
                 $data['type_test'][0]['type_double'],
-                $data['type_test'][0]['type_blob']
+                $data['type_test'][0]['type_blob'],
             );
         }
 
@@ -168,7 +190,6 @@ class CITestSeeder extends Seeder
 
         if ($this->db->DBDriver === 'OCI8') {
             $this->db->query('alter session set NLS_DATE_FORMAT=?', ['YYYY-MM-DD HH24:MI:SS']);
-            $data['type_test'][0]['type_time']      = '2020-07-18 15:22:00';
             $data['type_test'][0]['type_date']      = '2020-01-11 22:11:00';
             $data['type_test'][0]['type_time']      = '2020-07-18 15:22:00';
             $data['type_test'][0]['type_datetime']  = '2020-06-18 05:12:24';
@@ -176,11 +197,11 @@ class CITestSeeder extends Seeder
             unset($data['type_test'][0]['type_blob']);
         }
 
-        foreach ($data as $table => $dummy_data) {
+        foreach ($data as $table => $dummyData) {
             $this->db->table($table)->truncate();
 
-            foreach ($dummy_data as $single_dummy_data) {
-                $this->db->table($table)->insert($single_dummy_data);
+            foreach ($dummyData as $singleDummyData) {
+                $this->db->table($table)->insert($singleDummyData);
             }
         }
     }

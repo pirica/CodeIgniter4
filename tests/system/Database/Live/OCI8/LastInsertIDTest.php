@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -14,13 +16,13 @@ namespace CodeIgniter\Database\Live\OCI8;
 use CodeIgniter\Database\Query;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\DatabaseTestTrait;
+use PHPUnit\Framework\Attributes\Group;
 use Tests\Support\Database\Seeds\CITestSeeder;
 
 /**
- * @group DatabaseLive
- *
  * @internal
  */
+#[Group('DatabaseLive')]
 final class LastInsertIDTest extends CIUnitTestCase
 {
     use DatabaseTestTrait;
@@ -37,7 +39,7 @@ final class LastInsertIDTest extends CIUnitTestCase
         }
     }
 
-    public function testGetInsertIDWithInsert()
+    public function testGetInsertIDWithInsert(): void
     {
         $jobData = [
             'name'        => 'Grocery Sales',
@@ -47,18 +49,18 @@ final class LastInsertIDTest extends CIUnitTestCase
         $this->db->table('job')->insert($jobData);
         $actual = $this->db->insertID();
 
-        $this->assertSame($actual, 5);
+        $this->assertSame(5, $actual);
     }
 
-    public function testGetInsertIDWithQuery()
+    public function testGetInsertIDWithQuery(): void
     {
         $this->db->query('INSERT INTO "db_job" ("name", "description") VALUES (?, ?)', ['Grocery Sales', 'Discount!']);
         $actual = $this->db->insertID();
 
-        $this->assertSame($actual, 5);
+        $this->assertSame(5, $actual);
     }
 
-    public function testGetInsertIDWithHasCommentQuery()
+    public function testGetInsertIDWithHasCommentQuery(): void
     {
         $sql = <<<'SQL'
             -- INSERT INTO "db_misc" ("key", "value") VALUES ('key', 'value')
@@ -71,10 +73,10 @@ final class LastInsertIDTest extends CIUnitTestCase
         $this->db->query($sql, ['Discount!']);
         $actual = $this->db->insertID();
 
-        $this->assertSame($actual, 5);
+        $this->assertSame(5, $actual);
     }
 
-    public function testGetInsertIDWithPreparedQuery()
+    public function testGetInsertIDWithPreparedQuery(): void
     {
         $query = $this->db->prepare(static function ($db) {
             $sql = 'INSERT INTO "db_job" ("name", "description") VALUES (?, ?)';
@@ -85,6 +87,6 @@ final class LastInsertIDTest extends CIUnitTestCase
         $query->execute('foo', 'bar');
         $actual = $this->db->insertID();
 
-        $this->assertSame($actual, 5);
+        $this->assertSame(5, $actual);
     }
 }

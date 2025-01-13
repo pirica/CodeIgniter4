@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -14,16 +16,15 @@ namespace CodeIgniter\Database\DatabaseTestCase;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\DatabaseTestTrait;
 use Config\Database;
-use Config\Services;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * DatabaseTestCaseMigrationOnce1Test and DatabaseTestCaseMigrationOnce2Test
  * show $migrateOnce applies per test case file.
  *
- * @group DatabaseLive
- *
  * @internal
  */
+#[Group('DatabaseLive')]
 final class DatabaseTestCaseMigrationOnce1Test extends CIUnitTestCase
 {
     use DatabaseTestTrait;
@@ -56,16 +57,19 @@ final class DatabaseTestCaseMigrationOnce1Test extends CIUnitTestCase
 
     protected function setUp(): void
     {
+        $forge = Database::forge();
+        $forge->dropTable('foo', true);
+
         $this->setUpMethods[] = 'setUpAddNamespace';
 
         parent::setUp();
     }
 
-    protected function setUpAddNamespace()
+    protected function setUpAddNamespace(): void
     {
-        Services::autoloader()->addNamespace(
+        service('autoloader')->addNamespace(
             'Tests\Support\MigrationTestMigrations',
-            SUPPORTPATH . 'MigrationTestMigrations'
+            SUPPORTPATH . 'MigrationTestMigrations',
         );
     }
 
@@ -76,7 +80,7 @@ final class DatabaseTestCaseMigrationOnce1Test extends CIUnitTestCase
         $this->regressDatabase();
     }
 
-    public function testMigrationDone()
+    public function testMigrationDone(): void
     {
         $this->seeInDatabase('foo', ['key' => 'foobar']);
 
@@ -85,7 +89,7 @@ final class DatabaseTestCaseMigrationOnce1Test extends CIUnitTestCase
         $this->dropTableFoo();
     }
 
-    private function dropTableFoo()
+    private function dropTableFoo(): void
     {
         $forge = Database::forge();
         $forge->dropTable('foo', true);

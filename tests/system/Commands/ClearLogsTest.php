@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -13,12 +15,12 @@ namespace CodeIgniter\Commands;
 
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\StreamFilterTrait;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * @internal
- *
- * @group Others
  */
+#[Group('Others')]
 final class ClearLogsTest extends CIUnitTestCase
 {
     use StreamFilterTrait;
@@ -34,7 +36,7 @@ final class ClearLogsTest extends CIUnitTestCase
         $this->date = date('Y-m-d', strtotime('+1 year'));
     }
 
-    protected function createDummyLogFiles()
+    protected function createDummyLogFiles(): void
     {
         $date = $this->date;
         $path = WRITEPATH . 'logs' . DIRECTORY_SEPARATOR . "log-{$date}.log";
@@ -49,7 +51,7 @@ final class ClearLogsTest extends CIUnitTestCase
         }
     }
 
-    public function testClearLogsWorks()
+    public function testClearLogsWorks(): void
     {
         // test clean logs dir
         $this->assertFileDoesNotExist(WRITEPATH . 'logs' . DIRECTORY_SEPARATOR . "log-{$this->date}.log");

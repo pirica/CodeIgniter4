@@ -8,12 +8,13 @@ Upgrade Emails
 Documentations
 ==============
 
-- `Email Documentation CodeIgniter 3.X <http://codeigniter.com/userguide3/libraries/email.html>`_
-- :doc:`Email Documentation CodeIgniter 4.X </libraries/email>`
+- `Email Documentation CodeIgniter 3.x <http://codeigniter.com/userguide3/libraries/email.html>`_
+- :doc:`Email Documentation CodeIgniter 4.x </libraries/email>`
 
 What has been changed
 =====================
 - Only small things like the method names and the loading of the library have changed.
+- The behavior when using the SMTP protocol has been slightly changed. You may not be able to communicate with your SMTP server properly if you use the CI3 settings. See :ref:`email-ssl-tls-for-smtp` and :ref:`email-preferences`.
 
 Upgrade Guide
 =============

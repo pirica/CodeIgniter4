@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -14,21 +16,26 @@ namespace CodeIgniter\Models;
 use CodeIgniter\Database\Exceptions\DatabaseException;
 use CodeIgniter\Database\Exceptions\DataException;
 use CodeIgniter\Entity\Entity;
-use Generator;
+use Config\Database;
 use InvalidArgumentException;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use stdClass;
+use Tests\Support\Entity\User;
+use Tests\Support\Entity\UUID;
 use Tests\Support\Models\EventModel;
 use Tests\Support\Models\JobModel;
 use Tests\Support\Models\SecondaryModel;
 use Tests\Support\Models\UserModel;
+use Tests\Support\Models\UserTimestampModel;
+use Tests\Support\Models\UUIDPkeyModel;
 use Tests\Support\Models\ValidModel;
 use Tests\Support\Models\WithoutAutoIncrementModel;
 
 /**
- * @group DatabaseLive
- *
  * @internal
  */
+#[Group('DatabaseLive')]
 final class UpdateModelTest extends LiveModelTestCase
 {
     public function testSetWorksWithUpdate(): void
@@ -148,6 +155,27 @@ final class UpdateModelTest extends LiveModelTestCase
         ]);
     }
 
+    public function testUpdateBatchInvalidIndex(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage(
+            'The index ("not_exist") for updateBatch() is missing in the data: {"name":"Derek Jones","country":"Greece"}',
+        );
+
+        $data = [
+            [
+                'name'    => 'Derek Jones',
+                'country' => 'Greece',
+            ],
+            [
+                'name'    => 'Ahmadinejad',
+                'country' => 'Greece',
+            ],
+        ];
+
+        $this->createModel(UserModel::class)->updateBatch($data, 'not_exist');
+    }
+
     public function testUpdateBatchValidationFail(): void
     {
         $data = [
@@ -209,11 +237,16 @@ final class UpdateModelTest extends LiveModelTestCase
         $entity1->name    = 'Jones Martin';
         $entity1->country = 'India';
         $entity1->deleted = 0;
+        $entity1->syncOriginal();
+        // Update the entity.
+        $entity1->country = 'China';
 
+        // This entity is not updated.
         $entity2->id      = 4;
         $entity2->name    = 'Jones Martin';
         $entity2->country = 'India';
         $entity2->deleted = 0;
+        $entity2->syncOriginal();
 
         $this->assertSame(2, $this->createModel(UserModel::class)->updateBatch([$entity1, $entity2], 'id'));
     }
@@ -350,6 +383,143 @@ final class UpdateModelTest extends LiveModelTestCase
         $this->model->update($id, $entity);
     }
 
+    public function testUpdateSetObject(): void
+    {
+        $this->createModel(UserModel::class);
+
+        $object          = new stdClass();
+        $object->name    = 'Jones Martin';
+        $object->email   = 'jones@example.org';
+        $object->country = 'India';
+
+        /** @var int|string $id */
+        $id = $this->model->insert($object);
+
+        /** @var stdClass $object */
+        $object       = $this->model->find($id);
+        $object->name = 'John Smith';
+
+        $return = $this->model->where('id', $id)->set($object)->update();
+
+        $this->assertTrue($return);
+    }
+
+    public function testUpdateSetEntity(): void
+    {
+        $this->createModel(UserModel::class);
+
+        $object          = new stdClass();
+        $object->id      = 1;
+        $object->name    = 'Jones Martin';
+        $object->email   = 'jones@example.org';
+        $object->country = 'India';
+
+        $id = $this->model->insert($object);
+
+        $entity = new Entity([
+            'id'      => 1,
+            'name'    => 'John Smith',
+            'email'   => 'john@example.org',
+            'country' => 'India',
+        ]);
+
+        $return = $this->model->where('id', $id)->set($entity)->update();
+
+        $this->assertTrue($return);
+    }
+
+    public function testUpdateEntityWithPrimaryKeyCast(): void
+    {
+        if (
+            $this->db->DBDriver === 'OCI8'
+            || $this->db->DBDriver === 'Postgre'
+            || $this->db->DBDriver === 'SQLSRV'
+            || $this->db->DBDriver === 'SQLite3'
+        ) {
+            $this->markTestSkipped($this->db->DBDriver . ' does not work with binary data as string data.');
+        }
+
+        $this->createUuidTable();
+
+        $this->createModel(UUIDPkeyModel::class);
+
+        $entity        = new UUID();
+        $entity->id    = '550e8400-e29b-41d4-a716-446655440000';
+        $entity->value = 'test1';
+
+        $id     = $this->model->insert($entity);
+        $entity = $this->model->find($id);
+
+        $entity->value = 'id';
+        $result        = $this->model->save($entity);
+
+        $this->assertTrue($result);
+
+        $entity = $this->model->find($id);
+
+        $this->assertSame('id', $entity->value);
+    }
+
+    public function testUpdateBatchEntityWithPrimaryKeyCast(): void
+    {
+        if (
+            $this->db->DBDriver === 'OCI8'
+            || $this->db->DBDriver === 'Postgre'
+            || $this->db->DBDriver === 'SQLSRV'
+            || $this->db->DBDriver === 'SQLite3'
+        ) {
+            $this->markTestSkipped($this->db->DBDriver . ' does not work with binary data as string data.');
+        }
+
+        // See https://github.com/codeigniter4/CodeIgniter4/pull/8282#issuecomment-1836974182
+        $this->markTestSkipped(
+            'batchUpdate() is currently not working due to data type issues in the generated SQL statement.',
+        );
+
+        $this->createUuidTable();
+
+        $this->createModel(UUIDPkeyModel::class);
+
+        $entity1        = new UUID();
+        $entity1->id    = '550e8400-e29b-41d4-a716-446655440000';
+        $entity1->value = 'test1';
+        $id1            = $this->model->insert($entity1);
+
+        $entity2        = new UUID();
+        $entity2->id    = 'bd59cff1-7a24-dde5-ac10-7b929db6da8c';
+        $entity2->value = 'test2';
+        $id2            = $this->model->insert($entity2);
+
+        $entity1 = $this->model->find($id1);
+        $entity2 = $this->model->find($id2);
+
+        $entity1->value = 'update1';
+        $entity2->value = 'update2';
+
+        $data = [
+            $entity1,
+            $entity2,
+        ];
+        $this->model->updateBatch($data, 'id');
+
+        $this->seeInDatabase('uuid', [
+            'value' => 'update1',
+        ]);
+        $this->seeInDatabase('uuid', [
+            'value' => 'update2',
+        ]);
+    }
+
+    private function createUuidTable(): void
+    {
+        $forge = Database::forge($this->DBGroup);
+        $forge->dropTable('uuid', true);
+        $forge->addField([
+            'id'    => ['type' => 'BINARY', 'constraint' => 16],
+            'value' => ['type' => 'VARCHAR', 'constraint' => 400, 'null' => true],
+        ])->addKey('id', true)->createTable('uuid', true);
+    }
+
     public function testUseAutoIncrementSetToFalseUpdate(): void
     {
         $key = 'key';
@@ -383,10 +553,9 @@ final class UpdateModelTest extends LiveModelTestCase
     }
 
     /**
-     * @dataProvider provideInvalidIds
-     *
      * @param false|null $id
      */
+    #[DataProvider('provideUpdateThrowDatabaseExceptionWithoutWhereClause')]
     public function testUpdateThrowDatabaseExceptionWithoutWhereClause($id, string $exception, string $exceptionMessage): void
     {
         $this->expectException($exception);
@@ -398,7 +567,7 @@ final class UpdateModelTest extends LiveModelTestCase
         $this->model->update($id, ['name' => 'Foo Bar']);
     }
 
-    public function provideInvalidIds(): Generator
+    public static function provideUpdateThrowDatabaseExceptionWithoutWhereClause(): iterable
     {
         yield from [
             [
@@ -412,5 +581,25 @@ final class UpdateModelTest extends LiveModelTestCase
                 'update(): argument #1 ($id) should not be boolean.',
             ],
         ];
+    }
+
+    public function testUpdateEntityUpdateOnlyChangedFalse(): void
+    {
+        $model = new class () extends UserTimestampModel {
+            protected $returnType             = User::class;
+            protected bool $updateOnlyChanged = false;
+        };
+
+        $user           = $model->find(1);
+        $updateAtBefore = $user->updated_at;
+
+        // updates the Entity without changes.
+        $result = $model->update(1, $user);
+
+        $user          = $model->find(1);
+        $updateAtAfter = $user->updated_at;
+
+        $this->assertTrue($result);
+        $this->assertNotSame($updateAtBefore, $updateAtAfter);
     }
 }

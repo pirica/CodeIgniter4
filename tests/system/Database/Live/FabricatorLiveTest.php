@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -15,21 +17,21 @@ use CodeIgniter\Exceptions\FrameworkException;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\DatabaseTestTrait;
 use CodeIgniter\Test\Fabricator;
+use PHPUnit\Framework\Attributes\Group;
 use Tests\Support\Models\UserModel;
 use Tests\Support\Models\ValidModel;
 
 /**
- * @group DatabaseLive
- *
  * @internal
  */
+#[Group('DatabaseLive')]
 final class FabricatorLiveTest extends CIUnitTestCase
 {
     use DatabaseTestTrait;
 
     protected $refresh = true;
 
-    public function testCreateAddsToDatabase()
+    public function testCreateAddsToDatabase(): void
     {
         $fabricator = new Fabricator(UserModel::class);
 
@@ -41,7 +43,7 @@ final class FabricatorLiveTest extends CIUnitTestCase
         $this->seeInDatabase('user', ['name' => $result->name]);
     }
 
-    public function testCreateAddsCountToDatabase()
+    public function testCreateAddsCountToDatabase(): void
     {
         $count = 10;
 
@@ -49,13 +51,13 @@ final class FabricatorLiveTest extends CIUnitTestCase
 
         // Some countries violate the 40 character limit so override that
         $fabricator->setOverrides(['country' => 'France']);
-
+        $fabricator->setUnique('email');
         $fabricator->create($count);
 
         $this->seeNumRecords($count, 'user', []);
     }
 
-    public function testHelperCreates()
+    public function testHelperCreates(): void
     {
         helper('test');
 
@@ -64,7 +66,7 @@ final class FabricatorLiveTest extends CIUnitTestCase
         $this->seeInDatabase('user', ['name' => $result->name]);
     }
 
-    public function testCreateIncrementsCount()
+    public function testCreateIncrementsCount(): void
     {
         $fabricator = new Fabricator(UserModel::class);
         $fabricator->setOverrides(['country' => 'China']);
@@ -76,7 +78,7 @@ final class FabricatorLiveTest extends CIUnitTestCase
         $this->assertSame($count + 1, Fabricator::getCount('user'));
     }
 
-    public function testHelperIncrementsCount()
+    public function testHelperIncrementsCount(): void
     {
         $count = Fabricator::getCount('user');
 
@@ -85,7 +87,7 @@ final class FabricatorLiveTest extends CIUnitTestCase
         $this->assertSame($count + 1, Fabricator::getCount('user'));
     }
 
-    public function testCreateThrowsOnFailure()
+    public function testCreateThrowsOnFailure(): void
     {
         $this->expectException(FrameworkException::class);
         $this->expectExceptionMessage(lang('Fabricator.createFailed', ['job', 'Too short, man!']));
@@ -93,7 +95,7 @@ final class FabricatorLiveTest extends CIUnitTestCase
         fake(ValidModel::class, ['name' => 'eh']);
     }
 
-    public function testHelperDoesNotPersist()
+    public function testHelperDoesNotPersist(): void
     {
         helper('test');
         $result = fake(UserModel::class, ['name' => 'Derek'], false);

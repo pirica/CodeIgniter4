@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -16,16 +18,16 @@ use CodeIgniter\Test\Mock\MockLogger as LoggerConfig;
 use CodeIgniter\Test\Mock\MockResponse;
 use Config\App;
 use Config\Services;
+use PHPUnit\Framework\Attributes\Group;
 use stdClass;
 
 /**
  * @internal
- *
- * @group Others
  */
+#[Group('Others')]
 final class ChromeLoggerHandlerTest extends CIUnitTestCase
 {
-    public function testCanHandleLogLevel()
+    public function testCanHandleLogLevel(): void
     {
         $config = new LoggerConfig();
 
@@ -35,7 +37,7 @@ final class ChromeLoggerHandlerTest extends CIUnitTestCase
         $this->assertFalse($logger->canHandle('foo'));
     }
 
-    public function testHandle()
+    public function testHandle(): void
     {
         $config = new LoggerConfig();
 
@@ -45,7 +47,7 @@ final class ChromeLoggerHandlerTest extends CIUnitTestCase
         $this->assertTrue($logger->handle('warning', 'This a log test'));
     }
 
-    public function testSendLogs()
+    public function testSendLogs(): void
     {
         $config = new LoggerConfig();
 
@@ -54,12 +56,12 @@ final class ChromeLoggerHandlerTest extends CIUnitTestCase
         $logger = new ChromeLoggerHandler($config->handlers['CodeIgniter\Log\Handlers\TestHandler']);
         $logger->sendLogs();
 
-        $response = Services::response(null, true);
+        $response = service('response', null, true);
 
         $this->assertTrue($response->hasHeader('X-ChromeLogger-Data'));
     }
 
-    public function testSetDateFormat()
+    public function testSetDateFormat(): void
     {
         $config = new LoggerConfig();
 
@@ -73,7 +75,7 @@ final class ChromeLoggerHandlerTest extends CIUnitTestCase
         $this->assertSame('F j, Y', $this->getPrivateProperty($logger, 'dateFormat'));
     }
 
-    public function testChromeLoggerHeaderSent()
+    public function testChromeLoggerHeaderSent(): void
     {
         Services::injectMock('response', new MockResponse(new App()));
         $response = service('response');

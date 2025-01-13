@@ -13,8 +13,14 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
+      - name: Checkout base branch for PR
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.base_ref }}
+
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -24,7 +30,7 @@ jobs:
           coverage: xdebug
 
       - name: Download coverage files
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           path: build/cov
 
@@ -37,7 +43,7 @@ jobs:
           echo "COMPOSER_CACHE_FILES_DIR=$(composer config cache-files-dir)" >> $GITHUB_ENV
 
       - name: Cache dependencies
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ${{ env.COMPOSER_CACHE_FILES_DIR }}
           key: ${{ github.job }}-php-${{ inputs.php-version }}-${{ hashFiles('**/composer.*') }}
@@ -46,7 +52,7 @@ jobs:
             ${{ github.job }}-
 
       - name: Cache PHPUnit's static analysis cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: build/.phpunit.cache/code-coverage
           key: phpunit-code-coverage-${{ hashFiles('**/phpunit.*') }}
@@ -57,9 +63,14 @@ jobs:
         run: composer update --ansi
 
       - name: Merge coverage files
-        run: vendor/bin/phpcov merge --clover build/logs/clover.xml build/cov
+        run: |
+          jq '.autoload."psr-4" += {"Config\\": "app/Config/"}' composer.json > temp.json && mv temp.json composer.json
+          composer dump-autoload
+          vendor/bin/phpcov merge --clover build/logs/clover.xml build/cov
 
       - name: Upload coverage to Coveralls
-        run: vendor/bin/php-coveralls --verbose --exclude-no-stmt --ansi
+        run: |
+          composer global require php-coveralls/php-coveralls
+          php-coveralls --verbose --exclude-no-stmt --ansi
         env:
           COVERALLS_REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}

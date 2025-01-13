@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -14,18 +16,18 @@ namespace CodeIgniter\Security;
 use CodeIgniter\Config\Factories;
 use CodeIgniter\Cookie\Cookie;
 use CodeIgniter\HTTP\IncomingRequest;
-use CodeIgniter\HTTP\URI;
+use CodeIgniter\HTTP\SiteURI;
 use CodeIgniter\HTTP\UserAgent;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\Mock\MockAppConfig;
 use CodeIgniter\Test\Mock\MockSecurity;
 use Config\Security as SecurityConfig;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * @internal
- *
- * @group Others
  */
+#[Group('Others')]
 final class SecurityCSRFCookieRandomizeTokenTest extends CIUnitTestCase
 {
     /**
@@ -38,43 +40,46 @@ final class SecurityCSRFCookieRandomizeTokenTest extends CIUnitTestCase
      */
     private string $randomizedToken = '8bc70b67c91494e815c7d2219c1ae0ab005513c290126d34d41bf41c5265e0f1';
 
+    private SecurityConfig $config;
+
     protected function setUp(): void
     {
         parent::setUp();
 
         $_COOKIE = [];
 
-        $config                 = new SecurityConfig();
-        $config->csrfProtection = Security::CSRF_PROTECTION_COOKIE;
-        $config->tokenRandomize = true;
-        Factories::injectMock('config', 'Security', $config);
+        $this->config                 = new SecurityConfig();
+        $this->config->csrfProtection = Security::CSRF_PROTECTION_COOKIE;
+        $this->config->tokenRandomize = true;
+        Factories::injectMock('config', 'Security', $this->config);
 
         // Set Cookie value
-        $security                            = new MockSecurity(new MockAppConfig());
+        $security                            = new MockSecurity($this->config);
         $_COOKIE[$security->getCookieName()] = $this->hash;
 
         $this->resetServices();
     }
 
-    public function testTokenIsReadFromCookie()
+    public function testTokenIsReadFromCookie(): void
     {
-        $security = new MockSecurity(new MockAppConfig());
+        $security = new MockSecurity($this->config);
 
         $this->assertSame(
             $this->randomizedToken,
-            $security->getHash()
+            $security->getHash(),
         );
     }
 
-    public function testCSRFVerifySetNewCookie()
+    public function testCSRFVerifySetNewCookie(): void
     {
         $_SERVER['REQUEST_METHOD'] = 'POST';
         $_POST['foo']              = 'bar';
         $_POST['csrf_test_name']   = $this->randomizedToken;
 
-        $request = new IncomingRequest(new MockAppConfig(), new URI('http://badurl.com'), null, new UserAgent());
+        $config  = new MockAppConfig();
+        $request = new IncomingRequest($config, new SiteURI($config), null, new UserAgent());
 
-        $security = new Security(new MockAppConfig());
+        $security = new Security($this->config);
 
         $this->assertInstanceOf(Security::class, $security->verify($request));
         $this->assertLogged('info', 'CSRF token verified.');

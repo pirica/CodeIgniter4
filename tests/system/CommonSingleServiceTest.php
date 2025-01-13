@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -15,41 +17,38 @@ use CodeIgniter\Autoloader\FileLocator;
 use CodeIgniter\Config\Services;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\Mock\MockSecurity;
-use Config\App;
+use Config\Security as SecurityConfig;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use ReflectionClass;
 use ReflectionMethod;
 
 /**
  * @internal
- *
- * @group Others
  */
+#[Group('Others')]
 final class CommonSingleServiceTest extends CIUnitTestCase
 {
-    /**
-     * @dataProvider serviceNamesProvider
-     */
+    #[DataProvider('provideServiceNames')]
     public function testSingleServiceWithNoParamsSupplied(string $service): void
     {
-        Services::injectMock('security', new MockSecurity(new App()));
+        Services::injectMock('security', new MockSecurity(new SecurityConfig()));
 
         $service1 = single_service($service);
         $service2 = single_service($service);
 
         assert($service1 !== null);
 
-        $this->assertInstanceOf(get_class($service1), $service2);
+        $this->assertInstanceOf($service1::class, $service2);
         $this->assertNotSame($service1, $service2);
     }
 
-    /**
-     * @dataProvider serviceNamesProvider
-     */
+    #[DataProvider('provideServiceNames')]
     public function testSingleServiceWithAtLeastOneParamSupplied(string $service): void
     {
         if ($service === 'commands') {
             $locator = $this->getMockBuilder(FileLocator::class)
-                ->setConstructorArgs([Services::autoloader()])
+                ->setConstructorArgs([service('autoloader')])
                 ->onlyMethods(['listFiles'])
                 ->getMock();
 
@@ -68,7 +67,7 @@ final class CommonSingleServiceTest extends CIUnitTestCase
 
         assert($service1 !== null);
 
-        $this->assertInstanceOf(get_class($service1), $service2);
+        $this->assertInstanceOf($service1::class, $service2);
         $this->assertNotSame($service1, $service2);
 
         if ($service === 'commands') {
@@ -86,7 +85,7 @@ final class CommonSingleServiceTest extends CIUnitTestCase
 
         // Assert that even passing true as last param this will
         // not create a shared instance.
-        $this->assertInstanceOf(get_class($cache1), $cache2);
+        $this->assertInstanceOf($cache1::class, $cache2);
         $this->assertNotSame($cache1, $cache2);
     }
 
@@ -99,10 +98,13 @@ final class CommonSingleServiceTest extends CIUnitTestCase
         $this->assertNull(single_service('timers'));
     }
 
-    public static function serviceNamesProvider(): iterable
+    public static function provideServiceNames(): iterable
     {
         static $services = [];
         static $excl     = [
+            'get',
+            'set',
+            'override',
             '__callStatic',
             'createRequest',
             'serviceExists',

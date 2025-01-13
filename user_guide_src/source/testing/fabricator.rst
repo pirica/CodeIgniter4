@@ -3,7 +3,7 @@ Generating Test Data
 ####################
 
 Often you will need sample data for your application to run its tests. The ``Fabricator`` class
-uses fzaninotto's `Faker <https://github.com/FakerPHP/Faker>`_ to turn models into generators
+uses `Faker <https://github.com/FakerPHP/Faker>`_ to turn models into generators
 of random data. Use fabricators in your seeds or test cases to stage fake data for your unit tests.
 
 .. contents::
@@ -56,10 +56,32 @@ method where you can define exactly what the faked data should look like:
 Notice in this example how the first three values are equivalent to the formatters from before. However for ``avatar``
 we have requested an image size other than the default and ``login`` uses a conditional based on app configuration,
 neither of which are possible using the ``$formatters`` parameter.
+
 You may want to keep your test data separate from your production models, so it is a good practice to define
 a child class in your test support folder:
 
 .. literalinclude:: fabricator/006.php
+
+Setting Modifiers
+=================
+
+.. versionadded:: 4.5.0
+
+Faker provides three special providers, ``unique()``, ``optional()``, and ``valid()``,
+to be called before any provider. Fabricator fully supports these modifiers by providing
+dedicated methods.
+
+.. literalinclude:: fabricator/022.php
+
+The arguments passed after the field name are passed directly to the modifiers as-is. You can refer
+to `Faker's documentation on modifiers`_ for details.
+
+.. _Faker's documentation on modifiers: https://fakerphp.github.io/#modifiers
+
+Instead of calling each method on Fabricator, you may use Faker's modifiers directly if you are using
+the ``fake()`` method on your models.
+
+.. literalinclude:: fabricator/023.php
 
 Localization
 ============

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -15,14 +17,14 @@ use CodeIgniter\CLI\Commands;
 use CodeIgniter\Log\Logger;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\StreamFilterTrait;
-use Config\Services;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use Tests\Support\Commands\ParamsReveal;
 
 /**
  * @internal
- *
- * @group Others
  */
+#[Group('Others')]
 final class CommandTest extends CIUnitTestCase
 {
     use StreamFilterTrait;
@@ -36,16 +38,16 @@ final class CommandTest extends CIUnitTestCase
 
         parent::setUp();
 
-        $this->logger   = Services::logger();
-        $this->commands = Services::commands();
+        $this->logger   = service('logger');
+        $this->commands = service('commands');
     }
 
-    protected function getBuffer()
+    protected function getBuffer(): string
     {
         return $this->getStreamFilterBuffer();
     }
 
-    public function testListCommands()
+    public function testListCommands(): void
     {
         command('list');
 
@@ -54,7 +56,7 @@ final class CommandTest extends CIUnitTestCase
         $this->assertStringContainsString('Displays basic usage information.', $this->getBuffer());
     }
 
-    public function testListCommandsSimple()
+    public function testListCommandsSimple(): void
     {
         command('list --simple');
 
@@ -62,13 +64,13 @@ final class CommandTest extends CIUnitTestCase
         $this->assertStringNotContainsString('Lists the available commands.', $this->getBuffer());
     }
 
-    public function testCustomCommand()
+    public function testCustomCommand(): void
     {
         command('app:info');
         $this->assertStringContainsString('CI Version:', $this->getBuffer());
     }
 
-    public function testShowError()
+    public function testShowError(): void
     {
         command('app:info');
         $commands = $this->commands->getCommands();
@@ -78,7 +80,7 @@ final class CommandTest extends CIUnitTestCase
         $this->assertStringContainsString('Displays basic usage information.', $this->getBuffer());
     }
 
-    public function testCommandCall()
+    public function testCommandCall(): void
     {
         command('app:info');
         $commands = $this->commands->getCommands();
@@ -88,13 +90,13 @@ final class CommandTest extends CIUnitTestCase
         $this->assertStringContainsString('Invalid "background" color:', $this->getBuffer());
     }
 
-    public function testAbstractCommand()
+    public function testAbstractCommand(): void
     {
         command('app:pablo');
         $this->assertStringContainsString('not found', $this->getBuffer());
     }
 
-    public function testNamespacesCommand()
+    public function testNamespacesCommand(): void
     {
         command('namespaces');
 
@@ -103,13 +105,13 @@ final class CommandTest extends CIUnitTestCase
         $this->assertStringContainsString('| Yes', $this->getBuffer());
     }
 
-    public function testInexistentCommandWithNoAlternatives()
+    public function testInexistentCommandWithNoAlternatives(): void
     {
         command('app:oops');
         $this->assertStringContainsString('Command "app:oops" not found', $this->getBuffer());
     }
 
-    public function testInexistentCommandsButWithOneAlternative()
+    public function testInexistentCommandsButWithOneAlternative(): void
     {
         command('namespace');
 
@@ -118,7 +120,7 @@ final class CommandTest extends CIUnitTestCase
         $this->assertStringContainsString('namespaces', $this->getBuffer());
     }
 
-    public function testInexistentCommandsButWithManyAlternatives()
+    public function testInexistentCommandsButWithManyAlternatives(): void
     {
         command('clear');
 
@@ -128,9 +130,10 @@ final class CommandTest extends CIUnitTestCase
     }
 
     /**
-     * @dataProvider commandArgsProvider
+     * @param list<string> $expected
      */
-    public function testCommandParsesArgsCorrectly(string $input, array $expected)
+    #[DataProvider('provideCommandParsesArgsCorrectly')]
+    public function testCommandParsesArgsCorrectly(string $input, array $expected): void
     {
         ParamsReveal::$args = null;
         command($input);
@@ -138,7 +141,7 @@ final class CommandTest extends CIUnitTestCase
         $this->assertSame($expected, ParamsReveal::$args);
     }
 
-    public function commandArgsProvider(): array
+    public static function provideCommandParsesArgsCorrectly(): iterable
     {
         return [
             [

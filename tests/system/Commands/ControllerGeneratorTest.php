@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -13,12 +15,12 @@ namespace CodeIgniter\Commands;
 
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\StreamFilterTrait;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * @internal
- *
- * @group Others
  */
+#[Group('Others')]
 final class ControllerGeneratorTest extends CIUnitTestCase
 {
     use StreamFilterTrait;
@@ -41,7 +43,7 @@ final class ControllerGeneratorTest extends CIUnitTestCase
         return file_get_contents($filepath) ?: '';
     }
 
-    public function testGenerateController()
+    public function testGenerateController(): void
     {
         command('make:controller user');
         $this->assertStringContainsString('File created: ', $this->getStreamFilterBuffer());
@@ -50,7 +52,7 @@ final class ControllerGeneratorTest extends CIUnitTestCase
         $this->assertStringContainsString('extends BaseController', $this->getFileContents($file));
     }
 
-    public function testGenerateControllerWithOptionBare()
+    public function testGenerateControllerWithOptionBare(): void
     {
         command('make:controller blog -bare');
         $this->assertStringContainsString('File created: ', $this->getStreamFilterBuffer());
@@ -59,7 +61,7 @@ final class ControllerGeneratorTest extends CIUnitTestCase
         $this->assertStringContainsString('extends Controller', $this->getFileContents($file));
     }
 
-    public function testGenerateControllerWithOptionRestful()
+    public function testGenerateControllerWithOptionRestful(): void
     {
         command('make:controller order -restful');
         $this->assertStringContainsString('File created: ', $this->getStreamFilterBuffer());
@@ -68,7 +70,7 @@ final class ControllerGeneratorTest extends CIUnitTestCase
         $this->assertStringContainsString('extends ResourceController', $this->getFileContents($file));
     }
 
-    public function testGenerateControllerWithOptionRestfulPresenter()
+    public function testGenerateControllerWithOptionRestfulPresenter(): void
     {
         command('make:controller pay -restful presenter');
         $this->assertStringContainsString('File created: ', $this->getStreamFilterBuffer());
@@ -77,7 +79,7 @@ final class ControllerGeneratorTest extends CIUnitTestCase
         $this->assertStringContainsString('extends ResourcePresenter', $this->getFileContents($file));
     }
 
-    public function testGenerateControllerWithOptionSuffix()
+    public function testGenerateControllerWithOptionSuffix(): void
     {
         command('make:controller dashboard -suffix');
         $this->assertStringContainsString('File created: ', $this->getStreamFilterBuffer());

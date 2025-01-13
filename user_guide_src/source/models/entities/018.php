@@ -6,14 +6,14 @@ use CodeIgniter\Entity\Entity;
 
 class MyEntity extends Entity
 {
-    // Specifying the type for the field
+    // Specify the type for the field
     protected $casts = [
         'key' => 'base64',
     ];
 
     // Bind the type to the handler
     protected $castHandlers = [
-        'base64' => \App\Entities\Cast\CastBase64::class,
+        'base64' => Cast\CastBase64::class,
     ];
 }
 

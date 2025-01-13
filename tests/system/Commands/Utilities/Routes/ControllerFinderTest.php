@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -12,16 +14,16 @@
 namespace CodeIgniter\Commands\Utilities\Routes;
 
 use CodeIgniter\Test\CIUnitTestCase;
+use PHPUnit\Framework\Attributes\Group;
 use Tests\Support\Controllers\Hello;
 
 /**
  * @internal
- *
- * @group Others
  */
+#[Group('Others')]
 final class ControllerFinderTest extends CIUnitTestCase
 {
-    public function testFind()
+    public function testFind(): void
     {
         $namespace = 'Tests\Support\Controllers';
         $finder    = new ControllerFinder($namespace);

@@ -12,8 +12,11 @@ a server responding to the client that called it.
 Working with the Response
 =========================
 
-A Response class is instantiated for you and passed into your controllers. It can be accessed through
-``$this->response``. Many times you will not need to touch the class directly, since CodeIgniter takes care of
+A Response class is instantiated for you and passed into your controllers. It can
+be accessed through ``$this->response``. It is the same instance that
+``Services::response()`` returns. We call it the global response instance.
+
+Many times you will not need to touch the class directly, since CodeIgniter takes care of
 sending the headers and the body for you. This is great if the page successfully created the content it was asked to.
 When things go wrong, or you need to send very specific status codes back, or even take advantage of the
 powerful HTTP caching, it's there for you.
@@ -33,20 +36,33 @@ as the second parameter of the ``setStatusCode()`` method:
 .. literalinclude:: response/002.php
 
 You can set format an array into either JSON or XML and set the content type header to the appropriate mime with the
-``setJSON`` and ``setXML`` methods. Typically, you will send an array of data to be converted:
+``setJSON()`` and ``setXML()`` methods. Typically, you will send an array of data to be converted:
 
 .. literalinclude:: response/003.php
 
 Setting Headers
 ---------------
 
+setHeader()
+^^^^^^^^^^^
+
 Often, you will need to set headers to be set for the response. The Response class makes this very simple to do,
-with the ``setHeader()`` method. The first parameter is the name of the header. The second parameter is the value,
+with the ``setHeader()`` method.
+
+The first parameter is the name of the header. The second parameter is the value,
 which can be either a string or an array of values that will be combined correctly when sent to the client.
+
+.. literalinclude:: response/004.php
+
 Using these functions instead of using the native PHP functions allows you to ensure that no headers are sent
 prematurely, causing errors, and makes testing possible.
 
-.. literalinclude:: response/004.php
+.. note:: This method just sets headers to the response instance. So, if you create
+    and return another response instance (e.g., if you call :php:func:`redirect()`),
+    the headers set here will not be sent automatically.
+
+appendHeader()
+^^^^^^^^^^^^^^
 
 If the header exists and can have more than one value, you may use the ``appendHeader()`` and ``prependHeader()``
 methods to add the value to the end or beginning of the values list, respectively. The first parameter is the name
@@ -54,10 +70,118 @@ of the header, while the second is the value to append or prepend.
 
 .. literalinclude:: response/005.php
 
+removeHeader()
+^^^^^^^^^^^^^^
+
 Headers can be removed from the response with the ``removeHeader()`` method, which takes the header name as the only
 parameter. This is not case-sensitive.
 
 .. literalinclude:: response/006.php
+
+.. _response-redirect:
+
+Redirect
+========
+
+If you want to create a redirect, use the :php:func:`redirect()` function.
+
+It returns a ``RedirectResponse`` instance. It is a different instance from the
+global response instance that ``Services::response()`` returns.
+
+.. warning:: If you set Cookies or Response Headers before you call ``redirect()``,
+    they are set to the global response instance, and they are not automatically
+    copied to the ``RedirectResponse`` instance. To send them, you need to call
+    the ``withCookies()`` or ``withHeaders()`` method manually.
+
+.. important:: If you want to redirect, an instance of ``RedirectResponse`` must
+    be returned in a method of the :doc:`Controller <../incoming/controllers>` or
+    the :doc:`Controller Filter <../incoming/filters>`. Note that the ``__construct()``
+    or the ``initController()`` method cannot return any value.
+    If you forget to return ``RedirectResponse``, no redirection will occur.
+
+Redirect to a URI path
+----------------------
+
+When you want to pass a URI path (relative to baseURL), use ``redirect()->to()``:
+
+.. literalinclude:: ./response/028.php
+    :lines: 2-
+
+.. note:: If there is a fragment in your URL that you want to remove, you can
+    use the refresh parameter in the method.
+    Like ``return redirect()->to('admin/home', null, 'refresh');``.
+
+Redirect to a Defined Route
+---------------------------
+
+When you want to pass a :ref:`route name <using-named-routes>` or Controller::method
+for :ref:`reverse routing <reverse-routing>`, use ``redirect()->route()``:
+
+.. literalinclude:: ./response/029.php
+    :lines: 2-
+
+When passing an argument into the function, it is treated as a route name or
+Controller::method for reverse routing, not a relative/full URI,
+treating it the same as using ``redirect()->route()``:
+
+.. literalinclude:: ./response/030.php
+    :lines: 2-
+
+Redirect Back
+-------------
+
+When you want to redirect back, use ``redirect()->back()``:
+
+.. literalinclude:: ./response/031.php
+    :lines: 2-
+
+.. note:: ``redirect()->back()`` is not the same as browser "back" button.
+    It takes a visitor to "the last page viewed during the Session" when the Session is available.
+    If the Session hasn't been loaded, or is otherwise unavailable, then a sanitized version of HTTP_REFERER will be used.
+
+Redirect with Cookies
+---------------------
+
+If you set Cookies before you call ``redirect()``, they are set to the global
+response instance, and they are not automatically copied to the ``RedirectResponse``
+instance.
+
+To send the Cookies, you need to call the ``withCookies()`` method manually.
+
+.. literalinclude:: ./response/034.php
+    :lines: 2-
+
+Redirect with Headers
+---------------------
+
+If you set Response Headers before you call ``redirect()``, they are set to the
+global response instance, and they are not automatically copied to the
+``RedirectResponse`` instance.
+
+To send the Headers, you need to call the ``withHeaders()`` method manually.
+
+.. literalinclude:: ./response/035.php
+    :lines: 2-
+
+.. _response-redirect-status-code:
+
+Redirect Status Code
+--------------------
+
+The default HTTP status code for GET requests is 302. However, when using HTTP/1.1
+or later, 303 is used for POST/PUT/DELETE requests and 307 for all other requests.
+
+You can specify the status code:
+
+.. literalinclude:: ./response/032.php
+    :lines: 2-
+
+.. note:: Due to a bug, in v4.3.3 or previous versions, the status code of the
+    actual redirect response might be changed even if a status code was specified.
+    See :ref:`ChangeLog v4.3.4 <v434-redirect-status-code>`.
+
+If you don't know HTTP status code for redirection, it is recommended to read
+`Redirections in HTTP <https://developer.mozilla.org/en-US/docs/Web/HTTP/Redirections>`_.
 
 .. _force-file-download:
 
@@ -93,6 +217,16 @@ Use the optional ``setFileName()`` method to change the filename as it is sent t
 .. note:: The response object MUST be returned for the download to be sent to the client. This allows the response
     to be passed through all **after** filters before being sent to the client.
 
+.. _open-file-in-browser:
+
+Open File in Browser
+--------------------
+
+Some browsers can display files such as PDF. To tell the browser to display the file instead of saving it, call the
+``DownloadResponse::inline()`` method.
+
+.. literalinclude:: response/033.php
+
 HTTP Caching
 ============
 
@@ -100,7 +234,7 @@ Built into the HTTP specification are tools help the client (often the web brows
 this can lead to a huge performance boost to your application because it will tell the client that they don't need
 to contact the server at all since nothing has changed. And you can't get faster than that.
 
-This are handled through the ``Cache-Control`` and ``ETag`` headers. This guide is not the proper place for a thorough
+This is handled through the ``Cache-Control`` and ``ETag`` headers. This guide is not the proper place for a thorough
 introduction to all of the cache headers power, but you can get a good understanding over at
 `Google Developers <https://developers.google.com/web/fundamentals/performance/optimizing-content-efficiency/http-caching>`_.
 
@@ -115,122 +249,13 @@ to the ``Cache-Control`` header. You are free to set all of the options exactly 
 situation. While most of the options are applied to the ``Cache-Control`` header, it intelligently handles
 the ``etag`` and ``last-modified`` options to their appropriate header.
 
-.. _content-security-policy:
-
-Content Security Policy
-=======================
-
-One of the best protections you have against XSS attacks is to implement a Content Security Policy on the site.
-This forces you to whitelist every single source of content that is pulled in from your site's HTML,
-including images, stylesheets, javascript files, etc. The browser will refuse content from sources that don't meet
-the whitelist. This whitelist is created within the response's ``Content-Security-Policy`` header and has many
-different ways it can be configured.
-
-This sounds complex, and on some sites, can definitely be challenging. For many simple sites, though, where all content
-is served by the same domain (http://example.com), it is very simple to integrate.
-
-As this is a complex subject, this user guide will not go over all of the details. For more information, you should
-visit the following sites:
-
-* `Content Security Policy main site <https://content-security-policy.com/>`_
-* `W3C Specification <https://www.w3.org/TR/CSP>`_
-* `Introduction at HTML5Rocks <https://www.html5rocks.com/en/tutorials/security/content-security-policy/>`_
-* `Article at SitePoint <https://www.sitepoint.com/improving-web-security-with-the-content-security-policy/>`_
-
-Turning CSP On
---------------
-
-By default, support for this is off. To enable support in your application, edit the ``CSPEnabled`` value in
-**app/Config/App.php**:
-
-.. literalinclude:: response/011.php
-
-When enabled, the response object will contain an instance of ``CodeIgniter\HTTP\ContentSecurityPolicy``. The
-values set in **app/Config/ContentSecurityPolicy.php** are applied to that instance, and if no changes are
-needed during runtime, then the correctly formatted header is sent and you're all done.
-
-With CSP enabled, two header lines are added to the HTTP response: a **Content-Security-Policy** header, with
-policies identifying content types or origins that are explicitly allowed for different
-contexts, and a **Content-Security-Policy-Report-Only** header, which identifies content types
-or origins that will be allowed but which will also be reported to the destination
-of your choice.
-
-Our implementation provides for a default treatment, changeable through the ``reportOnly()`` method.
-When an additional entry is added to a CSP directive, as shown below, it will be added
-to the CSP header appropriate for blocking or preventing. That can be overridden on a per
-call basis, by providing an optional second parameter to the adding method call.
-
-Runtime Configuration
----------------------
-
-If your application needs to make changes at run-time, you can access the instance at ``$this->response->CSP`` in your controllers. The
-class holds a number of methods that map pretty clearly to the appropriate header value that you need to set.
-Examples are shown below, with different combinations of parameters, though all accept either a directive
-name or an array of them:
-
-.. literalinclude:: response/012.php
-
-The first parameter to each of the "add" methods is an appropriate string value,
-or an array of them.
-
-The ``reportOnly`` method allows you to specify the default reporting treatment
-for subsequent sources, unless over-ridden. For instance, you could specify
-that youtube.com was allowed, and then provide several allowed but reported sources:
-
-.. literalinclude:: response/013.php
-
-Inline Content
---------------
-
-It is possible to set a website to not protect even inline scripts and styles on its own pages, since this might have
-been the result of user-generated content. To protect against this, CSP allows you to specify a nonce within the
-``<style>`` and ``<script>`` tags, and to add those values to the response's header. This is a pain to handle in real
-life, and is most secure when generated on the fly. To make this simple, you can include a ``{csp-style-nonce}`` or
-``{csp-script-nonce}`` placeholder in the tag and it will be handled for you automatically::
-
-    // Original
-    <script {csp-script-nonce}>
-        console.log("Script won't run as it doesn't contain a nonce attribute");
-    </script>
-
-    // Becomes
-    <script nonce="Eskdikejidojdk978Ad8jf">
-        console.log("Script won't run as it doesn't contain a nonce attribute");
-    </script>
-
-    // OR
-    <style {csp-style-nonce}>
-        . . .
-    </style>
-
-.. warning:: If an attacker injects a string like ``<script {csp-script-nonce}>``, it might become the real nonce attribute with this functionality. You can customize the placeholder string with the ``$scriptNonceTag`` and ``$styleNonceTag`` properties in **app/Config/ContentSecurityPolicy.php**.
-
-If you don't like this auto replacement functionality, you can turn it off with setting ``$autoNonce = false`` in **app/Config/ContentSecurityPolicy.php**.
-
-In this case, you can use the functions, ``csp_script_nonce()`` and ``csp_style_nonce()``::
-
-    // Original
-    <script <?= csp_script_nonce() ?>>
-        console.log("Script won't run as it doesn't contain a nonce attribute");
-    </script>
-
-    // Becomes
-    <script nonce="Eskdikejidojdk978Ad8jf">
-        console.log("Script won't run as it doesn't contain a nonce attribute");
-    </script>
-
-    // OR
-    <style <?= csp_style_nonce() ?>>
-        . . .
-    </style>
-
 Class Reference
 ===============
 
 .. note:: In addition to the methods listed here, this class inherits the methods from the
     :doc:`Message Class </incoming/message>`.
 
-The methods provided by the parent class that are available are:
+The methods inherited from the Message Class are:
 
 * :meth:`CodeIgniter\\HTTP\\Message::body`
 * :meth:`CodeIgniter\\HTTP\\Message::setBody`
@@ -362,9 +387,9 @@ The methods provided by the parent class that are available are:
         followed by the response body. For the main application response, you do not need to call
         this as it is handled automatically by CodeIgniter.
 
-    .. php:method:: setCookie($name = ''[, $value = ''[, $expire = ''[, $domain = ''[, $path = '/'[, $prefix = ''[, $secure = false[, $httponly = false[, $samesite = null]]]]]]]])
+    .. php:method:: setCookie($name = ''[, $value = ''[, $expire = 0[, $domain = ''[, $path = '/'[, $prefix = ''[, $secure = false[, $httponly = false[, $samesite = null]]]]]]]])
 
-        :param array|Cookie|string $name: Cookie name or an array of parameters or an instance of ``CodeIgniter\Cookie\Cookie``
+        :param array|Cookie|string $name: Cookie name *or* associative array of all of the parameters available to this method *or* an instance of ``CodeIgniter\Cookie\Cookie``
         :param string $value: Cookie value
         :param int $expire: Cookie expiration time in seconds. If set to ``0`` the cookie will only last as long as the browser is open
         :param string $domain: Cookie domain
@@ -378,7 +403,9 @@ The methods provided by the parent class that are available are:
         .. note:: Prior to v4.2.7, the default values of ``$secure`` and ``$httponly`` were ``false``
             due to a bug, and these values from **app/Config/Cookie.php** were never used.
 
-        Sets a cookie containing the values you specify. There are two ways to
+        Sets a cookie containing the values you specify to the Response instance.
+
+        There are two ways to
         pass information to this method so that a cookie can be set: Array
         Method, and Discrete Parameters:
 
@@ -390,7 +417,7 @@ The methods provided by the parent class that are available are:
         .. literalinclude:: response/023.php
 
         Only the ``name`` and ``value`` are required. To delete a cookie set it with the
-        ``expire`` blank.
+        ``value`` blank.
 
         The ``expire`` is set in **seconds**, which will be added to the current
         time. Do not include the time, but rather only the number of seconds
@@ -432,6 +459,8 @@ The methods provided by the parent class that are available are:
         :rtype: void
 
         Delete an existing cookie.
+
+        .. note:: This also just sets browser cookie for deleting the cookie.
 
         Only the ``name`` is required.
 

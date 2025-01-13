@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -15,12 +17,12 @@ use CodeIgniter\Cache\CacheFactory;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\StreamFilterTrait;
 use Config\Services;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * @internal
- *
- * @group Others
  */
+#[Group('Others')]
 final class ClearCacheTest extends CIUnitTestCase
 {
     use StreamFilterTrait;
@@ -33,14 +35,14 @@ final class ClearCacheTest extends CIUnitTestCase
         Services::injectMock('cache', CacheFactory::getHandler(config('Cache')));
     }
 
-    public function testClearCacheInvalidHandler()
+    public function testClearCacheInvalidHandler(): void
     {
         command('cache:clear junk');
 
         $this->assertStringContainsString('junk is not a valid cache handler.', $this->getStreamFilterBuffer());
     }
 
-    public function testClearCacheWorks()
+    public function testClearCacheWorks(): void
     {
         cache()->save('foo', 'bar');
         $this->assertSame('bar', cache('foo'));

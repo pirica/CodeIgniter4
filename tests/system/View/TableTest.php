@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -14,13 +16,15 @@ namespace CodeIgniter\View;
 use CodeIgniter\Database\MySQLi\Result;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\Mock\MockTable;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Depends;
+use PHPUnit\Framework\Attributes\Group;
 use stdClass;
 
 /**
  * @internal
- *
- * @group Others
  */
+#[Group('Others')]
 final class TableTest extends CIUnitTestCase
 {
     private Table $table;
@@ -34,7 +38,7 @@ final class TableTest extends CIUnitTestCase
 
     // Setter Methods
 
-    public function testSetTemplate()
+    public function testSetTemplate(): void
     {
         $this->assertFalse($this->table->setTemplate('not an array'));
 
@@ -44,22 +48,20 @@ final class TableTest extends CIUnitTestCase
         $this->assertSame($template, $this->table->template);
     }
 
-    public function testSetEmpty()
+    public function testSetEmpty(): void
     {
         $this->table->setEmpty('nada');
         $this->assertSame('nada', $this->table->emptyCells);
     }
 
-    public function testSetCaption()
+    public function testSetCaption(): void
     {
         $this->table->setCaption('awesome cap');
         $this->assertSame('awesome cap', $this->table->caption);
     }
 
-    /**
-     * @depends testPrepArgs
-     */
-    public function testSetHeading()
+    #[Depends('testPrepArgs')]
+    public function testSetHeading(): void
     {
         // uses _prep_args internally, so we'll just do a quick
         // check to verify that func_get_args and prep_args are
@@ -73,11 +75,11 @@ final class TableTest extends CIUnitTestCase
                 ['data' => 'color'],
                 ['data' => 'size'],
             ],
-            $this->table->heading
+            $this->table->heading,
         );
     }
 
-    public function testSetFooting()
+    public function testSetFooting(): void
     {
         // uses _prep_args internally, so we'll just do a quick
         // check to verify that func_get_args and prep_args are
@@ -92,11 +94,11 @@ final class TableTest extends CIUnitTestCase
                 ['data' => 'Subtotal'],
                 ['data' => $subtotal],
             ],
-            $this->table->footing
+            $this->table->footing,
         );
     }
 
-    public function testSetHeadingWithStyle()
+    public function testSetHeadingWithStyle(): void
     {
         $template = [
             'heading_cell_start' => '<td>',
@@ -118,11 +120,11 @@ final class TableTest extends CIUnitTestCase
                     'style' => $this->styleTableOne,
                 ],
             ],
-            $this->table->heading
+            $this->table->heading,
         );
     }
 
-    public function testSetFootingWithStyle()
+    public function testSetFootingWithStyle(): void
     {
         $template = [
             'footing_cell_start' => '<td>',
@@ -144,14 +146,12 @@ final class TableTest extends CIUnitTestCase
                     'style' => $this->styleTableTwo,
                 ],
             ],
-            $this->table->footing
+            $this->table->footing,
         );
     }
 
-    /**
-     * @depends testPrepArgs
-     */
-    public function testAddRow()
+    #[Depends('testPrepArgs')]
+    public function testAddRow(): void
     {
         // uses _prep_args internally, so we'll just do a quick
         // check to verify that func_get_args and prep_args are
@@ -169,13 +169,30 @@ final class TableTest extends CIUnitTestCase
                 ['data' => 'pony'],
                 ['data' => 'stinks'],
             ],
-            $this->table->rows[1]
+            $this->table->rows[1],
         );
     }
 
-    // Uility Methods
+    public function testAddRowAndRowWithAttributes(): void
+    {
+        $cell = ['data' => 'Blue', 'class' => 'highlight', 'colspan' => 2];
+        $this->table->addRow($cell, 'Red', 'Green');
+        // If there is only one column `$this->table->addRow($cell)`,
+        // this test will fail.
+        // See https://github.com/codeigniter4/CodeIgniter4/issues/8361
 
-    public function testPrepArgs()
+        $expected = '<table border="0" cellpadding="4" cellspacing="0">
+<tbody>
+<tr>
+<td colspan="2" class="highlight">Blue</td><td>Red</td><td>Green</td></tr>
+</tbody>
+</table>';
+        $this->assertSame($expected, $this->table->generate());
+    }
+
+    // Utility Methods
+
+    public function testPrepArgs(): void
     {
         $expected = [
             ['data' => 'name'],
@@ -185,7 +202,7 @@ final class TableTest extends CIUnitTestCase
 
         $this->assertSame(
             $expected,
-            $this->table->prepArgs(['name', 'color', 'size'])
+            $this->table->prepArgs(['name', 'color', 'size']),
         );
 
         // with cell attributes
@@ -197,11 +214,11 @@ final class TableTest extends CIUnitTestCase
 
         $this->assertSame(
             $expected,
-            $this->table->prepArgs(['name', 'color', 'size', ['data' => 'weight', 'class' => 'awesome']])
+            $this->table->prepArgs(['name', 'color', 'size', ['data' => 'weight', 'class' => 'awesome']]),
         );
     }
 
-    public function testDefaultTemplateKeys()
+    public function testDefaultTemplateKeys(): void
     {
         $keys = [
             'table_open',
@@ -229,7 +246,7 @@ final class TableTest extends CIUnitTestCase
         }
     }
 
-    public function testCompileTemplate()
+    public function testCompileTemplate(): void
     {
         $this->assertFalse($this->table->setTemplate('invalid_junk'));
 
@@ -248,7 +265,7 @@ final class TableTest extends CIUnitTestCase
         $this->assertSame('</table junk>', $this->table->template['table_close']);
     }
 
-    public function testMakeColumns()
+    public function testMakeColumns(): void
     {
         // Test bogus parameters
         $this->assertFalse($this->table->makeColumns('invalid_junk'));
@@ -268,7 +285,7 @@ final class TableTest extends CIUnitTestCase
         // No column count - no changes to the array
         $this->assertSame(
             $fiveValues,
-            $this->table->makeColumns($fiveValues)
+            $this->table->makeColumns($fiveValues),
         );
 
         // Column count of 3 leaves us with one &nbsp;
@@ -277,11 +294,11 @@ final class TableTest extends CIUnitTestCase
                 ['Laura', 'Red', '15'],
                 ['Katie', 'Blue', '&nbsp;'],
             ],
-            $this->table->makeColumns($fiveValues, 3)
+            $this->table->makeColumns($fiveValues, 3),
         );
     }
 
-    public function testClear()
+    public function testClear(): void
     {
         $this->table->setHeading('Name', 'Color', 'Size');
 
@@ -309,7 +326,7 @@ final class TableTest extends CIUnitTestCase
         $this->assertEmpty($this->table->rows);
     }
 
-    public function testSetFromArray()
+    public function testSetFromArray(): void
     {
         $data = [
             [
@@ -353,7 +370,7 @@ final class TableTest extends CIUnitTestCase
         $this->assertSame($expected, $this->table->rows[1]);
     }
 
-    public function testSetFromObject()
+    public function testSetFromObject(): void
     {
         // This needs to be passed by reference to CI_DB_result::__construct()
         $dummy           = new stdClass();
@@ -379,7 +396,7 @@ final class TableTest extends CIUnitTestCase
         $this->assertSame($expected, $this->table->rows[1]);
     }
 
-    public function testGenerate()
+    public function testGenerate(): void
     {
         // Prepare the data
         $data = [
@@ -445,7 +462,7 @@ final class TableTest extends CIUnitTestCase
         $this->assertStringContainsString('<td>12345</td>', $table);
     }
 
-    public function testGenerateTdWithClassStyle()
+    public function testGenerateTdWithClassStyle(): void
     {
         $template = [
             'table_open'         => '<table border="1" cellpadding="4" cellspacing="0">',
@@ -494,7 +511,7 @@ final class TableTest extends CIUnitTestCase
         $this->assertStringContainsString('<td style="' . $this->styleTableTwo . '" class="thr"><small class="text-light">IDR <span class="badge badge-info">10</span></small></td>', $table);
     }
 
-    public function testGenerateThWithClassStyle()
+    public function testGenerateThWithClassStyle(): void
     {
         $template = [
             'table_open'         => '<table border="1" cellpadding="4" cellspacing="0">',
@@ -543,7 +560,7 @@ final class TableTest extends CIUnitTestCase
         $this->assertStringContainsString('<th style="' . $this->styleTableTwo . '" class="thr"><small class="text-light">IDR <span class="badge badge-info">10</span></small></th>', $table);
     }
 
-    public function testGenerateInvalidHeadingFooting()
+    public function testGenerateInvalidHeadingFooting(): void
     {
         $template = [
             'table_open'         => '<table border="1" cellpadding="4" cellspacing="0">',
@@ -592,7 +609,7 @@ final class TableTest extends CIUnitTestCase
         $this->assertStringContainsString('<footer><small class="text-light">IDR <span class="badge badge-info">10</span></small></footer>', $table);
     }
 
-    public function testGenerateInvalidHeadingFootingHTML()
+    public function testGenerateInvalidHeadingFootingHTML(): void
     {
         $template = [
             'table_open'         => '<table border="1" cellpadding="4" cellspacing="0">',
@@ -641,7 +658,7 @@ final class TableTest extends CIUnitTestCase
         $this->assertStringContainsString('td><small class="text-light">IDR <span class="badge badge-info">10</span></small></td>', $table);
     }
 
-    public function testGenerateEmptyCell()
+    public function testGenerateEmptyCell(): void
     {
         // Prepare the data
         $data = [
@@ -674,7 +691,7 @@ final class TableTest extends CIUnitTestCase
         $this->assertStringContainsString('<td>Huh?</td>', $table);
     }
 
-    public function testWithConfig()
+    public function testWithConfig(): void
     {
         $customSettings = [
             'table_open' => '<table border="1" cellpadding="2" cellspacing="1" class="mytable">',
@@ -711,7 +728,7 @@ final class TableTest extends CIUnitTestCase
         $this->assertStringContainsString('<table border="1" cellpadding="2" cellspacing="1" class="mytable">', $generated);
     }
 
-    public function testGenerateFromDBResult()
+    public function testGenerateFromDBResult(): void
     {
         // This needs to be passed by reference to CI_DB_result::__construct()
         $dummy           = new stdClass();
@@ -730,7 +747,7 @@ final class TableTest extends CIUnitTestCase
         $this->assertStringContainsString('<td>foo@bar.com</td>', $table);
     }
 
-    public function testUndefined()
+    public function testUndefined(): void
     {
         // Prepare the data
         $data = [];
@@ -740,7 +757,7 @@ final class TableTest extends CIUnitTestCase
         $this->assertSame('Undefined table data', $table);
     }
 
-    public function testCallback()
+    public function testCallback(): void
     {
         $this->table->setHeading('Name', 'Color', 'Size');
         $this->table->addRow('Fred', '<strong>Blue</strong>', 'Small');
@@ -752,7 +769,7 @@ final class TableTest extends CIUnitTestCase
         $this->assertStringContainsString('<td>Fred</td><td>&lt;strong&gt;Blue&lt;/strong&gt;</td><td>Small</td>', $generated);
     }
 
-    public function testInvalidCallback()
+    public function testInvalidCallback(): void
     {
         $this->table->setHeading('Name', 'Color', 'Size');
         $this->table->addRow('Fred', '<strong>Blue</strong>', 'Small');
@@ -762,6 +779,113 @@ final class TableTest extends CIUnitTestCase
         $generated = $this->table->generate();
 
         $this->assertStringContainsString('<td>Fred</td><td><strong>Blue</strong></td><td>Small</td>', $generated);
+    }
+
+    #[DataProvider('orderedColumnUsecases')]
+    public function testAddRowAndGenerateOrderedColumns(array $heading, array $row, string $expectContainsString): void
+    {
+        $this->table->setHeading($heading);
+        $this->table->setSyncRowsWithHeading(true);
+        $this->table->addRow($row);
+
+        $generated = $this->table->generate();
+
+        $this->assertStringContainsString($expectContainsString, $generated);
+    }
+
+    #[DataProvider('orderedColumnUsecases')]
+    public function testGenerateOrderedColumns(array $heading, array $row, string $expectContainsString): void
+    {
+        $this->table->setHeading($heading);
+        $this->table->setSyncRowsWithHeading(true);
+
+        $generated = $this->table->generate([$row]);
+
+        $this->assertStringContainsString($expectContainsString, $generated);
+    }
+
+    public static function orderedColumnUsecases(): iterable
+    {
+        yield from [
+            'reorder example #1' => [
+                'heading'              => ['id' => 'ID', 'name' => 'Name', 'age' => 'Age'],
+                'row'                  => ['name' => 'Max', 'age' => 30, 'id' => 5],
+                'expectContainsString' => '<td>5</td><td>Max</td><td>30</td>',
+            ],
+            'reorder example #2' => [
+                'heading'              => ['id' => 'ID', 'age' => 'Age', 'name' => 'Name'],
+                'row'                  => ['name' => 'Fred', 'age' => 30, 'id' => 5],
+                'expectContainsString' => '<td>5</td><td>30</td><td>Fred</td>',
+            ],
+            '2 col heading, 3 col data row' => [
+                'heading'              => ['id' => 'ID', 'name' => 'Name'],
+                'row'                  => ['name' => 'Fred', 'age' => 30, 'id' => 5],
+                'expectContainsString' => '<td>5</td><td>Fred</td>',
+            ],
+            '3 col heading, 2 col data row' => [
+                'heading'              => ['id' => 'ID', 'age' => 'Age', 'name' => 'Name'],
+                'row'                  => ['name' => 'Fred', 'id' => 5],
+                'expectContainsString' => '<td>5</td><td></td><td>Fred</td>',
+            ],
+        ];
+    }
+
+    /**
+     * @see https://github.com/codeigniter4/CodeIgniter4/issues/8051
+     */
+    public function testGenerateTableWithHeadingContainFieldNamedData(): void
+    {
+        $table = new Table();
+        $table->setHeading([
+            'codigo'         => 'Codigo Orçamento',
+            'data'           => 'Data do Orçamento',
+            'tipo_desconto'  => 'Tipo de Desconto',
+            'valor_desconto' => 'Valor do Desconto',
+        ])->setSyncRowsWithHeading(true);
+
+        $sampleData = [
+            [
+                'id'             => 1,
+                'id_cliente'     => 1,
+                'codigo'         => 'codigo1',
+                'data'           => '2023-10-16 21:53:25',
+                'tipo_desconto'  => 'NENHUM',
+                'valor_desconto' => '',
+                'created_at'     => '2023-10-16 21:53:25',
+                'updated_at'     => '2023-10-16 21:53:25',
+                'deleted_at'     => '',
+            ],
+            [
+                'id'             => 2,
+                'id_cliente'     => 2,
+                'codigo'         => 'codigo2',
+                'data'           => '2023-10-16 21:53:25',
+                'tipo_desconto'  => 'REAL',
+                'valor_desconto' => 10.00,
+                'created_at'     => '2023-10-16 21:53:25',
+                'updated_at'     => '2023-10-16 21:53:25',
+                'deleted_at'     => '',
+            ],
+            [
+                'id'             => 3,
+                'id_cliente'     => 3,
+                'codigo'         => 'codigo3',
+                'data'           => '2023-10-16 21:53:25',
+                'tipo_desconto'  => 'PERCENTUAL',
+                'valor_desconto' => 10.00,
+                'created_at'     => '2023-10-16 21:53:25',
+                'updated_at'     => '2023-10-16 21:53:25',
+                'deleted_at'     => '',
+            ],
+        ];
+
+        $generated = $table->generate($sampleData);
+
+        $this->assertStringContainsString('<th>Codigo Orçamento</th><th>Data do Orçamento</th><th>Tipo de Desconto</th><th>Valor do Desconto</th>', $generated);
+
+        $this->assertStringContainsString('<td>codigo1</td><td>2023-10-16 21:53:25</td><td>NENHUM</td><td></td>', $generated);
+        $this->assertStringContainsString('<td>codigo2</td><td>2023-10-16 21:53:25</td><td>REAL</td><td>10</td>', $generated);
+        $this->assertStringContainsString('<td>codigo3</td><td>2023-10-16 21:53:25</td><td>PERCENTUAL</td><td>10</td>', $generated);
     }
 }
 

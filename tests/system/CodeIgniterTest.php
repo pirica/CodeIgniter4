@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -11,30 +13,42 @@
 
 namespace CodeIgniter;
 
+use App\Controllers\Home;
 use CodeIgniter\Config\Services;
+use CodeIgniter\Debug\Timer;
+use CodeIgniter\Exceptions\ConfigException;
+use CodeIgniter\Exceptions\PageNotFoundException;
+use CodeIgniter\HTTP\Method;
 use CodeIgniter\HTTP\Response;
+use CodeIgniter\Router\Exceptions\RedirectException;
 use CodeIgniter\Router\RouteCollection;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\Filters\CITestStreamFilter;
 use CodeIgniter\Test\Mock\MockCodeIgniter;
 use Config\App;
 use Config\Cache;
-use Config\Filters;
+use Config\Filters as FiltersConfig;
 use Config\Modules;
+use Config\Routing;
+use PHPUnit\Framework\Attributes\BackupGlobals;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
+use PHPUnit\Framework\Attributes\WithoutErrorHandler;
 use Tests\Support\Filters\Customfilter;
+use Tests\Support\Filters\RedirectFilter;
 
 /**
- * @backupGlobals enabled
- *
  * @internal
- *
- * @group Others
  */
+#[BackupGlobals(true)]
+#[Group('Others')]
+#[RunTestsInSeparateProcesses]
 final class CodeIgniterTest extends CIUnitTestCase
 {
     private CodeIgniter $codeigniter;
-    protected $routes;
 
+    #[WithoutErrorHandler]
     protected function setUp(): void
     {
         parent::setUp();
@@ -44,7 +58,7 @@ final class CodeIgniterTest extends CIUnitTestCase
 
         $this->codeigniter = new MockCodeIgniter(new App());
 
-        $response = Services::response();
+        $response = service('response');
         $response->pretend();
     }
 
@@ -52,14 +66,10 @@ final class CodeIgniterTest extends CIUnitTestCase
     {
         parent::tearDown();
 
-        if (count(ob_list_handlers()) > 1) {
-            ob_end_clean();
-        }
-
         $this->resetServices();
     }
 
-    public function testRunEmptyDefaultRoute()
+    public function testRunEmptyDefaultRoute(): void
     {
         $_SERVER['argv'] = ['index.php'];
         $_SERVER['argc'] = 1;
@@ -71,29 +81,40 @@ final class CodeIgniterTest extends CIUnitTestCase
         $this->assertStringContainsString('Welcome to CodeIgniter', $output);
     }
 
-    public function testRunEmptyDefaultRouteReturnResponse()
+    public function testOutputBufferingControl(): void
+    {
+        ob_start();
+        $this->codeigniter->run();
+        ob_get_clean();
+
+        // 1 phpunit output buffering level
+        $this->assertSame(1, ob_get_level());
+    }
+
+    public function testRunEmptyDefaultRouteReturnResponse(): void
     {
         $_SERVER['argv'] = ['index.php'];
         $_SERVER['argc'] = 1;
 
-        $response = $this->codeigniter->useSafeOutput(true)->run(null, true);
+        $response = $this->codeigniter->run(null, true);
 
         $this->assertStringContainsString('Welcome to CodeIgniter', $response->getBody());
     }
 
-    public function testRunClosureRoute()
+    public function testRunClosureRoute(): void
     {
         $_SERVER['argv'] = ['index.php', 'pages/about'];
         $_SERVER['argc'] = 2;
 
         $_SERVER['REQUEST_URI'] = '/pages/about';
+        $_SERVER['SCRIPT_NAME'] = '/index.php';
 
         // Inject mock router.
-        $routes = Services::routes();
-        $routes->add('pages/(:segment)', static function ($segment) {
+        $routes = service('routes');
+        $routes->add('pages/(:segment)', static function ($segment): void {
             echo 'You want to see "' . esc($segment) . '" page.';
         });
-        $router = Services::router($routes, Services::incomingrequest());
+        $router = service('router', $routes, service('incomingrequest'));
         Services::injectMock('router', $router);
 
         ob_start();
@@ -103,73 +124,74 @@ final class CodeIgniterTest extends CIUnitTestCase
         $this->assertStringContainsString('You want to see "about" page.', $output);
     }
 
-    public function testRun404Override()
+    public function testRun404Override(): void
     {
-        $_SERVER['argv'] = ['index.php', '/'];
-        $_SERVER['argc'] = 2;
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+        $_SERVER['REQUEST_URI']    = '/pages/about';
+        $_SERVER['SCRIPT_NAME']    = '/index.php';
 
         // Inject mock router.
-        $routes = Services::routes();
+        $routes = service('routes');
         $routes->setAutoRoute(false);
-        $routes->set404Override('Tests\Support\Controllers\Hello::index');
-        $router = Services::router($routes, Services::incomingrequest());
+        $routes->set404Override('Tests\Support\Errors::show404');
+        $router = service('router', $routes, service('incomingrequest'));
         Services::injectMock('router', $router);
 
         ob_start();
         $this->codeigniter->run($routes);
         $output = ob_get_clean();
 
-        $this->assertStringContainsString('Hello', $output);
+        $this->assertStringContainsString("Can't find a route for 'GET: pages/about'.", $output);
+        $this->assertSame(404, response()->getStatusCode());
     }
 
-    public function testRun404OverrideControllerReturnsResponse()
+    public function testRun404OverrideControllerReturnsResponse(): void
     {
         $_SERVER['argv'] = ['index.php', '/'];
         $_SERVER['argc'] = 2;
 
         // Inject mock router.
-        $routes = Services::routes();
+        $routes = service('routes');
         $routes->setAutoRoute(false);
         $routes->set404Override('Tests\Support\Controllers\Popcorn::pop');
-        $router = Services::router($routes, Services::incomingrequest());
+        $router = service('router', $routes, service('incomingrequest'));
         Services::injectMock('router', $router);
 
-        ob_start();
-        $this->codeigniter->run($routes);
-        $output = ob_get_clean();
+        $response = $this->codeigniter->run($routes, true);
 
-        $this->assertStringContainsString('Oops', $output);
+        $this->assertStringContainsString('Oops', $response->getBody());
+        $this->assertSame(567, $response->getStatusCode());
     }
 
-    public function testRun404OverrideReturnResponse()
+    public function testRun404OverrideReturnResponse(): void
     {
         $_SERVER['argv'] = ['index.php', '/'];
         $_SERVER['argc'] = 2;
 
         // Inject mock router.
-        $routes = Services::routes();
+        $routes = service('routes');
         $routes->setAutoRoute(false);
         $routes->set404Override('Tests\Support\Controllers\Popcorn::pop');
-        $router = Services::router($routes, Services::incomingrequest());
+        $router = service('router', $routes, service('incomingrequest'));
         Services::injectMock('router', $router);
 
-        $response = $this->codeigniter->useSafeOutput(true)->run($routes, true);
+        $response = $this->codeigniter->run($routes, true);
 
         $this->assertStringContainsString('Oops', $response->getBody());
     }
 
-    public function testRun404OverrideByClosure()
+    public function testRun404OverrideByClosure(): void
     {
         $_SERVER['argv'] = ['index.php', '/'];
         $_SERVER['argc'] = 2;
 
         // Inject mock router.
-        $routes = new RouteCollection(Services::locator(), new Modules());
+        $routes = new RouteCollection(service('locator'), new Modules(), new Routing());
         $routes->setAutoRoute(false);
-        $routes->set404Override(static function () {
+        $routes->set404Override(static function (): void {
             echo '404 Override by Closure.';
         });
-        $router = Services::router($routes, Services::incomingrequest());
+        $router = service('router', $routes, service('incomingrequest'));
         Services::injectMock('router', $router);
 
         ob_start();
@@ -177,19 +199,24 @@ final class CodeIgniterTest extends CIUnitTestCase
         $output = ob_get_clean();
 
         $this->assertStringContainsString('404 Override by Closure.', $output);
+        $this->assertSame(404, response()->getStatusCode());
     }
 
-    public function testControllersCanReturnString()
+    public function testControllersCanReturnString(): void
     {
         $_SERVER['argv'] = ['index.php', 'pages/about'];
         $_SERVER['argc'] = 2;
 
         $_SERVER['REQUEST_URI'] = '/pages/about';
+        $_SERVER['SCRIPT_NAME'] = '/index.php';
 
         // Inject mock router.
-        $routes = Services::routes();
-        $routes->add('pages/(:segment)', static fn ($segment) => 'You want to see "' . esc($segment) . '" page.');
-        $router = Services::router($routes, Services::incomingrequest());
+        $routes = service('routes');
+        $routes->add(
+            'pages/(:segment)',
+            static fn ($segment): string => 'You want to see "' . esc($segment) . '" page.',
+        );
+        $router = service('router', $routes, service('incomingrequest'));
         Services::injectMock('router', $router);
 
         ob_start();
@@ -199,22 +226,23 @@ final class CodeIgniterTest extends CIUnitTestCase
         $this->assertStringContainsString('You want to see "about" page.', $output);
     }
 
-    public function testControllersCanReturnResponseObject()
+    public function testControllersCanReturnResponseObject(): void
     {
         $_SERVER['argv'] = ['index.php', 'pages/about'];
         $_SERVER['argc'] = 2;
 
         $_SERVER['REQUEST_URI'] = '/pages/about';
+        $_SERVER['SCRIPT_NAME'] = '/index.php';
 
         // Inject mock router.
-        $routes = Services::routes();
+        $routes = service('routes');
         $routes->add('pages/(:segment)', static function ($segment) {
-            $response = Services::response();
+            $response = service('response');
             $string   = "You want to see 'about' page.";
 
             return $response->setBody($string);
         });
-        $router = Services::router($routes, Services::incomingrequest());
+        $router = service('router', $routes, service('incomingrequest'));
         Services::injectMock('router', $router);
 
         ob_start();
@@ -227,21 +255,22 @@ final class CodeIgniterTest extends CIUnitTestCase
     /**
      * @see https://github.com/codeigniter4/CodeIgniter4/issues/6358
      */
-    public function testControllersCanReturnDownloadResponseObject()
+    public function testControllersCanReturnDownloadResponseObject(): void
     {
         $_SERVER['argv'] = ['index.php', 'pages/about'];
         $_SERVER['argc'] = 2;
 
         $_SERVER['REQUEST_URI'] = '/pages/about';
+        $_SERVER['SCRIPT_NAME'] = '/index.php';
 
         // Inject mock router.
-        $routes = Services::routes();
+        $routes = service('routes');
         $routes->add('pages/(:segment)', static function ($segment) {
-            $response = Services::response();
+            $response = service('response');
 
             return $response->download('some.txt', 'some text', true);
         });
-        $router = Services::router($routes, Services::incomingrequest());
+        $router = service('router', $routes, service('incomingrequest'));
         Services::injectMock('router', $router);
 
         ob_start();
@@ -251,18 +280,23 @@ final class CodeIgniterTest extends CIUnitTestCase
         $this->assertSame('some text', $output);
     }
 
-    public function testControllersRunFilterByClassName()
+    public function testRunExecuteFilterByClassName(): void
     {
         $_SERVER['argv'] = ['index.php', 'pages/about'];
         $_SERVER['argc'] = 2;
 
         $_SERVER['REQUEST_URI'] = '/pages/about';
+        $_SERVER['SCRIPT_NAME'] = '/index.php';
 
         // Inject mock router.
-        $routes = Services::routes();
-        $routes->add('pages/about', static fn () => Services::incomingrequest()->getBody(), ['filter' => Customfilter::class]);
+        $routes = service('routes');
+        $routes->add(
+            'pages/about',
+            static fn () => service('incomingrequest')->getBody(),
+            ['filter' => Customfilter::class],
+        );
 
-        $router = Services::router($routes, Services::incomingrequest());
+        $router = service('router', $routes, service('incomingrequest'));
         Services::injectMock('router', $router);
 
         ob_start();
@@ -274,21 +308,59 @@ final class CodeIgniterTest extends CIUnitTestCase
         $this->resetServices();
     }
 
-    public function testDisableControllerFilters()
+    public function testRegisterSameFilterTwiceWithDifferentArgument(): void
+    {
+        $this->expectException(ConfigException::class);
+        $this->expectExceptionMessage('"test-customfilter" already has arguments: null');
+
+        $_SERVER['argv'] = ['index.php', 'pages/about'];
+        $_SERVER['argc'] = 2;
+
+        $_SERVER['REQUEST_URI'] = '/pages/about';
+        $_SERVER['SCRIPT_NAME'] = '/index.php';
+
+        $routes = service('routes');
+        $routes->add(
+            'pages/about',
+            static fn () => service('incomingrequest')->getBody(),
+            // Set filter with no argument.
+            ['filter' => 'test-customfilter'],
+        );
+
+        $router = service('router', $routes, service('incomingrequest'));
+        Services::injectMock('router', $router);
+
+        /** @var FiltersConfig $filterConfig */
+        $filterConfig          = config('Filters');
+        $filterConfig->filters = [
+            // Set filter with argument.
+            'test-customfilter:arg1' => [
+                'before' => ['pages/*'],
+            ],
+        ];
+        service('filters', $filterConfig);
+
+        $this->codeigniter->run();
+
+        $this->resetServices();
+    }
+
+    public function testDisableControllerFilters(): void
     {
         $_SERVER['argv'] = ['index.php', 'pages/about'];
         $_SERVER['argc'] = 2;
 
         $_SERVER['REQUEST_URI'] = '/pages/about';
+        $_SERVER['SCRIPT_NAME'] = '/index.php';
 
         // Inject mock router.
-        $routes = Services::routes();
+        $routes = service('routes');
         $routes->add(
             'pages/about',
-            static fn () => Services::incomingrequest()->getBody(),
-            ['filter' => Customfilter::class]
+            static fn () => service('incomingrequest')->getBody(),
+            ['filter' => Customfilter::class],
         );
-        $router = Services::router($routes, Services::incomingrequest());
+        $router = service('router', $routes, service('incomingrequest'));
         Services::injectMock('router', $router);
 
         ob_start();
@@ -301,23 +373,23 @@ final class CodeIgniterTest extends CIUnitTestCase
         $this->resetServices();
     }
 
-    public function testResponseConfigEmpty()
+    public function testResponseConfigEmpty(): void
     {
         $_SERVER['argv'] = ['index.php', '/'];
         $_SERVER['argc'] = 2;
 
-        $response = Services::response(null, false);
+        $response = service('response', null, false);
 
         $this->assertInstanceOf(Response::class, $response);
     }
 
-    public function testRoutesIsEmpty()
+    public function testRoutesIsEmpty(): void
     {
         $_SERVER['argv'] = ['index.php', '/'];
         $_SERVER['argc'] = 2;
 
         // Inject mock router.
-        $router = Services::router(null, Services::incomingrequest(), false);
+        $router = service('router', null, service('incomingrequest'), false);
         Services::injectMock('router', $router);
 
         ob_start();
@@ -327,7 +399,7 @@ final class CodeIgniterTest extends CIUnitTestCase
         $this->assertStringContainsString('Welcome to CodeIgniter', $output);
     }
 
-    public function testTransfersCorrectHTTPVersion()
+    public function testTransfersCorrectHTTPVersion(): void
     {
         $_SERVER['argv'] = ['index.php', '/'];
         $_SERVER['argc'] = 2;
@@ -343,7 +415,7 @@ final class CodeIgniterTest extends CIUnitTestCase
         $this->assertSame('2.0', $response->getProtocolVersion());
     }
 
-    public function testSupportsHttp3()
+    public function testSupportsHttp3(): void
     {
         $_SERVER['argv'] = ['index.php', '/'];
         $_SERVER['argc'] = 2;
@@ -359,7 +431,7 @@ final class CodeIgniterTest extends CIUnitTestCase
         $this->assertSame('3.0', $response->getProtocolVersion());
     }
 
-    public function testIgnoringErrorSuppressedByAt()
+    public function testIgnoringErrorSuppressedByAt(): void
     {
         $_SERVER['argv'] = ['index.php', '/'];
         $_SERVER['argc'] = 2;
@@ -372,13 +444,15 @@ final class CodeIgniterTest extends CIUnitTestCase
         $this->assertStringContainsString('Welcome to CodeIgniter', $output);
     }
 
-    public function testRunForceSecure()
+    public function testRunForceSecure(): void
     {
         $_SERVER['argv'] = ['index.php', '/'];
         $_SERVER['argc'] = 2;
 
-        $config = new App();
+        $filterConfig                       = config(FiltersConfig::class);
+        $filterConfig->required['before'][] = 'forcehttps';
 
+        $config                            = config(App::class);
         $config->forceGlobalSecureRequests = true;
 
         $codeigniter = new MockCodeIgniter($config);
@@ -390,27 +464,26 @@ final class CodeIgniterTest extends CIUnitTestCase
         $response = $this->getPrivateProperty($codeigniter, 'response');
         $this->assertNull($response->header('Location'));
 
-        ob_start();
-        $codeigniter->run();
-        ob_get_clean();
+        $response = $codeigniter->run(null, true);
 
-        $this->assertSame('https://example.com/', $response->header('Location')->getValue());
+        $this->assertSame('https://example.com/index.php/', $response->header('Location')->getValue());
     }
 
-    public function testRunRedirectionWithNamed()
+    public function testRunRedirectionWithNamed(): void
     {
         $_SERVER['argv'] = ['index.php', 'example'];
         $_SERVER['argc'] = 2;
 
         $_SERVER['REQUEST_URI'] = '/example';
+        $_SERVER['SCRIPT_NAME'] = '/index.php';
 
         // Inject mock router.
-        $routes = Services::routes();
-        $routes->add('pages/named', static function () {
+        $routes = service('routes');
+        $routes->add('pages/named', static function (): void {
         }, ['as' => 'name']);
         $routes->addRedirect('example', 'name');
 
-        $router = Services::router($routes, Services::incomingrequest());
+        $router = service('router', $routes, service('incomingrequest'));
         Services::injectMock('router', $router);
 
         ob_start();
@@ -420,20 +493,21 @@ final class CodeIgniterTest extends CIUnitTestCase
         $this->assertSame('http://example.com/pages/named', $response->header('Location')->getValue());
     }
 
-    public function testRunRedirectionWithURI()
+    public function testRunRedirectionWithURI(): void
     {
         $_SERVER['argv'] = ['index.php', 'example'];
         $_SERVER['argc'] = 2;
 
         $_SERVER['REQUEST_URI'] = '/example';
+        $_SERVER['SCRIPT_NAME'] = '/index.php';
 
         // Inject mock router.
-        $routes = Services::routes();
-        $routes->add('pages/uri', static function () {
+        $routes = service('routes');
+        $routes->add('pages/uri', static function (): void {
         });
         $routes->addRedirect('example', 'pages/uri');
 
-        $router = Services::router($routes, Services::incomingrequest());
+        $router = service('router', $routes, service('incomingrequest'));
         Services::injectMock('router', $router);
 
         ob_start();
@@ -446,41 +520,22 @@ final class CodeIgniterTest extends CIUnitTestCase
     /**
      * @see https://github.com/codeigniter4/CodeIgniter4/issues/3041
      */
-    public function testRunRedirectionWithURINotSet()
-    {
-        $_SERVER['argv'] = ['index.php', 'example'];
-        $_SERVER['argc'] = 2;
-
-        $_SERVER['REQUEST_URI'] = '/example';
-
-        // Inject mock router.
-        $routes = Services::routes();
-        $routes->addRedirect('example', 'pages/notset');
-
-        $router = Services::router($routes, Services::incomingrequest());
-        Services::injectMock('router', $router);
-
-        ob_start();
-        $this->codeigniter->run();
-        ob_get_clean();
-        $response = $this->getPrivateProperty($this->codeigniter, 'response');
-        $this->assertSame('http://example.com/pages/notset', $response->header('Location')->getValue());
-    }
-
-    public function testRunRedirectionWithHTTPCode303()
+    public function testRunRedirectionWithGET(): void
     {
         $_SERVER['argv'] = ['index.php', 'example'];
         $_SERVER['argc'] = 2;
 
         $_SERVER['REQUEST_URI']     = '/example';
+        $_SERVER['SCRIPT_NAME']     = '/index.php';
         $_SERVER['SERVER_PROTOCOL'] = 'HTTP/1.1';
-        $_SERVER['REQUEST_METHOD']  = 'POST';
+        $_SERVER['REQUEST_METHOD']  = 'GET';
 
         // Inject mock router.
-        $routes = Services::routes();
-        $routes->addRedirect('example', 'pages/notset', 301);
+        $routes = service('routes');
+        // addRedirect() sets status code 302 by default.
+        $routes->addRedirect('example', 'pages/notset');
 
-        $router = Services::router($routes, Services::incomingrequest());
+        $router = service('router', $routes, service('incomingrequest'));
         Services::injectMock('router', $router);
 
         ob_start();
@@ -488,16 +543,90 @@ final class CodeIgniterTest extends CIUnitTestCase
         ob_get_clean();
 
         $response = $this->getPrivateProperty($this->codeigniter, 'response');
-        $this->assertSame(303, $response->getStatusCode());
+        $this->assertSame('http://example.com/pages/notset', $response->header('Location')->getValue());
+        $this->assertSame(302, $response->getStatusCode());
     }
 
-    public function testStoresPreviousURL()
+    public function testRunRedirectionWithGETAndHTTPCode301(): void
+    {
+        $_SERVER['argv'] = ['index.php', 'example'];
+        $_SERVER['argc'] = 2;
+
+        $_SERVER['REQUEST_URI']     = '/example';
+        $_SERVER['SCRIPT_NAME']     = '/index.php';
+        $_SERVER['SERVER_PROTOCOL'] = 'HTTP/1.1';
+        $_SERVER['REQUEST_METHOD']  = 'GET';
+
+        // Inject mock router.
+        $routes = service('routes');
+        $routes->addRedirect('example', 'pages/notset', 301);
+
+        $router = service('router', $routes, service('incomingrequest'));
+        Services::injectMock('router', $router);
+
+        ob_start();
+        $this->codeigniter->run();
+        ob_get_clean();
+
+        $response = $this->getPrivateProperty($this->codeigniter, 'response');
+        $this->assertSame(301, $response->getStatusCode());
+    }
+
+    public function testRunRedirectionWithPOSTAndHTTPCode301(): void
+    {
+        $_SERVER['argv'] = ['index.php', 'example'];
+        $_SERVER['argc'] = 2;
+
+        $_SERVER['REQUEST_URI']     = '/example';
+        $_SERVER['SCRIPT_NAME']     = '/index.php';
+        $_SERVER['SERVER_PROTOCOL'] = 'HTTP/1.1';
+        $_SERVER['REQUEST_METHOD']  = 'POST';
+
+        // Inject mock router.
+        $routes = service('routes');
+        $routes->addRedirect('example', 'pages/notset', 301);
+
+        $router = service('router', $routes, service('incomingrequest'));
+        Services::injectMock('router', $router);
+
+        ob_start();
+        $this->codeigniter->run();
+        ob_get_clean();
+
+        $response = $this->getPrivateProperty($this->codeigniter, 'response');
+        $this->assertSame(301, $response->getStatusCode());
+    }
+
+    /**
+     * test for deprecated \CodeIgniter\Router\Exceptions\RedirectException for backward compatibility
+     */
+    public function testRedirectExceptionDeprecated(): void
     {
         $_SERVER['argv'] = ['index.php', '/'];
         $_SERVER['argc'] = 2;
 
         // Inject mock router.
-        $router = Services::router(null, Services::incomingrequest(), false);
+        $routes = service('routes');
+        $routes->get('/', static function (): never {
+            throw new RedirectException('redirect-exception', 503);
+        });
+
+        $router = service('router', $routes, service('incomingrequest'));
+        Services::injectMock('router', $router);
+
+        $response = $this->codeigniter->run($routes, true);
+
+        $this->assertSame(503, $response->getStatusCode());
+        $this->assertSame('http://example.com/redirect-exception', $response->getHeaderLine('Location'));
+    }
+
+    public function testStoresPreviousURL(): void
+    {
+        $_SERVER['argv'] = ['index.php', '/'];
+        $_SERVER['argc'] = 2;
+
+        // Inject mock router.
+        $router = service('router', null, service('incomingrequest'), false);
         Services::injectMock('router', $router);
 
         ob_start();
@@ -505,23 +634,24 @@ final class CodeIgniterTest extends CIUnitTestCase
         ob_get_clean();
 
         $this->assertArrayHasKey('_ci_previous_url', $_SESSION);
-        $this->assertSame('http://example.com/index.php', $_SESSION['_ci_previous_url']);
+        $this->assertSame('http://example.com/index.php/', $_SESSION['_ci_previous_url']);
     }
 
-    public function testNotStoresPreviousURL()
+    public function testNotStoresPreviousURL(): void
     {
         $_SERVER['argv'] = ['index.php', 'example'];
         $_SERVER['argc'] = 2;
 
         $_SERVER['REQUEST_URI']     = '/example';
+        $_SERVER['SCRIPT_NAME']     = '/index.php';
         $_SERVER['SERVER_PROTOCOL'] = 'HTTP/1.1';
         $_SERVER['REQUEST_METHOD']  = 'GET';
 
         // Inject mock router.
-        $routes = Services::routes();
+        $routes = service('routes');
         $routes->addRedirect('example', 'pages/notset', 301);
 
-        $router = Services::router($routes, Services::incomingrequest());
+        $router = service('router', $routes, service('incomingrequest'));
         Services::injectMock('router', $router);
 
         ob_start();
@@ -531,21 +661,22 @@ final class CodeIgniterTest extends CIUnitTestCase
         $this->assertArrayNotHasKey('_ci_previous_url', $_SESSION);
     }
 
-    public function testNotStoresPreviousURLByCheckingContentType()
+    public function testNotStoresPreviousURLByCheckingContentType(): void
     {
         $_SERVER['argv'] = ['index.php', 'image'];
         $_SERVER['argc'] = 2;
 
         $_SERVER['REQUEST_URI'] = '/image';
+        $_SERVER['SCRIPT_NAME'] = '/index.php';
 
         // Inject mock router.
-        $routes = Services::routes();
+        $routes = service('routes');
         $routes->add('image', static function () {
-            $response = Services::response();
+            $response = service('response');
 
             return $response->setContentType('image/jpeg', '');
         });
-        $router = Services::router($routes, Services::incomingrequest());
+        $router = service('router', $routes, service('incomingrequest'));
         Services::injectMock('router', $router);
 
         ob_start();
@@ -560,7 +691,7 @@ final class CodeIgniterTest extends CIUnitTestCase
      * Can't use static::tearDownAfterClass. This will cause a buffer exception
      * need improve
      */
-    public function testRunDefaultRoute()
+    public function testRunDefaultRoute(): void
     {
         $_SERVER['argv'] = ['index.php', '/'];
         $_SERVER['argc'] = 2;
@@ -572,16 +703,17 @@ final class CodeIgniterTest extends CIUnitTestCase
         $this->assertStringContainsString('Welcome to CodeIgniter', $output);
     }
 
-    public function testRunCLIRoute()
+    public function testRunCLIRoute(): void
     {
         $_SERVER['argv'] = ['index.php', 'cli'];
         $_SERVER['argc'] = 2;
 
         $_SERVER['REQUEST_URI']     = '/cli';
+        $_SERVER['SCRIPT_NAME']     = 'public/index.php';
         $_SERVER['SERVER_PROTOCOL'] = 'HTTP/1.1';
         $_SERVER['REQUEST_METHOD']  = 'CLI';
 
-        $routes = Services::routes();
+        $routes = service('routes');
         $routes->cli('cli', '\Tests\Support\Controllers\Popcorn::index');
 
         ob_start();
@@ -591,18 +723,19 @@ final class CodeIgniterTest extends CIUnitTestCase
         $this->assertStringContainsString('Method Not Allowed', $output);
     }
 
-    public function testSpoofRequestMethodCanUsePUT()
+    public function testSpoofRequestMethodCanUsePUT(): void
     {
         $_SERVER['argv'] = ['index.php'];
         $_SERVER['argc'] = 1;
 
         $_SERVER['REQUEST_URI']     = '/';
+        $_SERVER['SCRIPT_NAME']     = '/index.php';
         $_SERVER['SERVER_PROTOCOL'] = 'HTTP/1.1';
         $_SERVER['REQUEST_METHOD']  = 'POST';
 
-        $_POST['_method'] = 'PUT';
+        $_POST['_method'] = Method::PUT;
 
-        $routes = \Config\Services::routes();
+        $routes = service('routes');
         $routes->setDefaultNamespace('App\Controllers');
         $routes->resetRoutes();
         $routes->post('/', 'Home::index');
@@ -612,21 +745,22 @@ final class CodeIgniterTest extends CIUnitTestCase
         $this->codeigniter->run();
         ob_get_clean();
 
-        $this->assertSame('put', Services::incomingrequest()->getMethod());
+        $this->assertSame(Method::PUT, service('incomingrequest')->getMethod());
     }
 
-    public function testSpoofRequestMethodCannotUseGET()
+    public function testSpoofRequestMethodCannotUseGET(): void
     {
         $_SERVER['argv'] = ['index.php'];
         $_SERVER['argc'] = 1;
 
         $_SERVER['REQUEST_URI']     = '/';
+        $_SERVER['SCRIPT_NAME']     = '/index.php';
         $_SERVER['SERVER_PROTOCOL'] = 'HTTP/1.1';
         $_SERVER['REQUEST_METHOD']  = 'POST';
 
         $_POST['_method'] = 'GET';
 
-        $routes = \Config\Services::routes();
+        $routes = service('routes');
         $routes->setDefaultNamespace('App\Controllers');
         $routes->resetRoutes();
         $routes->post('/', 'Home::index');
@@ -636,13 +770,13 @@ final class CodeIgniterTest extends CIUnitTestCase
         $this->codeigniter->run();
         ob_get_clean();
 
-        $this->assertSame('post', Services::incomingrequest()->getMethod());
+        $this->assertSame('POST', service('incomingrequest')->getMethod());
     }
 
     /**
      * @see https://github.com/codeigniter4/CodeIgniter4/issues/6281
      */
-    public function testPageCacheSendSecureHeaders()
+    public function testPageCacheSendSecureHeaders(): void
     {
         // Suppress command() output
         CITestStreamFilter::registration();
@@ -653,23 +787,24 @@ final class CodeIgniterTest extends CIUnitTestCase
         command('cache:clear');
 
         $_SERVER['REQUEST_URI'] = '/test';
+        $_SERVER['SCRIPT_NAME'] = '/index.php';
 
-        $routes = Services::routes();
+        $routes = service('routes');
         $routes->add('test', static function () {
             CodeIgniter::cache(3600);
 
-            $response = Services::response();
+            $response = service('response');
             $string   = 'This is a test page. Elapsed time: {elapsed_time}';
 
             return $response->setBody($string);
         });
-        $router = Services::router($routes, Services::incomingrequest());
+        $router = service('router', $routes, service('incomingrequest'));
         Services::injectMock('router', $router);
 
-        /** @var Filters $filterConfig */
+        /** @var FiltersConfig $filterConfig */
         $filterConfig                   = config('Filters');
         $filterConfig->globals['after'] = ['secureheaders'];
-        Services::filters($filterConfig);
+        service('filters', $filterConfig);
 
         // The first response to be cached.
         ob_start();
@@ -677,7 +812,7 @@ final class CodeIgniterTest extends CIUnitTestCase
         $output = ob_get_clean();
 
         $this->assertStringContainsString('This is a test page', $output);
-        $response = Services::response();
+        $response = service('response');
         $headers  = $response->headers();
         $this->assertArrayHasKey('X-Frame-Options', $headers);
 
@@ -687,7 +822,7 @@ final class CodeIgniterTest extends CIUnitTestCase
         $output = ob_get_clean();
 
         $this->assertStringContainsString('This is a test page', $output);
-        $response = Services::response();
+        $response = service('response');
         $headers  = $response->headers();
         $this->assertArrayHasKey('X-Frame-Options', $headers);
 
@@ -702,19 +837,21 @@ final class CodeIgniterTest extends CIUnitTestCase
     /**
      * @param array|bool $cacheQueryStringValue
      *
-     * @dataProvider cacheQueryStringProvider
-     *
      * @see https://github.com/codeigniter4/CodeIgniter4/pull/6410
      */
-    public function testPageCacheWithCacheQueryString($cacheQueryStringValue, int $expectedPagesInCache, array $testingUrls)
-    {
+    #[DataProvider('providePageCacheWithCacheQueryString')]
+    public function testPageCacheWithCacheQueryString(
+        $cacheQueryStringValue,
+        int $expectedPagesInCache,
+        array $testingUrls,
+    ): void {
         // Suppress command() output
-        CITestStreamFilter::$buffer = '';
-        $outputStreamFilter         = stream_filter_append(STDOUT, 'CITestStreamFilter');
-        $errorStreamFilter          = stream_filter_append(STDERR, 'CITestStreamFilter');
+        CITestStreamFilter::registration();
+        CITestStreamFilter::addOutputFilter();
+        CITestStreamFilter::addErrorFilter();
 
         // Create cache config with cacheQueryString value from the dataProvider
-        $cacheConfig                   = new Cache();
+        $cacheConfig                   = config(Cache::class);
         $cacheConfig->cacheQueryString = $cacheQueryStringValue;
 
         // Clear cache before starting the test
@@ -726,23 +863,32 @@ final class CodeIgniterTest extends CIUnitTestCase
 
         // Generate request to each URL from the testing array
         foreach ($testingUrls as $testingUrl) {
+            $this->resetServices();
             $_SERVER['REQUEST_URI'] = '/' . $testingUrl;
-            $routes                 = Services::routes(true);
-            $routes->add($testingUrl, static function () {
-                CodeIgniter::cache(0); // Don't cache the page in the run() function because CodeIgniter class will create default $cacheConfig and overwrite settings from the dataProvider
-                $response = Services::response();
-                $string   = 'This is a test page, to check cache configuration';
+            $_SERVER['SCRIPT_NAME'] = '/index.php';
+            $this->codeigniter      = new MockCodeIgniter(new App());
+
+            $routes    = service('routes', true);
+            $routePath = explode('?', $testingUrl)[0];
+            $string    = 'This is a test page, to check cache configuration';
+            $routes->add($routePath, static function () use ($string) {
+                service('responsecache')->setTtl(60);
+                $response = service('response');
 
                 return $response->setBody($string);
             });
 
             // Inject router
-            $router = Services::router($routes, Services::incomingrequest(null, false));
+            $router = service('router', $routes, service('incomingrequest', null, false));
             Services::injectMock('router', $router);
 
-            // Cache the page output using default caching function and $cacheConfig with value from the data provider
+            // Cache the page output using default caching function and $cacheConfig
+            // with value from the data provider
+            ob_start();
             $this->codeigniter->run();
-            $this->codeigniter->cachePage($cacheConfig); // Cache the page using our own $cacheConfig confugration
+            $output = ob_get_clean();
+
+            $this->assertSame($string, $output);
         }
 
         // Calculate how much cached items exist in the cache after the test requests
@@ -756,24 +902,80 @@ final class CodeIgniterTest extends CIUnitTestCase
         $this->assertSame($expectedPagesInCache, $newPagesCached);
 
         // Remove stream filters
-        stream_filter_remove($outputStreamFilter);
-        stream_filter_remove($errorStreamFilter);
+        CITestStreamFilter::removeOutputFilter();
+        CITestStreamFilter::removeErrorFilter();
     }
 
-    public function cacheQueryStringProvider(): array
+    public static function providePageCacheWithCacheQueryString(): iterable
     {
         $testingUrls = [
-            'test', // URL #1
-            'test?important_parameter=1', // URL #2
-            'test?important_parameter=2',  // URL #3
-            'test?important_parameter=1&not_important_parameter=2', // URL #4
-            'test?important_parameter=1&not_important_parameter=2&another_not_important_parameter=3', // URL #5
+            // URL #1
+            'test',
+            // URL #2
+            'test?important_parameter=1',
+            // URL #3
+            'test?important_parameter=2',
+            // URL #4
+            'test?important_parameter=1&not_important_parameter=2',
+            // URL #5
+            'test?important_parameter=1&not_important_parameter=2&another_not_important_parameter=3',
         ];
 
         return [
-            '$cacheQueryString=false' => [false, 1, $testingUrls], // We expect only 1 page in the cache, because when cacheQueryString is set to false, all GET parameter should be ignored, and page URI will be absolutely same "/test" string for all 5 requests
-            '$cacheQueryString=true'  => [true, 5, $testingUrls], // We expect all 5 pages in the cache, because when cacheQueryString is set to true, all GET parameter should be processed as unique requests
-            '$cacheQueryString=array' => [['important_parameter'], 3, $testingUrls], // We expect only 3 pages in the cache, because when cacheQueryString is set to array with important parameters, we should ignore all parameters thats not in the array. Only URL #1, URL #2 and URL #3 should be cached. URL #4 and URL #5 is duplication of URL #2 (with value ?important_parameter=1), so they should not be processed as new unique requests and application should return already cached page for URL #2
+            // We expect only 1 page in the cache, because when cacheQueryString
+            // is set to false, all GET parameter should be ignored, and page URI
+            // will be absolutely same "/test" string for all 5 requests
+            '$cacheQueryString=false' => [false, 1, $testingUrls],
+            // We expect all 5 pages in the cache, because when cacheQueryString
+            // is set to true, all GET parameter should be processed as unique requests
+            '$cacheQueryString=true' => [true, 5, $testingUrls],
+            // We expect only 3 pages in the cache, because when cacheQueryString
+            // is set to array with important parameters, we should ignore all
+            // parameters thats not in the array. Only URL #1, URL #2 and URL #3
+            // should be cached. URL #4 and URL #5 is duplication of URL #2
+            // (with value ?important_parameter=1), so they should not be processed
+            // as new unique requests and application should return already cached
+            // page for URL #2
+            '$cacheQueryString=array' => [['important_parameter'], 3, $testingUrls],
         ];
+    }
+
+    /**
+     * See https://github.com/codeigniter4/CodeIgniter4/issues/7205
+     */
+    public function testRunControllerNotFoundBeforeFilter(): void
+    {
+        $_SERVER['argv'] = ['index.php'];
+        $_SERVER['argc'] = 1;
+
+        $_SERVER['REQUEST_URI'] = '/cannotFound';
+        $_SERVER['SCRIPT_NAME'] = '/index.php';
+
+        // Inject mock router.
+        $routes = service('routes');
+        $routes->setAutoRoute(true);
+
+        // Inject the before filter.
+        $filterConfig                            = config('Filters');
+        $filterConfig->aliases['redirectFilter'] = RedirectFilter::class;
+        $filterConfig->globals['before']         = ['redirectFilter'];
+        service('filters', $filterConfig);
+
+        $this->expectException(PageNotFoundException::class);
+
+        $this->codeigniter->run($routes);
+    }
+
+    public function testStartControllerPermitsInvoke(): void
+    {
+        $this->setPrivateProperty($this->codeigniter, 'benchmark', new Timer());
+        $this->setPrivateProperty($this->codeigniter, 'controller', '\\' . Home::class);
+        $startController = $this->getPrivateMethodInvoker($this->codeigniter, 'startController');
+
+        $this->setPrivateProperty($this->codeigniter, 'method', '__invoke');
+        $startController();
+
+        // No PageNotFoundException
+        $this->assertTrue(true);
     }
 }

@@ -14,34 +14,47 @@ relative URI to an existing one and have it resolved safely and correctly.
 Creating URI instances
 ======================
 
-Creating a URI instance is as simple as creating a new class instance:
-
-.. literalinclude:: uri/001.php
-
-Alternatively, you can use the ``service()`` function to return an instance for you:
-
-.. literalinclude:: uri/002.php
+Creating a URI instance is as simple as creating a new class instance.
 
 When you create the new instance, you can pass a full or partial URL in the constructor and it will be parsed
 into its appropriate sections:
 
+.. literalinclude:: uri/001.php
+    :lines: 2-
+
+Alternatively, you can use the :php:func:`service()` function to return an instance for you:
+
 .. literalinclude:: uri/003.php
+    :lines: 2-
+
+Since v4.4.0, if you don't pass a URL, it returns the current URI:
+
+.. literalinclude:: uri/002.php
+    :lines: 2-
+
+.. note:: The above code returns the ``SiteURI`` instance, that extends the ``URI``
+    class. The ``URI`` class is for general URIs, but the ``SiteURI`` class is
+    for your site URIs.
 
 The Current URI
 ---------------
 
-Many times, all you really want is an object representing the current URL of this request.
-You can use one of the functions available in the :doc:`../helpers/url_helper`:
+When you need an object representing the current URL of the request,
+you can use the :php:func:`current_url()` function available in the :doc:`../helpers/url_helper`:
 
 .. literalinclude:: uri/004.php
+    :lines: 2-
 
 You must pass ``true`` as the first parameter, otherwise, it will return the string representation of the current URL.
 
 This URI is based on the path (relative to your ``baseURL``) as determined by the current request object and
 your settings in ``Config\App`` (``baseURL``, ``indexPage``, and ``forceGlobalSecureRequests``).
-Assuming that you're in a controller that extends ``CodeIgniter\Controller`` you can get this relative path:
+
+Assuming that you're in a controller that extends ``CodeIgniter\Controller``, you
+can also get the current SiteURI instance:
 
 .. literalinclude:: uri/005.php
+    :lines: 2-
 
 ===========
 URI Strings
@@ -128,13 +141,17 @@ When using the ``setPort()`` method, the port will be checked that it is within 
 Path
 ----
 
-The path are all of the segments within the site itself. As expected, the ``getPath()`` and ``setPath()`` methods
+The path is all of the segments within the site itself. As expected, the ``getPath()`` and ``setPath()`` methods
 can be used to manipulate it:
 
 .. literalinclude:: uri/016.php
 
-.. note:: When setting the path this way, or any other way the class allows, it is sanitized to encode any dangerous
+.. note:: When setting the path it is sanitized to encode any dangerous
     characters, and remove dot segments for safety.
+
+.. note:: Since v4.4.0, the ``SiteURI::getRoutePath()`` method,
+    returns the URI path relative to baseURL, and the ``SiteURI::getPath()``
+    method always returns the full URI path with leading ``/``.
 
 Query
 -----
@@ -149,7 +166,7 @@ be set as a string currently.
 
 .. literalinclude:: uri/017.php
 
-The ``setQuery()`` method overwrite any existing query variables.
+The ``setQuery()`` method overwrites existing query variables.
 
 .. note:: Query values cannot contain fragments. An InvalidArgumentException will be thrown if it does.
 
@@ -160,7 +177,7 @@ You can set query values using an array:
 
 .. literalinclude:: uri/018.php
 
-The ``setQueryArray()`` method overwrite any existing query variables.
+The ``setQueryArray()`` method overwrites existing query variables.
 
 Adding Query Value
 ^^^^^^^^^^^^^^^^^^
@@ -179,11 +196,12 @@ You can filter the query values returned by passing an options array to the ``ge
 
 .. literalinclude:: uri/020.php
 
-This only changes the values returned during this one call. If you need to modify the URI's query values more permanently,
+This only changes the values returned during this one call.
 
 Changing Query Values
 ^^^^^^^^^^^^^^^^^^^^^
 
+If you need to modify the URI's query values more permanently,
 you can use the ``stripQuery()`` and ``keepQuery()`` methods to change the actual object's query variable collection:
 
 .. literalinclude:: uri/021.php
@@ -204,7 +222,13 @@ to an on-page anchor. Media URI's can make use of them in various other ways.
 URI Segments
 ============
 
-Each section of the path between the slashes is a single segment. The URI class provides a simple way to determine
+Each section of the path between the slashes is a single segment.
+
+.. note:: In the case of your site URI, URI Segments mean only the URI path part
+    relative to the baseURL. If your baseURL contains sub folders, the values
+    will be different from the current URI path.
+
+The URI class provides a simple way to determine
 what the values of the segments are. The segments start at 1 being the furthest left of the path.
 
 .. literalinclude:: uri/023.php
@@ -212,6 +236,10 @@ what the values of the segments are. The segments start at 1 being the furthest 
 You can also set a different default value for a particular segment by using the second parameter of the ``getSegment()`` method. The default is empty string.
 
 .. literalinclude:: uri/024.php
+
+.. note:: You can get the last +1 segment. When you try to get the last +2 or
+    more segment, an exception will be thrown by default. You could prevent
+    throwing exceptions with the ``setSilent()`` method.
 
 You can get a count of the total segments:
 

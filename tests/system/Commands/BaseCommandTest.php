@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -13,14 +15,13 @@ namespace CodeIgniter\Commands;
 
 use CodeIgniter\Log\Logger;
 use CodeIgniter\Test\CIUnitTestCase;
-use Config\Services;
+use PHPUnit\Framework\Attributes\Group;
 use Tests\Support\Commands\AppInfo;
 
 /**
  * @internal
- *
- * @group Others
  */
+#[Group('Others')]
 final class BaseCommandTest extends CIUnitTestCase
 {
     private Logger $logger;
@@ -28,31 +29,31 @@ final class BaseCommandTest extends CIUnitTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->logger = Services::logger();
+        $this->logger = service('logger');
     }
 
-    public function testMagicIssetTrue()
+    public function testMagicIssetTrue(): void
     {
         $command = new AppInfo($this->logger, service('commands'));
 
         $this->assertTrue(isset($command->group));
     }
 
-    public function testMagicIssetFalse()
+    public function testMagicIssetFalse(): void
     {
         $command = new AppInfo($this->logger, service('commands'));
 
         $this->assertFalse(isset($command->foobar));
     }
 
-    public function testMagicGet()
+    public function testMagicGet(): void
     {
         $command = new AppInfo($this->logger, service('commands'));
 
         $this->assertSame('demo', $command->group);
     }
 
-    public function testMagicGetMissing()
+    public function testMagicGetMissing(): void
     {
         $command = new AppInfo($this->logger, service('commands'));
 

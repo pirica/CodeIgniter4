@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -13,12 +15,12 @@ namespace CodeIgniter\Commands;
 
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\StreamFilterTrait;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
- * @group DatabaseLive
- *
  * @internal
  */
+#[Group('DatabaseLive')]
 final class DatabaseCommandsTest extends CIUnitTestCase
 {
     use StreamFilterTrait;
@@ -40,7 +42,7 @@ final class DatabaseCommandsTest extends CIUnitTestCase
         $this->resetStreamFilterBuffer();
     }
 
-    public function testMigrate()
+    public function testMigrate(): void
     {
         command('migrate --all');
         $this->assertStringContainsString('Migrations complete.', $this->getBuffer());
@@ -51,7 +53,25 @@ final class DatabaseCommandsTest extends CIUnitTestCase
         $this->assertStringContainsString('Migrations complete.', $this->getBuffer());
     }
 
-    public function testMigrateRollback()
+    public function testMigrateRollbackValidBatchNumber(): void
+    {
+        command('migrate --all');
+        $this->clearBuffer();
+
+        command('migrate:rollback -b 1');
+        $this->assertStringContainsString('Done rolling back migrations.', $this->getBuffer());
+    }
+
+    public function testMigrateRollbackInvalidBatchNumber(): void
+    {
+        command('migrate --all');
+        $this->clearBuffer();
+
+        command('migrate:rollback -b x');
+        $this->assertStringContainsString('Invalid batch number: x', $this->getBuffer());
+    }
+
+    public function testMigrateRollback(): void
     {
         command('migrate --all -g tests');
         $this->clearBuffer();
@@ -60,7 +80,7 @@ final class DatabaseCommandsTest extends CIUnitTestCase
         $this->assertStringContainsString('Done rolling back migrations.', $this->getBuffer());
     }
 
-    public function testMigrateRefresh()
+    public function testMigrateRefresh(): void
     {
         command('migrate --all');
         $this->clearBuffer();
@@ -69,7 +89,7 @@ final class DatabaseCommandsTest extends CIUnitTestCase
         $this->assertStringContainsString('Migrations complete.', $this->getBuffer());
     }
 
-    public function testMigrateStatus()
+    public function testMigrateStatus(): void
     {
         command('migrate --all');
         $this->clearBuffer();
@@ -80,7 +100,7 @@ final class DatabaseCommandsTest extends CIUnitTestCase
         $this->assertStringContainsString('Filename', $this->getBuffer());
     }
 
-    public function testSeed()
+    public function testSeed(): void
     {
         command('migrate --all');
         $this->clearBuffer();

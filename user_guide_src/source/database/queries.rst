@@ -10,16 +10,22 @@ Queries
 Query Basics
 ************
 
-.. note:: CodeIgniter doesn't support dots (``.``) in the database, table, and column names.
+.. note:: CodeIgniter doesn't support dots (``.``) in the table and column names.
+    Since v4.5.0, database names with dots are supported.
 
 Regular Queries
 ===============
 
-To submit a query, use the **query** function:
+.. _db-query:
+
+$db->query()
+------------
+
+To submit a query, use the ``query()`` method:
 
 .. literalinclude:: queries/001.php
 
-The ``query()`` function returns a database result **object** when "read"
+The ``query()`` method returns a database result **object** when "read"
 type queries are run which you can use to :doc:`show your
 results <results>`. When "write" type queries are run it simply
 returns true or false depending on success or failure. When retrieving
@@ -33,6 +39,11 @@ this:
 
 Simplified Queries
 ==================
+
+.. _db-simplequery:
+
+$db->simpleQuery()
+------------------
 
 The ``simpleQuery()`` method is a simplified version of the
 ``$db->query()`` method. It DOES
@@ -106,6 +117,7 @@ prefixing set ``true`` (boolean) via the second parameter:
 
 .. literalinclude:: queries/008.php
 
+.. _database-queries-escaping:
 
 ***************
 Escaping Values
@@ -149,6 +161,8 @@ strings are to be used in LIKE conditions so that LIKE wildcards
     method escapes partial strings that you would wrap in quotes
     yourself, it cannot automatically add the ``ESCAPE '!'``
     condition for you, and so you'll have to manually do that.
+
+.. _database-queries-query-bindings:
 
 **************
 Query Bindings
@@ -231,6 +245,8 @@ If the database requires an array of options passed to it during the prepare sta
 array through in the second parameter:
 
 .. literalinclude:: queries/018.php
+
+.. note:: Currently, the only database that actually uses the array of option is SQLSRV.
 
 Executing the Query
 ===================

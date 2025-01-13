@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -12,15 +14,15 @@
 namespace CodeIgniter\Database;
 
 use CodeIgniter\Test\CIUnitTestCase;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * @internal
- *
- * @group Others
  */
+#[Group('Others')]
 final class RawSqlTest extends CIUnitTestCase
 {
-    public function testCanConvertToString()
+    public function testCanConvertToString(): void
     {
         $expected = 'REGEXP_SUBSTR(ral_anno,"[0-9]{1,2}([,.][0-9]{1,3})([,.][0-9]{1,3})") AS ral';
         $rawSql   = new RawSql($expected);
@@ -28,7 +30,7 @@ final class RawSqlTest extends CIUnitTestCase
         $this->assertSame($expected, (string) $rawSql);
     }
 
-    public function testCanCreateNewObject()
+    public function testCanCreateNewObject(): void
     {
         $firstSql = 'a = 1 AND b = 2';
         $rawSql   = new RawSql($firstSql);
@@ -40,13 +42,13 @@ final class RawSqlTest extends CIUnitTestCase
         $this->assertSame($secondSql, (string) $newRawSQL);
     }
 
-    public function testGetBindingKey()
+    public function testGetBindingKey(): void
     {
         $firstSql = 'a = 1 AND b = 2';
         $rawSql   = new RawSql($firstSql);
 
         $key = $rawSql->getBindingKey();
 
-        $this->assertMatchesRegularExpression('/\ARawSql[0-9]+\z/', $key);
+        $this->assertMatchesRegularExpression('/\ARawSql\d+\z/', $key);
     }
 }

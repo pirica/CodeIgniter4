@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -20,6 +22,8 @@ use Memcached;
 
 /**
  * Mamcached cache handler
+ *
+ * @see \CodeIgniter\Cache\Handlers\MemcachedHandlerTest
  */
 class MemcachedHandler extends BaseHandler
 {
@@ -42,6 +46,9 @@ class MemcachedHandler extends BaseHandler
         'raw'    => false,
     ];
 
+    /**
+     * Note: Use `CacheFactory::getHandler()` to instantiate.
+     */
     public function __construct(Cache $config)
     {
         $this->prefix = $config->prefix;
@@ -78,7 +85,7 @@ class MemcachedHandler extends BaseHandler
                 $this->memcached->addServer(
                     $this->config['host'],
                     $this->config['port'],
-                    $this->config['weight']
+                    $this->config['weight'],
                 );
 
                 // attempt to get status of servers
@@ -96,7 +103,7 @@ class MemcachedHandler extends BaseHandler
                 // Check if we can connect to the server
                 $canConnect = $this->memcached->connect(
                     $this->config['host'],
-                    $this->config['port']
+                    $this->config['port'],
                 );
 
                 // If we can't connect, throw a CriticalError exception
@@ -109,7 +116,7 @@ class MemcachedHandler extends BaseHandler
                     $this->config['host'],
                     $this->config['port'],
                     true,
-                    $this->config['weight']
+                    $this->config['weight'],
                 );
             } else {
                 throw new CriticalError('Cache: Not support Memcache(d) extension.');
@@ -185,6 +192,8 @@ class MemcachedHandler extends BaseHandler
 
     /**
      * {@inheritDoc}
+     *
+     * @return never
      */
     public function deleteMatching(string $pattern)
     {

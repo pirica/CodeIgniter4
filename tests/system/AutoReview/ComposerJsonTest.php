@@ -13,16 +13,17 @@ declare(strict_types=1);
 
 namespace CodeIgniter\AutoReview;
 
+use InvalidArgumentException;
 use JsonException;
+use PHPUnit\Framework\Attributes\CoversNothing;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
 /**
  * @internal
- *
- * @coversNothing
- *
- * @group AutoReview
  */
+#[CoversNothing]
+#[Group('AutoReview')]
 final class ComposerJsonTest extends TestCase
 {
     private array $devComposer;
@@ -40,7 +41,7 @@ final class ComposerJsonTest extends TestCase
 
     public function testFrameworkRequireIsTheSameWithDevRequire(): void
     {
-        $this->checkFramework('require');
+        $this->checkSection('require', 'framework');
     }
 
     public function testFrameworkRequireDevIsTheSameWithDevRequireDev(): void
@@ -61,42 +62,66 @@ final class ComposerJsonTest extends TestCase
                 $dependency,
                 $expectedVersion,
                 $fwRequireDev[$dependency],
-                clean_path(dirname(__DIR__, 2) . '/admin/framework/composer.json')
+                clean_path(dirname(__DIR__, 3) . '/admin/framework/composer.json'),
             ));
         }
     }
 
     public function testFrameworkSuggestIsTheSameWithDevSuggest(): void
     {
-        $this->checkFramework('suggest');
+        $this->checkSection('suggest', 'framework');
     }
 
     public function testFrameworkConfigIsTheSameWithDevSuggest(): void
     {
-        $this->checkFramework('config');
+        $this->checkConfig(
+            $this->devComposer['config'],
+            $this->frameworkComposer['config'],
+            'framework',
+        );
     }
 
     public function testStarterConfigIsTheSameWithDevSuggest(): void
     {
-        $this->checkStarter('config');
-    }
-
-    private function checkFramework(string $section): void
-    {
-        $this->assertSame(
-            $this->devComposer[$section],
-            $this->frameworkComposer[$section],
-            'The framework\'s "' . $section . '" section is not updated with the main composer.json.'
+        $this->checkConfig(
+            $this->devComposer['config'],
+            $this->starterComposer['config'],
+            'starter',
         );
     }
 
-    private function checkStarter(string $section): void
+    private function checkSection(string $section, string $component): void
     {
+        $sectionContent = match (strtolower($component)) {
+            'framework' => $this->frameworkComposer[$section] ?? null,
+            'starter'   => $this->starterComposer[$section] ?? null,
+            default     => throw new InvalidArgumentException(sprintf('Unknown component: %s.', $component)),
+        };
+
         $this->assertSame(
             $this->devComposer[$section],
-            $this->starterComposer[$section],
-            'The starter\'s "' . $section . '" section is not updated with the main composer.json.'
+            $sectionContent,
+            sprintf('The %s\'s "%s" section is not updated with the main composer.json', strtolower($component), $section),
         );
+    }
+
+    private function checkConfig(array $fromMain, array $fromComponent, string $component): void
+    {
+        foreach ($fromMain as $key => $expectedValue) {
+            if (! isset($fromComponent[$key])) {
+                $this->addToAssertionCount(1);
+
+                continue;
+            }
+
+            $actualValue = $fromComponent[$key];
+
+            $this->assertSame($expectedValue, $actualValue, sprintf(
+                '%s\'s value for config property "%s" is not same with the main composer.json\'s config.',
+                ucfirst($component),
+                $key,
+            ));
+        }
     }
 
     private function getComposerJson(string $path): array
@@ -107,7 +132,7 @@ final class ComposerJsonTest extends TestCase
             $this->fail(sprintf(
                 'The composer.json at "%s" is not readable or does not exist. Error was "%s".',
                 clean_path($path),
-                $e->getMessage()
+                $e->getMessage(),
             ));
         }
     }

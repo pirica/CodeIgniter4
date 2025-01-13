@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -14,13 +16,13 @@ namespace CodeIgniter\Database\Live;
 use CodeIgniter\Database\Exceptions\DatabaseException;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\DatabaseTestTrait;
+use PHPUnit\Framework\Attributes\Group;
 use Tests\Support\Database\Seeds\CITestSeeder;
 
 /**
- * @group DatabaseLive
- *
  * @internal
  */
+#[Group('DatabaseLive')]
 final class BadQueryTest extends CIUnitTestCase
 {
     use DatabaseTestTrait;
@@ -28,7 +30,7 @@ final class BadQueryTest extends CIUnitTestCase
     protected $refresh = true;
     protected $seed    = CITestSeeder::class;
 
-    public function testBadQueryDebugTrue()
+    public function testBadQueryDebugTrue(): void
     {
         $this->enableDBDebug();
 
@@ -39,7 +41,7 @@ final class BadQueryTest extends CIUnitTestCase
         // this code is never executed
     }
 
-    public function testBadQueryDebugFalse()
+    public function testBadQueryDebugFalse(): void
     {
         // WARNING this value will persist! take care to roll it back.
         $this->disableDBDebug();

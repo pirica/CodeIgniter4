@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -15,12 +17,12 @@ use CodeIgniter\Database\BaseBuilder;
 use CodeIgniter\Database\SQLSRV\Connection as SQLSRVConnection;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\Mock\MockConnection;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * @internal
- *
- * @group Others
  */
+#[Group('Others')]
 final class UnionTest extends CIUnitTestCase
 {
     /**
@@ -45,7 +47,7 @@ final class UnionTest extends CIUnitTestCase
 
         $builder = $this->db->table('test');
 
-        $builder->union(static fn ($builder) => $builder->from('test'));
+        $builder->union(static fn ($builder): BaseBuilder => $builder->from('test'));
         $this->assertSame($expected, $this->buildSelect($builder));
     }
 
@@ -83,7 +85,7 @@ final class UnionTest extends CIUnitTestCase
 
         $builder = $db->table('users');
 
-        $builder->union(static fn ($builder) => $builder->from('users'));
+        $builder->union(static fn ($builder): BaseBuilder => $builder->from('users'));
         $this->assertSame($expected, $this->buildSelect($builder));
     }
 

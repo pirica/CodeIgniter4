@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -12,23 +14,23 @@
 namespace CodeIgniter\Honeypot;
 
 use CodeIgniter\Config\Factories;
-use CodeIgniter\Config\Services;
 use CodeIgniter\Filters\Filters;
 use CodeIgniter\Honeypot\Exceptions\HoneypotException;
 use CodeIgniter\HTTP\CLIRequest;
 use CodeIgniter\HTTP\IncomingRequest;
+use CodeIgniter\HTTP\RequestInterface;
 use CodeIgniter\HTTP\Response;
 use CodeIgniter\Test\CIUnitTestCase;
 use Config\App;
 use Config\Honeypot as HoneypotConfig;
+use PHPUnit\Framework\Attributes\BackupGlobals;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
- * @backupGlobals enabled
- *
  * @internal
- *
- * @group Others
  */
+#[BackupGlobals(true)]
+#[Group('Others')]
 final class HoneypotTest extends CIUnitTestCase
 {
     private HoneypotConfig $config;
@@ -37,7 +39,7 @@ final class HoneypotTest extends CIUnitTestCase
     /**
      * @var CLIRequest|IncomingRequest
      */
-    private $request;
+    private RequestInterface $request;
 
     private Response $response;
 
@@ -52,11 +54,11 @@ final class HoneypotTest extends CIUnitTestCase
         $_SERVER['REQUEST_METHOD']  = 'POST';
         $_POST[$this->config->name] = 'hey';
 
-        $this->request  = Services::request(null, false);
-        $this->response = Services::response();
+        $this->request  = service('request', null, false);
+        $this->response = service('response');
     }
 
-    public function testAttachHoneypot()
+    public function testAttachHoneypot(): void
     {
         $this->response->setBody('<form></form>');
 
@@ -67,7 +69,16 @@ final class HoneypotTest extends CIUnitTestCase
         $this->assertStringNotContainsString($this->config->name, $this->response->getBody());
     }
 
-    public function testAttachHoneypotAndContainer()
+    public function testAttachHoneypotBodyNull(): void
+    {
+        $this->response->setBody(null);
+
+        $this->honeypot->attachHoneypot($this->response);
+
+        $this->assertNull($this->response->getBody());
+    }
+
+    public function testAttachHoneypotAndContainer(): void
     {
         $this->response->setBody('<form></form>');
         $this->honeypot->attachHoneypot($this->response);
@@ -81,14 +92,14 @@ final class HoneypotTest extends CIUnitTestCase
         $this->assertSame($expected, $this->response->getBody());
     }
 
-    public function testAttachHoneypotAndContainerWithCSP()
+    public function testAttachHoneypotAndContainerWithCSP(): void
     {
         $this->resetServices();
 
         $config             = new App();
         $config->CSPEnabled = true;
         Factories::injectMock('config', 'App', $config);
-        $this->response = Services::response($config, false);
+        $this->response = service('response', $config, false);
 
         $this->config   = new HoneypotConfig();
         $this->honeypot = new Honeypot($this->config);
@@ -100,41 +111,52 @@ final class HoneypotTest extends CIUnitTestCase
         $this->assertMatchesRegularExpression($regex, $this->response->getBody());
     }
 
-    public function testHasntContent()
+    public function testNotAttachHoneypotWithCSP(): void
+    {
+        $this->resetServices();
+
+        $config             = new App();
+        $config->CSPEnabled = true;
+        Factories::injectMock('config', 'App', $config);
+        $this->response = service('response', $config, false);
+
+        $this->config   = new HoneypotConfig();
+        $this->honeypot = new Honeypot($this->config);
+
+        $this->response->setBody('<head></head><body></body>');
+        $this->honeypot->attachHoneypot($this->response);
+
+        $this->assertSame('<head></head><body></body>', $this->response->getBody());
+    }
+
+    public function testHasntContent(): void
     {
         unset($_POST[$this->config->name]);
-        $this->request = Services::request();
+        $this->request = service('request');
 
         $this->assertFalse($this->honeypot->hasContent($this->request));
     }
 
-    public function testHasContent()
+    public function testHasContent(): void
     {
         $this->assertTrue($this->honeypot->hasContent($this->request));
     }
 
-    public function testConfigHidden()
-    {
-        $this->config->hidden = '';
-        $this->expectException(HoneypotException::class);
-        $this->honeypot = new Honeypot($this->config);
-    }
-
-    public function testConfigTemplate()
+    public function testConfigTemplate(): void
     {
         $this->config->template = '';
         $this->expectException(HoneypotException::class);
         $this->honeypot = new Honeypot($this->config);
     }
 
-    public function testConfigName()
+    public function testConfigName(): void
     {
         $this->config->name = '';
         $this->expectException(HoneypotException::class);
         $this->honeypot = new Honeypot($this->config);
     }
 
-    public function testHoneypotFilterBefore()
+    public function testHoneypotFilterBefore(): void
     {
         $config = [
             'aliases' => ['trap' => \CodeIgniter\Filters\Honeypot::class],
@@ -151,7 +173,7 @@ final class HoneypotTest extends CIUnitTestCase
         $filters->run($uri, 'before');
     }
 
-    public function testHoneypotFilterAfter()
+    public function testHoneypotFilterAfter(): void
     {
         $config = [
             'aliases' => ['trap' => \CodeIgniter\Filters\Honeypot::class],
@@ -169,7 +191,7 @@ final class HoneypotTest extends CIUnitTestCase
         $this->assertStringContainsString($this->config->name, $this->response->getBody());
     }
 
-    public function testEmptyConfigContainer()
+    public function testEmptyConfigContainer(): void
     {
         $config            = new HoneypotConfig();
         $config->container = '';
@@ -177,11 +199,11 @@ final class HoneypotTest extends CIUnitTestCase
 
         $this->assertSame(
             '<div style="display:none">{template}</div>',
-            $this->getPrivateProperty($honeypot, 'config')->container
+            $this->getPrivateProperty($honeypot, 'config')->container,
         );
     }
 
-    public function testNoTemplateConfigContainer()
+    public function testNoTemplateConfigContainer(): void
     {
         $config            = new HoneypotConfig();
         $config->container = '<div></div>';
@@ -189,7 +211,7 @@ final class HoneypotTest extends CIUnitTestCase
 
         $this->assertSame(
             '<div style="display:none">{template}</div>',
-            $this->getPrivateProperty($honeypot, 'config')->container
+            $this->getPrivateProperty($honeypot, 'config')->container,
         );
     }
 }

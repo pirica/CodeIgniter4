@@ -11,9 +11,11 @@ Here are some common installation problems, and suggested workarounds.
 How do I know if my install is working?
 ---------------------------------------
 
-From the command line, at your project root::
+From the command line, at your project root:
 
-    > php spark serve
+.. code-block:: console
+
+    php spark serve
 
 ``http://localhost:8080`` in your browser should then show the default
 welcome page:
@@ -56,6 +58,19 @@ If you see "No input file specified", try to change the rewrite rule like the fo
 
     RewriteRule ^([\s\S]*)$ index.php?/$1 [L,NC,QSA]
 
+My app works fine locally but not on the production server
+----------------------------------------------------------
+
+Make sure that the case of the folder and file names matches the code.
+
+Many developers develop on case-insensitive file systems on Windows or macOS.
+However, most server environments use case-sensitive file systems.
+
+For example, when you have **app/Controllers/Product.php**, you must use
+``Product`` as the short classname, not ``product``.
+
+If the file name case is incorrect, the file is not found on the server.
+
 The tutorial gives 404 errors everywhere :(
 -------------------------------------------
 
@@ -87,9 +102,4 @@ After that, reload the page. You will see the error and the back trace.
 CodeIgniter Error Logs
 ----------------------
 
-CodeIgniter logs error messages, according to the settings in **app/Config/Logger.php**.
-
-You can adjust the error threshold to see more or fewer messages. See :ref:`Logging <logging-configuration>` for details.
-
-The default configuration has daily log files stored in **writable/logs**.
-It would be a good idea to check them if things aren't working the way you expect!
+See :ref:`codeigniter-error-logs`.

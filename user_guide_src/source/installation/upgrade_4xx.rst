@@ -41,11 +41,20 @@ Downloads
 Namespaces
 ==========
 
-- CI4 is built for PHP 7.4+, and everything in the framework is namespaced,
+- CI4 is built for PHP 8.1+, and everything in the framework is namespaced,
   except for the helper and lang files.
 
 Application Structure
 =====================
+
+.. important::
+    **index.php** is no longer in the root of the project! It has been moved inside
+    the **public** folder, for better security and separation of components.
+
+    This means that you should configure your web server to "point" to your project's
+    **public** folder, and not to the project root.
+
+    If you would use Shared Hosting, see :ref:`deployment-to-shared-hosting-services`.
 
 - The **application** folder is renamed as **app** and the framework still has **system** folders,
   with the same interpretation as before.
@@ -62,7 +71,10 @@ Application Structure
 Routing
 =======
 
-- The Auto Routing is disabled by default. If you want to use the Auto Routing in the same way as CI3, you need to enable :ref:`auto-routing-legacy`.
+- The Auto Routing is disabled by default. You need to :ref:`define all routes
+  <defined-route-routing>` by default.
+- If you want to use the Auto Routing in the same way as CI3, you need to enable
+  :ref:`auto-routing-legacy`.
 - CI4 also has an optional new more secure :ref:`auto-routing-improved`.
 
 Model, View and Controller
@@ -88,6 +100,19 @@ Model, View and Controller
     upgrade_models
     upgrade_views
     upgrade_controllers
+
+Core Class Changes
+==================
+
+- Input
+    - CI3's `Input <http://codeigniter.com/userguide3/libraries/input.html>`_
+      corresponds to CI4's :doc:`IncomingRequest </incoming/incomingrequest>`.
+    - For historical reasons, CI3 and CI4 used incorrect HTTP method names like
+      "get", "post". Since v4.5.0, CI4 uses the correct HTTP method names like
+      "GET", "POST".
+- Output
+    - CI3's `Output <http://codeigniter.com/userguide3/libraries/output.html>`_
+      corresponds to CI4's :doc:`Responses </outgoing/response>`.
 
 Class Loading
 =============
@@ -137,9 +162,14 @@ Helpers
 - `String Helper <https://www.codeigniter.com/userguide3/helpers/string_helper.html>`_ functions
   in CI3 are included in :doc:`../helpers/text_helper` in CI4.
 - In CI4, ``redirect()`` is completely changed from CI3's.
-    - `redirect() Documentation CodeIgniter 3.X <https://codeigniter.com/userguide3/helpers/url_helper.html#redirect>`_
-    - `redirect() Documentation CodeIgniter 4.X <../general/common_functions.html#redirect>`_
-    - In CI4, ``redirect()`` returns a ``RedirectResponse`` instance instead of redirecting and terminating script execution. You must return it.
+    - `redirect() Documentation CodeIgniter 3.x <https://codeigniter.com/userguide3/helpers/url_helper.html#redirect>`_
+    - `redirect() Documentation CodeIgniter 4.x <../general/common_functions.html#redirect>`_
+    - In CI4, :php:func:`redirect()` returns a ``RedirectResponse`` instance instead of
+      redirecting and terminating script execution. You must return it from Controllers
+      or Controller Filters.
+    - Cookies and Headers you set before calling ``redirect()`` are not automatically
+      carried over to a ``RedirectResponse``. You need to call ``withCookies()``
+      or ``withHeaders()`` manually if you want to send them.
     - You need to change CI3's ``redirect('login/form')`` to ``return redirect()->to('login/form')``.
 
 Hooks
@@ -150,6 +180,34 @@ Hooks
 - Instead of CI3's ``$hook['post_controller_constructor']`` you now use
   ``Events::on('post_controller_constructor', ['MyClass', 'MyFunction']);``, with the namespace ``CodeIgniter\Events\Events;``.
 - Events are always enabled, and are available globally.
+- The hook point ``pre_controller`` and ``post_controller`` have been removed.
+  Use :doc:`../incoming/filters` instead.
+- The hook point ``display_override`` and ``cache_override`` have been removed.
+  Because the base methods have been removed.
+- The hook point ``post_system`` has moved just before sending the final rendered
+  page.
+
+Error Handling
+==============
+
+- The behavior in CI4 has been slightly changed.
+
+  - In CI3 the behavior is set in the **index.php** file:
+
+      - errors with the error level set by ``error_reporting()`` are logged (but
+        depending on the ``log_threshold`` setting, they may not be written to
+        the log file).
+      - errors with an error level of
+        ``E_ERROR | E_PARSE | E_COMPILE_ERROR | E_CORE_ERROR | E_USER_ERROR``
+        stopped framework processing, regardless of the error level set in
+        ``error_reporting()``.
+  - In CI4, the behavior is set in the **app/Config/Boot/{environment}.php** file:
+
+      - errors with the error level set by ``error_reporting()`` are logged (but
+        depending on the ``Config\Logger::$threshold`` setting, they may not be
+        written to the log file).
+      - all errors that are not ignored by ``error_reporting()`` will stop the
+        framework processing.
 
 Extending the Framework
 =======================
@@ -180,8 +238,6 @@ Upgrading Libraries
   `Trackback <http://codeigniter.com/userguide3/libraries/trackback.html>`_,
   `XML-RPC /-Server <http://codeigniter.com/userguide3/libraries/xmlrpc.html>`_,
   and `Zip Encoding <http://codeigniter.com/userguide3/libraries/zip.html>`_.
-- CI3's `Input <http://codeigniter.com/userguide3/libraries/input.html>`_ corresponds to CI4's :doc:`IncomingRequest </incoming/incomingrequest>`.
-- CI3's `Output <http://codeigniter.com/userguide3/libraries/output.html>`_ corresponds to CI4's :doc:`Responses </outgoing/response>`.
 - All the other libraries, which exist in both CodeIgniter versions, can be upgraded with some adjustments.
   The most important and mostly used libraries received an Upgrade Guide, which will help you with simple
   steps and examples to adjust your code.
@@ -195,15 +251,13 @@ Upgrading Libraries
     upgrade_encryption
     upgrade_file_upload
     upgrade_html_tables
+    upgrade_images
     upgrade_localization
     upgrade_migrations
-    upgrade_pagination
     upgrade_responses
+    upgrade_pagination
     upgrade_routing
     upgrade_security
     upgrade_sessions
     upgrade_validations
     upgrade_view_parser
-
-.. note::
-    More upgrade guides coming soon

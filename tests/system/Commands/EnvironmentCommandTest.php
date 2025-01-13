@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -13,12 +15,12 @@ namespace CodeIgniter\Commands;
 
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\StreamFilterTrait;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * @internal
- *
- * @group Others
  */
+#[Group('Others')]
 final class EnvironmentCommandTest extends CIUnitTestCase
 {
     use StreamFilterTrait;
@@ -62,7 +64,7 @@ final class EnvironmentCommandTest extends CIUnitTestCase
         command('env testing');
         $this->assertStringContainsString(
             'The "testing" environment is reserved for PHPUnit testing.',
-            $this->getStreamFilterBuffer()
+            $this->getStreamFilterBuffer(),
         );
     }
 
@@ -72,7 +74,7 @@ final class EnvironmentCommandTest extends CIUnitTestCase
         $this->assertStringContainsString('Invalid environment type "foobar".', $this->getStreamFilterBuffer());
     }
 
-    public function testDefaultShippedEnvIsMissing()
+    public function testDefaultShippedEnvIsMissing(): void
     {
         rename(ROOTPATH . 'env', ROOTPATH . 'lostenv');
         command('env development');
@@ -81,7 +83,7 @@ final class EnvironmentCommandTest extends CIUnitTestCase
         $this->assertStringContainsString('Both default shipped', $this->getStreamFilterBuffer());
         $this->assertStringContainsString(
             'It is impossible to write the new environment type.',
-            $this->getStreamFilterBuffer()
+            $this->getStreamFilterBuffer(),
         );
     }
 

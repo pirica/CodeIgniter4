@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -14,13 +16,13 @@ namespace CodeIgniter\Database\Live;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\DatabaseTestTrait;
 use Config\Database;
+use PHPUnit\Framework\Attributes\Group;
 use Tests\Support\Database\Seeds\CITestSeeder;
 
 /**
- * @group DatabaseLive
- *
  * @internal
  */
+#[Group('DatabaseLive')]
 final class MetadataTest extends CIUnitTestCase
 {
     use DatabaseTestTrait;
@@ -86,7 +88,7 @@ final class MetadataTest extends CIUnitTestCase
         $this->db->setPrefix($oldPrefix);
     }
 
-    public function testListTablesUnconstrainedByPrefixReturnsAllTables()
+    public function testListTablesUnconstrainedByPrefixReturnsAllTables(): void
     {
         try {
             $this->createExtraneousTable();
@@ -99,13 +101,13 @@ final class MetadataTest extends CIUnitTestCase
             $expectedTables[] = 'tmp_widgets';
 
             sort($tables);
-            $this->assertSame($expectedTables, array_values($tables));
+            $this->assertSame($expectedTables, $tables);
         } finally {
             $this->dropExtraneousTable();
         }
     }
 
-    public function testListTablesConstrainedByPrefixReturnsOnlyTablesWithMatchingPrefix()
+    public function testListTablesConstrainedByPrefixReturnsOnlyTablesWithMatchingPrefix(): void
     {
         try {
             $this->createExtraneousTable();
@@ -115,13 +117,13 @@ final class MetadataTest extends CIUnitTestCase
             $this->assertNotSame([], $tables);
 
             sort($tables);
-            $this->assertSame($this->expectedTables, array_values($tables));
+            $this->assertSame($this->expectedTables, $tables);
         } finally {
             $this->dropExtraneousTable();
         }
     }
 
-    public function testListTablesConstrainedByExtraneousPrefixReturnsOnlyTheExtraneousTable()
+    public function testListTablesConstrainedByExtraneousPrefixReturnsOnlyTheExtraneousTable(): void
     {
         $oldPrefix = '';
 
@@ -136,7 +138,7 @@ final class MetadataTest extends CIUnitTestCase
             $this->assertNotSame([], $tables);
 
             sort($tables);
-            $this->assertSame(['tmp_widgets'], array_values($tables));
+            $this->assertSame(['tmp_widgets'], $tables);
         } finally {
             $this->db->setPrefix($oldPrefix);
             $this->dropExtraneousTable();

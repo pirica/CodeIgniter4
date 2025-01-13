@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -12,15 +14,15 @@
 namespace CodeIgniter;
 
 use CodeIgniter\Test\CIUnitTestCase;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * @internal
- *
- * @group Others
  */
+#[Group('Others')]
 final class SparkTest extends CIUnitTestCase
 {
-    public function testCanUseOption()
+    public function testCanUseOption(): void
     {
         ob_start();
         passthru('php spark list --simple');

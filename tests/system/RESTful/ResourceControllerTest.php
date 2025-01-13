@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -17,7 +19,7 @@ use CodeIgniter\Format\JSONFormatter;
 use CodeIgniter\Format\XMLFormatter;
 use CodeIgniter\HTTP\IncomingRequest;
 use CodeIgniter\HTTP\Response;
-use CodeIgniter\HTTP\URI;
+use CodeIgniter\HTTP\SiteURI;
 use CodeIgniter\HTTP\UserAgent;
 use CodeIgniter\Model;
 use CodeIgniter\Router\RouteCollection;
@@ -25,6 +27,10 @@ use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\Mock\MockCodeIgniter;
 use CodeIgniter\Test\Mock\MockResourceController;
 use Config\App;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\PreserveGlobalState;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
+use PHPUnit\Framework\Attributes\WithoutErrorHandler;
 use Psr\Log\NullLogger;
 use Tests\Support\Models\UserModel;
 use Tests\Support\RESTful\Worker;
@@ -35,14 +41,11 @@ use Tests\Support\RESTful\Worker;
  * so we need to make sure that the methods routed to
  * return correct responses.
  *
- * @runTestsInSeparateProcesses
- *
- * @preserveGlobalState         disabled
- *
  * @internal
- *
- * @group SeparateProcess
  */
+#[Group('SeparateProcess')]
+#[PreserveGlobalState(false)]
+#[RunTestsInSeparateProcesses]
 final class ResourceControllerTest extends CIUnitTestCase
 {
     private CodeIgniter $codeigniter;
@@ -52,6 +55,7 @@ final class ResourceControllerTest extends CIUnitTestCase
      */
     protected $routes;
 
+    #[WithoutErrorHandler]
     protected function setUp(): void
     {
         parent::setUp();
@@ -65,14 +69,14 @@ final class ResourceControllerTest extends CIUnitTestCase
         $_SERVER['SERVER_PROTOCOL'] = 'HTTP/1.1';
 
         // Inject mock router.
-        $this->routes = Services::routes();
-        $this->routes->resource('work', ['controller' => Worker::class]);
+        $this->routes = service('routes');
+        $this->routes->resource('work', ['controller' => '\\' . Worker::class]);
         Services::injectMock('routes', $this->routes);
 
         $config            = new App();
         $this->codeigniter = new MockCodeIgniter($config);
 
-        $response = Services::response();
+        $response = service('response');
         $response->pretend();
     }
 
@@ -85,7 +89,7 @@ final class ResourceControllerTest extends CIUnitTestCase
         }
     }
 
-    public function testResourceGet()
+    public function testResourceGet(): void
     {
         $_SERVER['argv'] = [
             'index.php',
@@ -106,7 +110,7 @@ final class ResourceControllerTest extends CIUnitTestCase
         $this->assertStringContainsString(lang('RESTful.notImplemented', ['index']), $error);
     }
 
-    public function testResourceGetNew()
+    public function testResourceGetNew(): void
     {
         $_SERVER['argv'] = [
             'index.php',
@@ -128,7 +132,7 @@ final class ResourceControllerTest extends CIUnitTestCase
         $this->assertStringContainsString(lang('RESTful.notImplemented', ['new']), $error);
     }
 
-    public function testResourceGetEdit()
+    public function testResourceGetEdit(): void
     {
         $_SERVER['argv'] = [
             'index.php',
@@ -151,7 +155,7 @@ final class ResourceControllerTest extends CIUnitTestCase
         $this->assertStringContainsString(lang('RESTful.notImplemented', ['edit']), $error);
     }
 
-    public function testResourceGetOne()
+    public function testResourceGetOne(): void
     {
         $_SERVER['argv'] = [
             'index.php',
@@ -173,7 +177,7 @@ final class ResourceControllerTest extends CIUnitTestCase
         $this->assertStringContainsString(lang('RESTful.notImplemented', ['show']), $error);
     }
 
-    public function testResourcePost()
+    public function testResourcePost(): void
     {
         $_SERVER['argv'] = [
             'index.php',
@@ -194,7 +198,7 @@ final class ResourceControllerTest extends CIUnitTestCase
         $this->assertStringContainsString(lang('RESTful.notImplemented', ['create']), $error);
     }
 
-    public function testResourcePatch()
+    public function testResourcePatch(): void
     {
         $_SERVER['argv'] = [
             'index.php',
@@ -216,7 +220,7 @@ final class ResourceControllerTest extends CIUnitTestCase
         $this->assertStringContainsString(lang('RESTful.notImplemented', ['update']), $error);
     }
 
-    public function testResourcePut()
+    public function testResourcePut(): void
     {
         $_SERVER['argv'] = [
             'index.php',
@@ -238,7 +242,7 @@ final class ResourceControllerTest extends CIUnitTestCase
         $this->assertStringContainsString(lang('RESTful.notImplemented', ['update']), $error);
     }
 
-    public function testResourceDelete()
+    public function testResourceDelete(): void
     {
         $_SERVER['argv'] = [
             'index.php',
@@ -260,14 +264,14 @@ final class ResourceControllerTest extends CIUnitTestCase
         $this->assertStringContainsString(lang('RESTful.notImplemented', ['delete']), $error);
     }
 
-    public function testModel()
+    public function testModel(): void
     {
         $resource = new MockResourceController();
         $this->assertEmpty($resource->getModel());
         $this->assertEmpty($resource->getModelName());
     }
 
-    public function testModelBogus()
+    public function testModelBogus(): void
     {
         $resource = new MockResourceController();
 
@@ -276,7 +280,7 @@ final class ResourceControllerTest extends CIUnitTestCase
         $this->assertSame('Something', $resource->getModelName());
     }
 
-    public function testModelByName()
+    public function testModelByName(): void
     {
         $resource = new MockResourceController();
         $resource->setModel(UserModel::class);
@@ -284,7 +288,7 @@ final class ResourceControllerTest extends CIUnitTestCase
         $this->assertSame(UserModel::class, $resource->getModelName());
     }
 
-    public function testModelByObject()
+    public function testModelByObject(): void
     {
         $resource = new MockResourceController();
         $model    = new UserModel();
@@ -295,7 +299,7 @@ final class ResourceControllerTest extends CIUnitTestCase
         $this->assertSame(UserModel::class, $resource->getModelName());
     }
 
-    public function testFormat()
+    public function testFormat(): void
     {
         $resource = new MockResourceController();
         $this->assertSame('json', $resource->getFormat());
@@ -307,12 +311,12 @@ final class ResourceControllerTest extends CIUnitTestCase
         $this->assertSame('xml', $resource->getFormat());
     }
 
-    public function testJSONFormatOutput()
+    public function testJSONFormatOutput(): void
     {
         $resource = new MockResourceController();
 
         $config = new App();
-        $uri    = new URI();
+        $uri    = new SiteURI($config);
         $agent  = new UserAgent();
 
         $request  = new IncomingRequest($config, $uri, '', $agent);
@@ -335,12 +339,12 @@ final class ResourceControllerTest extends CIUnitTestCase
         $this->assertSame($expected, $result);
     }
 
-    public function testXMLFormatOutput()
+    public function testXMLFormatOutput(): void
     {
         $resource = new MockResourceController();
 
         $config = new App();
-        $uri    = new URI();
+        $uri    = new SiteURI($config);
         $agent  = new UserAgent();
 
         $request  = new IncomingRequest($config, $uri, '', $agent);

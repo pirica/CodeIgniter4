@@ -90,7 +90,7 @@ Allows you to provide a **Logger** instance:
 If you do not provide one, a new Logger instance with the default configuration values will be passed
 into your controller.
 
-withURI(string $uri)
+withUri(string $uri)
 --------------------
 
 Allows you to provide a new URI that simulates the URL the client was visiting when this controller was run.
@@ -100,6 +100,11 @@ representing a valid URI:
 .. literalinclude:: controllers/009.php
 
 It is a good practice to always provide the URI during testing to avoid surprises.
+
+.. note:: Since v4.4.0, this method creates a new Request instance with the URI.
+    Because the Request instance should have the URI instance. Also if the hostname
+    in the URI string is invalid with ``Config\App``, the valid hostname will be
+    set.
 
 withBody($body)
 ---------------

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -12,12 +14,13 @@
 namespace CodeIgniter\Helpers;
 
 use CodeIgniter\Test\CIUnitTestCase;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * @internal
- *
- * @group Others
  */
+#[Group('Others')]
 final class InflectorHelperTest extends CIUnitTestCase
 {
     protected function setUp(): void
@@ -27,7 +30,7 @@ final class InflectorHelperTest extends CIUnitTestCase
         helper('inflector');
     }
 
-    public function testSingular()
+    public function testSingular(): void
     {
         $strings = [
             'matrices'  => 'matrix',
@@ -64,7 +67,7 @@ final class InflectorHelperTest extends CIUnitTestCase
         }
     }
 
-    public function testPlural()
+    public function testPlural(): void
     {
         $strings = [
             'searches'  => 'search',
@@ -100,7 +103,7 @@ final class InflectorHelperTest extends CIUnitTestCase
         }
     }
 
-    public function testCounted()
+    public function testCounted(): void
     {
         $triplets = [
             [
@@ -156,7 +159,7 @@ final class InflectorHelperTest extends CIUnitTestCase
         }
     }
 
-    public function testCamelize()
+    public function testCamelize(): void
     {
         $strings = [
             'hello from codeIgniter 4' => 'helloFromCodeIgniter4',
@@ -169,7 +172,7 @@ final class InflectorHelperTest extends CIUnitTestCase
         }
     }
 
-    public function testPascalize()
+    public function testPascalize(): void
     {
         $strings = [
             'hello from codeIgniter 4' => 'HelloFromCodeIgniter4',
@@ -182,7 +185,7 @@ final class InflectorHelperTest extends CIUnitTestCase
         }
     }
 
-    public function testUnderscore()
+    public function testUnderscore(): void
     {
         $strings = [
             'Hello From CodeIgniter 4' => 'Hello_From_CodeIgniter_4',
@@ -195,7 +198,7 @@ final class InflectorHelperTest extends CIUnitTestCase
         }
     }
 
-    public function testHumanize()
+    public function testHumanize(): void
     {
         $underscored = [
             'Hello_From_CodeIgniter_4',
@@ -213,7 +216,7 @@ final class InflectorHelperTest extends CIUnitTestCase
         $this->assertSame($humanizedDash, $dashed[1]);
     }
 
-    public function testIsCountable()
+    public function testIsCountable(): void
     {
         $words = [
             'tip'        => 'advice',
@@ -230,7 +233,7 @@ final class InflectorHelperTest extends CIUnitTestCase
         }
     }
 
-    public function testDasherize()
+    public function testDasherize(): void
     {
         $strings = [
             'hello_world'              => 'hello-world',
@@ -243,7 +246,7 @@ final class InflectorHelperTest extends CIUnitTestCase
         }
     }
 
-    public function provideOrdinal()
+    public static function provideOrdinal(): iterable
     {
         return [
             ['st', 1],
@@ -259,15 +262,13 @@ final class InflectorHelperTest extends CIUnitTestCase
         ];
     }
 
-    /**
-     * @dataProvider provideOrdinal
-     */
-    public function testOrdinal(string $suffix, int $number)
+    #[DataProvider('provideOrdinal')]
+    public function testOrdinal(string $suffix, int $number): void
     {
         $this->assertSame($suffix, ordinal($number));
     }
 
-    public function testOrdinalize()
+    public function testOrdinalize(): void
     {
         $suffixedNumbers = [
             '1st'  => 1,
@@ -288,7 +289,7 @@ final class InflectorHelperTest extends CIUnitTestCase
         }
     }
 
-    public function testDecamelizeToSnakeCase()
+    public function testDecamelizeToSnakeCase(): void
     {
         $strings = [
             'simpleTest'      => 'simple_test',

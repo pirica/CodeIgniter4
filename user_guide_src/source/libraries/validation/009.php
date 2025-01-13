@@ -4,7 +4,7 @@
  * The data to test:
  * [
  *     'contacts' => [
- *        'name' => 'Joe Smith',
+ *         'name' => 'Joe Smith',
  *         'friends' => [
  *             [
  *                 'name' => 'Fred Flinstone',
@@ -19,10 +19,5 @@
 
 // Joe Smith
 $validation->setRules([
-    'contacts.name' => 'required',
-]);
-
-// Fred Flintsone & Wilma
-$validation->setRules([
-    'contacts.friends.name' => 'required',
+    'contacts.name' => 'required|max_length[60]',
 ]);

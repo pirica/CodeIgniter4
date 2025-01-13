@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -12,17 +14,17 @@
 namespace CodeIgniter\Commands\Utilities\Routes;
 
 use CodeIgniter\Test\CIUnitTestCase;
+use PHPUnit\Framework\Attributes\Group;
 use Tests\Support\Controllers\Popcorn;
 use Tests\Support\Controllers\Remap;
 
 /**
  * @internal
- *
- * @group Others
  */
+#[Group('Others')]
 final class ControllerMethodReaderTest extends CIUnitTestCase
 {
-    public function testRead()
+    public function testRead(): void
     {
         $namespace = 'Tests\Support\Controllers';
         $reader    = new ControllerMethodReader($namespace);
@@ -90,7 +92,7 @@ final class ControllerMethodReaderTest extends CIUnitTestCase
         $this->assertSame($expected, $routes);
     }
 
-    public function testReadControllerWithRemap()
+    public function testReadControllerWithRemap(): void
     {
         $namespace = 'Tests\Support\Controllers';
         $reader    = new ControllerMethodReader($namespace);

@@ -47,7 +47,10 @@ is()
 
 .. versionadded:: 4.3.0
 
-Since v4.3.0, you can use the ``is()`` method. It returns boolean.
+Since v4.3.0, you can use the ``is()`` method. It accepts an HTTP method, ``'ajax'``,
+or ``'json'``, and returns boolean.
+
+.. note:: HTTP method should be case-sensitive, but the parameter is case-insensitive.
 
 .. literalinclude:: incomingrequest/040.php
 
@@ -58,16 +61,16 @@ You can check the HTTP method that this request represents with the ``getMethod(
 
 .. literalinclude:: incomingrequest/005.php
 
-By default, the method is returned as a lower-case string (i.e., ``'get'``, ``'post'``, etc).
+The HTTP method is case-sensitive, and by convention, standardized methods are
+defined in all-uppercase US-ASCII letters.
 
-.. important:: The functionality to convert the return value to lower case is deprecated.
-    It will be removed in the future version, and this method will be PSR-7 equivalent.
+.. note:: Prior to v4.5.0, by default, the method was returned as a lowercase
+    string (i.e., ``'get'``, ``'post'``, etc). But it was a bug.
 
-You can get an
-uppercase version by wrapping the call in ``strtoupper()``::
+You can get a lowercase version by wrapping the call in ``strtolower()``::
 
-    // Returns 'GET'
-    $method = strtoupper($request->getMethod());
+    // Returns 'get'
+    $method = strtolower($request->getMethod());
 
 You can also check if the request was made through and HTTPS connection with the ``isSecure()`` method:
 
@@ -76,7 +79,8 @@ You can also check if the request was made through and HTTPS connection with the
 Retrieving Input
 ****************
 
-You can retrieve input from ``$_SERVER``, ``$_GET``, ``$_POST``, and ``$_ENV`` through the Request object.
+You can retrieve input from ``$_GET``, ``$_POST``, ``$_COOKIE``, ``$_SERVER``
+and ``$_ENV`` through the Request object.
 The data is not automatically filtered and returns the raw input data as passed in the request.
 
 .. note:: It is bad practice to use global variables. Basically, it should be avoided
@@ -99,25 +103,73 @@ With CodeIgniter's built-in methods you can simply do this:
 Getting Data
 ============
 
-The ``getVar()`` method will pull from ``$_REQUEST``, so will return any data from ``$_GET``, ``$POST``, or ``$_COOKIE`` (depending on php.ini `request-order <https://www.php.net/manual/en/ini.core.php#ini.request-order>`_).
+getGet()
+--------
 
-.. note:: If the incoming request has a ``Content-Type`` header set to ``application/json``,
-    the ``getVar()`` method returns the JSON data instead of ``$_REQUEST`` data.
-
-While this
-is convenient, you will often need to use a more specific method, like:
+The ``getGet()`` method will pull from ``$_GET``.
 
 * ``$request->getGet()``
+
+getPost()
+---------
+
+The ``getPost()`` method will pull from ``$_POST``.
+
 * ``$request->getPost()``
+
+getCookie()
+-----------
+
+The ``getCookie()`` method will pull from ``$_COOKIE``.
+
 * ``$request->getCookie()``
+
+getServer()
+-----------
+
+The ``getServer()`` method will pull from ``$_SERVER``.
+
 * ``$request->getServer()``
+
+getEnv()
+--------
+
+.. deprecated:: 4.4.4 This method does not work from the beginning. Use
+    :php:func:`env()` instead.
+
+The ``getEnv()`` method will pull from ``$_ENV``.
+
 * ``$request->getEnv()``
+
+getPostGet()
+------------
 
 In addition, there are a few utility methods for retrieving information from either ``$_GET`` or ``$_POST``, while
 maintaining the ability to control the order you look for it:
 
 * ``$request->getPostGet()`` - checks ``$_POST`` first, then ``$_GET``
+
+getGetPost()
+------------
+
 * ``$request->getGetPost()`` - checks ``$_GET`` first, then ``$_POST``
+
+getVar()
+--------
+
+.. important:: This method exists only for backward compatibility. Do not use it
+    in new projects. Even if you are already using it, we recommend that you use
+    another, more appropriate method.
+
+The ``getVar()`` method will pull from ``$_REQUEST``, so will return any data from ``$_GET``, ``$POST``, or ``$_COOKIE`` (depending on php.ini `request-order <https://www.php.net/manual/en/ini.core.php#ini.request-order>`_).
+
+.. warning:: If you want to validate POST data only, don't use ``getVar()``.
+    Newer values override older values. POST values may be overridden by the
+    cookies if they have the same name, and you set "C" after "P" in
+    `request-order <https://www.php.net/manual/en/ini.core.php#ini.request-order>`_.
+
+.. note:: If the incoming request has a ``Content-Type`` header set to ``application/json``,
+    the ``getVar()`` method returns the JSON data instead of ``$_REQUEST`` data.
 
 .. _incomingrequest-getting-json-data:
 
@@ -134,23 +186,19 @@ You can grab the contents of ``php://input`` as a JSON stream with ``getJSON()``
 By default, this will return any objects in the JSON data as objects. If you want that converted to associative
 arrays, pass in ``true`` as the first parameter.
 
-The second and third parameters match up to the ``depth`` and ``options`` arguments of the
-`json_decode <https://www.php.net/manual/en/function.json-decode.php>`_ PHP function.
-
-If the incoming request has a ``Content-Type`` header set to ``application/json``, you can also use ``getVar()`` to get
-the JSON stream. Using ``getVar()`` in this way will always return an object.
+The second and third parameters match up to the ``$depth`` and ``$flags`` arguments of the
+`json_decode() <https://www.php.net/manual/en/function.json-decode.php>`_ PHP function.
 
 Getting Specific Data from JSON
 ===============================
 
-You can get a specific piece of data from a JSON stream by passing a variable name into ``getVar()`` for the
+You can get a specific piece of data from a JSON stream by passing a variable name into ``getJsonVar()`` for the
 data that you want or you can use "dot" notation to dig into the JSON to get data that is not on the root level.
 
 .. literalinclude:: incomingrequest/010.php
 
-If you want the result to be an associative array instead of an object, you can use ``getJsonVar()`` instead and pass
-true in the second parameter. This function can also be used if you can't guarantee that the incoming request will have the
-correct ``Content-Type`` header.
+If you want the result to be an associative array instead of an object, you can
+pass true in the second parameter:
 
 .. literalinclude:: incomingrequest/011.php
 
@@ -172,6 +220,8 @@ This will retrieve data and convert it to an array. Like this:
 You can also use ``getRawInputVar()``, to get the specified variable from raw stream and filter it.
 
 .. literalinclude:: incomingrequest/039.php
+
+.. _incomingrequest-filtering-input-data:
 
 Filtering Input Data
 ====================
@@ -226,11 +276,10 @@ The object gives you full abilities to grab any part of the request on it's own:
 
 .. literalinclude:: incomingrequest/021.php
 
-You can work with the current URI string (the path relative to your baseURL) using the ``getPath()`` and ``setPath()`` methods.
-Note that this relative path on the shared instance of ``IncomingRequest`` is what the :doc:`URL Helper </helpers/url_helper>`
-functions use, so this is a helpful way to "spoof" an incoming request for testing:
+You can work with the current URI string (the path relative to your baseURL) using the ``getRoutePath()``.
 
-.. literalinclude:: incomingrequest/022.php
+.. note:: The ``getRoutePath()`` method can be used since v4.4.0. Prior to v4.4.0,
+    the ``getPath()`` method returned the path relative to your baseURL.
 
 Uploaded Files
 **************
@@ -316,16 +365,32 @@ The methods provided by the parent classes that are available are:
     .. php:method:: getVar([$index = null[, $filter = null[, $flags = null]]])
 
         :param  string  $index: The name of the variable/key to look for.
-        :param  int     $filter: The type of filter to apply. A list of filters can be found
-                        `here <https://www.php.net/manual/en/filter.filters.php>`__.
-        :param  int     $flags: Flags to apply. A list of flags can be found
-                        `here <https://www.php.net/manual/en/filter.filters.flags.php>`__.
+        :param  int     $filter: The type of filter to apply. A list of filters can be found in
+                        `Types of filters <https://www.php.net/manual/en/filter.filters.php>`__.
+        :param  int     $flags: Flags to apply. A list of flags can be found in
+                        `Filter flags <https://www.php.net/manual/en/filter.filters.flags.php>`__.
         :returns:   ``$_REQUEST`` if no parameters supplied, otherwise the REQUEST value if found, or null if not
-        :rtype: mixed|null
+        :rtype: array|bool|float|int|object|string|null
 
-        The first parameter will contain the name of the REQUEST item you are looking for:
+        .. important:: This method exists only for backward compatibility. Do not use it
+            in new projects. Even if you are already using it, we recommend that you use
+            another, more appropriate method.
 
-        .. literalinclude:: incomingrequest/027.php
+        This method is identical to ``getGet()``, only it fetches REQUEST data.
+
+    .. php:method:: getGet([$index = null[, $filter = null[, $flags = null]]])
+
+        :param  string  $index: The name of the variable/key to look for.
+        :param  int     $filter: The type of filter to apply. A list of filters can be found in
+                        `Types of filters <https://www.php.net/manual/en/filter.filters.php>`__.
+        :param  int     $flags: Flags to apply. A list of flags can be found in
+                        `Filter flags <https://www.php.net/manual/en/filter.filters.flags.php>`__.
+        :returns:       ``$_GET`` if no parameters supplied, otherwise the GET value if found, or null if not
+        :rtype: array|bool|float|int|object|string|null
+
+        The first parameter will contain the name of the GET item you are looking for:
+
+        .. literalinclude:: incomingrequest/041.php
 
         The method returns null if the item you are attempting to retrieve
         does not exist.
@@ -333,36 +398,24 @@ The methods provided by the parent classes that are available are:
         The second optional parameter lets you run the data through the PHP's
         filters. Pass in the desired filter type as the second parameter:
 
-        .. literalinclude:: incomingrequest/028.php
+        .. literalinclude:: incomingrequest/042.php
 
-        To return an array of all POST items call without any parameters.
+        To return an array of all GET items call without any parameters.
 
-        To return all POST items and pass them through the filter, set the
+        To return all GET items and pass them through the filter, set the
         first parameter to null while setting the second parameter to the filter
         you want to use:
 
-        .. literalinclude:: incomingrequest/029.php
+        .. literalinclude:: incomingrequest/043.php
 
-        To return an array of multiple POST parameters, pass all the required keys as an array:
+        To return an array of multiple GET parameters, pass all the required keys as an array:
 
-        .. literalinclude:: incomingrequest/030.php
+        .. literalinclude:: incomingrequest/044.php
 
         Same rule applied here, to retrieve the parameters with filtering, set the second parameter to
         the filter type to apply:
 
-        .. literalinclude:: incomingrequest/031.php
-
-    .. php:method:: getGet([$index = null[, $filter = null[, $flags = null]]])
-
-        :param  string  $index: The name of the variable/key to look for.
-        :param  int     $filter: The type of filter to apply. A list of filters can be
-                        found `here <https://www.php.net/manual/en/filter.filters.php>`__.
-        :param  int     $flags: Flags to apply. A list of flags can be found
-                        `here <https://www.php.net/manual/en/filter.filters.flags.php>`__.
-        :returns:       ``$_GET`` if no parameters supplied, otherwise the GET value if found, or null if not
-        :rtype: mixed|null
-
-        This method is identical to ``getVar()``, only it fetches GET data.
+        .. literalinclude:: incomingrequest/045.php
 
     .. php:method:: getPost([$index = null[, $filter = null[, $flags = null]]])
 
@@ -372,20 +425,20 @@ The methods provided by the parent classes that are available are:
         :param  int     $flags: Flags to apply. A list of flags can be found
                         `here <https://www.php.net/manual/en/filter.filters.flags.php>`__.
         :returns:       ``$_POST`` if no parameters supplied, otherwise the POST value if found, or null if not
-        :rtype: mixed|null
+        :rtype: array|bool|float|int|object|string|null
 
-            This method is identical to ``getVar()``, only it fetches POST data.
+        This method is identical to ``getGet()``, only it fetches POST data.
 
     .. php:method:: getPostGet([$index = null[, $filter = null[, $flags = null]]])
 
         :param  string  $index: The name of the variable/key to look for.
-        :param  int     $filter: The type of filter to apply. A list of filters can be
-                        found `here <https://www.php.net/manual/en/filter.filters.php>`__.
-        :param  int     $flags: Flags to apply. A list of flags can be found
-                        `here <https://www.php.net/manual/en/filter.filters.flags.php>`__.
+        :param  int     $filter: The type of filter to apply. A list of filters can be found in
+                        `Types of filters <https://www.php.net/manual/en/filter.filters.php>`__.
+        :param  int     $flags: Flags to apply. A list of flags can be found in
+                        `Filter flags <https://www.php.net/manual/en/filter.filters.flags.php>`__.
         :returns:       ``$_POST`` and ``$_GET`` combined if no parameters specified (prefer POST value on conflict),
                         otherwise looks for POST value, if nothing found looks for GET value, if no value found returns null
-        :rtype: mixed|null
+        :rtype: array|bool|float|int|object|string|null
 
         This method works pretty much the same way as ``getPost()`` and ``getGet()``, only combined.
         It will search through both POST and GET streams for data, looking first in POST, and
@@ -399,13 +452,13 @@ The methods provided by the parent classes that are available are:
     .. php:method:: getGetPost([$index = null[, $filter = null[, $flags = null]]])
 
         :param  string  $index: The name of the variable/key to look for.
-        :param  int     $filter: The type of filter to apply. A list of filters can be
-                        found `here <https://www.php.net/manual/en/filter.filters.php>`__.
-        :param  int     $flags: Flags to apply. A list of flags can be found
-                        `here <https://www.php.net/manual/en/filter.filters.flags.php>`__.
+        :param  int     $filter: The type of filter to apply. A list of filters can be found in
+                        `Types of filters <https://www.php.net/manual/en/filter.filters.php>`__.
+        :param  int     $flags: Flags to apply. A list of flags can be found in
+                        `Filter flags <https://www.php.net/manual/en/filter.filters.flags.php>`__.
         :returns:       ``$_GET`` and ``$_POST`` combined if no parameters specified (prefer GET value on conflict),
                         otherwise looks for GET value, if nothing found looks for POST value, if no value found returns null
-        :rtype: mixed|null
+        :rtype: array|bool|float|int|object|string|null
 
         This method works pretty much the same way as ``getPost()`` and ``getGet()``, only combined.
         It will search through both GET and POST streams for data, looking first in GET, and
@@ -417,15 +470,14 @@ The methods provided by the parent classes that are available are:
         Although GET data will be preferred in case of name conflict.
 
     .. php:method:: getCookie([$index = null[, $filter = null[, $flags = null]]])
-        :noindex:
 
-        :param    mixed    $index: COOKIE name
-        :param  int     $filter: The type of filter to apply. A list of filters can be
-                        found `here <https://www.php.net/manual/en/filter.filters.php>`__.
-        :param  int     $flags: Flags to apply. A list of flags can be found
-                        `here <https://www.php.net/manual/en/filter.filters.flags.php>`__.
+        :param  array|string|null    $index: COOKIE name
+        :param  int     $filter: The type of filter to apply. A list of filters can be found in
+                        `Types of filters <https://www.php.net/manual/en/filter.filters.php>`__.
+        :param  int     $flags: Flags to apply. A list of flags can be found in
+                        `Filter flags <https://www.php.net/manual/en/filter.filters.flags.php>`__.
         :returns:        ``$_COOKIE`` if no parameters supplied, otherwise the COOKIE value if found or null if not
-        :rtype:    mixed
+        :rtype: array|bool|float|int|object|string|null
 
         This method is identical to ``getPost()`` and ``getGet()``, only it fetches cookie data:
 
@@ -440,18 +492,17 @@ The methods provided by the parent classes that are available are:
             your configured ``Config\Cookie::$prefix`` value.
 
     .. php:method:: getServer([$index = null[, $filter = null[, $flags = null]]])
-        :noindex:
 
-        :param    mixed    $index: Value name
-        :param  int     $filter: The type of filter to apply. A list of filters can be
-                        found `here <https://www.php.net/manual/en/filter.filters.php>`__.
-        :param  int     $flags: Flags to apply. A list of flags can be found
-                        `here <https://www.php.net/manual/en/filter.filters.flags.php>`__.
+        :param  array|string|null    $index: Value name
+        :param  int     $filter: The type of filter to apply. A list of filters can be found in
+                        `Types of filters <https://www.php.net/manual/en/filter.filters.php>`__.
+        :param  int     $flags: Flags to apply. A list of flags can be found in
+                        `Filter flags <https://www.php.net/manual/en/filter.filters.flags.php>`__.
         :returns:        ``$_SERVER`` item value if found, null if not
-        :rtype:    mixed
+        :rtype: array|bool|float|int|object|string|null
 
         This method is identical to the ``getPost()``, ``getGet()`` and ``getCookie()``
-        methods, only it fetches getServer data (``$_SERVER``):
+        methods, only it fetches Server data (``$_SERVER``):
 
         .. literalinclude:: incomingrequest/036.php
 
@@ -460,14 +511,12 @@ The methods provided by the parent classes that are available are:
 
         .. literalinclude:: incomingrequest/037.php
 
-    .. php:method:: getUserAgent([$filter = null])
+    .. php:method:: getUserAgent()
 
-        :param  int $filter: The type of filter to apply. A list of filters can be
-                    found `here <https://www.php.net/manual/en/filter.filters.php>`__.
         :returns:  The User Agent string, as found in the SERVER data, or null if not found.
-        :rtype: mixed
+        :rtype: CodeIgniter\\HTTP\\UserAgent
 
-        This method returns the User Agent string from the SERVER data:
+        This method returns the User Agent instance from the SERVER data:
 
         .. literalinclude:: incomingrequest/038.php
 
@@ -476,15 +525,22 @@ The methods provided by the parent classes that are available are:
         :returns:        The current URI path relative to baseURL
         :rtype:    string
 
-        This is the safest method to determine the "current URI", since ``IncomingRequest::$uri``
-        may not be aware of the complete App configuration for base URLs.
+        This method returns the current URI path relative to baseURL.
+
+        .. note:: Prior to v4.4.0, this was the safest method to determine the
+            "current URI", since ``IncomingRequest::$uri`` might not be aware of
+            the complete App configuration for base URLs.
 
     .. php:method:: setPath($path)
+
+        .. deprecated:: 4.4.0
 
         :param    string    $path: The relative path to use as the current URI
         :returns:        This Incoming Request
         :rtype:    IncomingRequest
 
-        Used mostly just for testing purposes, this allows you to set the relative path
-        value for the current request instead of relying on URI detection. This will also
-        update the underlying ``URI`` instance with the new path.
+        .. note:: Prior to v4.4.0, used mostly just for testing purposes, this
+            allowed you to set the relative path value for the current request
+            instead of relying on URI detection. This also updated the
+            underlying ``URI`` instance with the new path.
+

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -11,7 +13,6 @@
 
 namespace CodeIgniter\Commands\Utilities\Routes;
 
-use CodeIgniter\Config\Services;
 use CodeIgniter\Filters\CSRF;
 use CodeIgniter\Filters\DebugToolbar;
 use CodeIgniter\Filters\Filters;
@@ -20,17 +21,20 @@ use CodeIgniter\Filters\InvalidChars;
 use CodeIgniter\HTTP\IncomingRequest;
 use CodeIgniter\HTTP\Response;
 use CodeIgniter\Router\RouteCollection;
+use CodeIgniter\Router\RouteCollectionInterface;
 use CodeIgniter\Router\Router;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\ConfigFromArrayTrait;
+use Config\Feature;
 use Config\Filters as FiltersConfig;
 use Config\Modules;
+use Config\Routing;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * @internal
- *
- * @group Others
  */
+#[Group('Others')]
 final class FilterFinderTest extends CIUnitTestCase
 {
     use ConfigFromArrayTrait;
@@ -43,16 +47,16 @@ final class FilterFinderTest extends CIUnitTestCase
     {
         parent::setUp();
 
-        $this->request  = Services::request();
-        $this->response = Services::response();
+        $this->request  = service('request');
+        $this->response = service('response');
 
         $this->moduleConfig          = new Modules();
         $this->moduleConfig->enabled = false;
     }
 
-    private function createRouteCollection(array $routes = []): RouteCollection
+    private function createRouteCollection(array $routes = []): RouteCollectionInterface
     {
-        $collection = new RouteCollection(Services::locator(), $this->moduleConfig);
+        $collection = new RouteCollection(service('locator'), $this->moduleConfig, new Routing());
 
         $routes = ($routes !== []) ? $routes : [
             'users'                   => 'Users::index',
@@ -63,7 +67,7 @@ final class FilterFinderTest extends CIUnitTestCase
         return $collection->map($routes);
     }
 
-    private function createRouter(RouteCollection $collection): Router
+    private function createRouter(RouteCollectionInterface $collection): Router
     {
         return new Router($collection, $this->request);
     }
@@ -85,7 +89,7 @@ final class FilterFinderTest extends CIUnitTestCase
                 ],
             ],
             'methods' => [
-                'get' => [],
+                'GET' => [],
             ],
             'filters' => [
                 'honeypot' => ['before' => ['form/*', 'survey/*']],
@@ -96,8 +100,11 @@ final class FilterFinderTest extends CIUnitTestCase
         return new Filters($filtersConfig, $this->request, $this->response, $this->moduleConfig);
     }
 
-    public function testFindGlobalsFilters()
+    public function testFindGlobalsFilters(): void
     {
+        /**
+         * @var RouteCollection $collection
+         */
         $collection = $this->createRouteCollection();
         $router     = $this->createRouter($collection);
         $filters    = $this->createFilters();
@@ -113,8 +120,11 @@ final class FilterFinderTest extends CIUnitTestCase
         $this->assertSame($expected, $filters);
     }
 
-    public function testFindGlobalsFiltersWithRedirectRoute()
+    public function testFindGlobalsFiltersWithRedirectRoute(): void
     {
+        /**
+         * @var RouteCollection $collection
+         */
         $collection = $this->createRouteCollection();
         $collection->addRedirect('users/about', 'profile');
 
@@ -132,8 +142,11 @@ final class FilterFinderTest extends CIUnitTestCase
         $this->assertSame($expected, $filters);
     }
 
-    public function testFindGlobalsAndRouteFilters()
+    public function testFindGlobalsAndRouteFilters(): void
     {
+        /**
+         * @var RouteCollection $collection
+         */
         $collection = $this->createRouteCollection();
         $collection->get('admin', ' AdminController::index', ['filter' => 'honeypot']);
         $router  = $this->createRouter($collection);
@@ -144,14 +157,17 @@ final class FilterFinderTest extends CIUnitTestCase
         $filters = $finder->find('admin');
 
         $expected = [
-            'before' => ['honeypot', 'csrf'],
+            'before' => ['csrf', 'honeypot'],
             'after'  => ['honeypot', 'toolbar'],
         ];
         $this->assertSame($expected, $filters);
     }
 
-    public function testFindGlobalsAndRouteClassnameFilters()
+    public function testFindGlobalsAndRouteClassnameFilters(): void
     {
+        /**
+         * @var RouteCollection $collection
+         */
         $collection = $this->createRouteCollection();
         $collection->get('admin', ' AdminController::index', ['filter' => InvalidChars::class]);
         $router  = $this->createRouter($collection);
@@ -162,16 +178,17 @@ final class FilterFinderTest extends CIUnitTestCase
         $filters = $finder->find('admin');
 
         $expected = [
-            'before' => [InvalidChars::class, 'csrf'],
+            'before' => ['csrf', InvalidChars::class],
             'after'  => [InvalidChars::class, 'toolbar'],
         ];
         $this->assertSame($expected, $filters);
     }
 
-    public function testFindGlobalsAndRouteMultipleFilters()
+    public function testFindGlobalsAndRouteMultipleFilters(): void
     {
-        config('Feature')->multipleFilters = true;
-
+        /**
+         * @var RouteCollection $collection
+         */
         $collection = $this->createRouteCollection();
         $collection->get('admin', ' AdminController::index', ['filter' => ['honeypot', InvalidChars::class]]);
         $router  = $this->createRouter($collection);
@@ -182,11 +199,142 @@ final class FilterFinderTest extends CIUnitTestCase
         $filters = $finder->find('admin');
 
         $expected = [
-            'before' => ['honeypot', InvalidChars::class, 'csrf'],
-            'after'  => ['honeypot', InvalidChars::class, 'toolbar'],
+            'before' => ['csrf', 'honeypot', InvalidChars::class],
+            'after'  => [InvalidChars::class, 'honeypot', 'toolbar'],
         ];
         $this->assertSame($expected, $filters);
+    }
 
-        config('Feature')->multipleFilters = false;
+    public function testFilterOrder(): void
+    {
+        /**
+         * @var RouteCollection $collection
+         */
+        $collection = $this->createRouteCollection([]);
+        $collection->get('/', ' Home::index', ['filter' => ['route1', 'route2']]);
+        $router  = $this->createRouter($collection);
+        $filters = $this->createFilters([
+            'aliases' => [
+                'global1' => 'Dummy',
+                'global2' => 'Dummy',
+                'method1' => 'Dummy',
+                'method2' => 'Dummy',
+                'filter1' => 'Dummy',
+                'filter2' => 'Dummy',
+                'route1'  => 'Dummy',
+                'route2'  => 'Dummy',
+            ],
+            'globals' => [
+                'before' => [
+                    'global1',
+                    'global2',
+                ],
+                'after' => [
+                    'global2',
+                    'global1',
+                ],
+            ],
+            'methods' => [
+                'GET' => ['method1', 'method2'],
+            ],
+            'filters' => [
+                'filter1' => ['before' => '*', 'after' => '*'],
+                'filter2' => ['before' => '*', 'after' => '*'],
+            ],
+        ]);
+
+        $finder = new FilterFinder($router, $filters);
+
+        $filters = $finder->find('/');
+
+        $expected = [
+            'before' => [
+                'global1',
+                'global2',
+                'method1',
+                'method2',
+                'filter1',
+                'filter2',
+                'route1',
+                'route2',
+            ],
+            'after' => [
+                'route2',
+                'route1',
+                'filter2',
+                'filter1',
+                'global2',
+                'global1',
+            ],
+        ];
+        $this->assertSame($expected, $filters);
+    }
+
+    public function testFilterOrderWithOldFilterOrder(): void
+    {
+        $feature                 = config(Feature::class);
+        $feature->oldFilterOrder = true;
+
+        /**
+         * @var RouteCollection $collection
+         */
+        $collection = $this->createRouteCollection([]);
+        $collection->get('/', ' Home::index', ['filter' => ['route1', 'route2']]);
+        $router  = $this->createRouter($collection);
+        $filters = $this->createFilters([
+            'aliases' => [
+                'global1' => 'Dummy',
+                'global2' => 'Dummy',
+                'method1' => 'Dummy',
+                'method2' => 'Dummy',
+                'filter1' => 'Dummy',
+                'filter2' => 'Dummy',
+                'route1'  => 'Dummy',
+                'route2'  => 'Dummy',
+            ],
+            'globals' => [
+                'before' => [
+                    'global1',
+                    'global2',
+                ],
+                'after' => [
+                    'global1',
+                    'global2',
+                ],
+            ],
+            'methods' => [
+                'GET' => ['method1', 'method2'],
+            ],
+            'filters' => [
+                'filter1' => ['before' => '*', 'after' => '*'],
+                'filter2' => ['before' => '*', 'after' => '*'],
+            ],
+        ]);
+
+        $finder = new FilterFinder($router, $filters);
+
+        $filters = $finder->find('/');
+
+        $expected = [
+            'before' => [
+                'route1',
+                'route2',
+                'global1',
+                'global2',
+                'method1',
+                'method2',
+                'filter1',
+                'filter2',
+            ],
+            'after' => [
+                'route1',
+                'route2',
+                'global1',
+                'global2',
+                'filter1',
+                'filter2',
+            ],
+        ];
+        $this->assertSame($expected, $filters);
     }
 }

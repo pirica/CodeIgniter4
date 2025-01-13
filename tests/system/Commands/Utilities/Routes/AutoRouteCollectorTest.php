@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -12,15 +14,15 @@
 namespace CodeIgniter\Commands\Utilities\Routes;
 
 use CodeIgniter\Test\CIUnitTestCase;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * @internal
- *
- * @group Others
  */
+#[Group('Others')]
 final class AutoRouteCollectorTest extends CIUnitTestCase
 {
-    public function testGet()
+    public function testGet(): void
     {
         $namespace = 'Tests\Support\Controllers';
         $collector = new AutoRouteCollector(

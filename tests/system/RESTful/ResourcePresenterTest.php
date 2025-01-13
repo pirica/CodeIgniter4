@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -19,6 +21,10 @@ use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\Mock\MockCodeIgniter;
 use CodeIgniter\Test\Mock\MockResourcePresenter;
 use Config\App;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\PreserveGlobalState;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
+use PHPUnit\Framework\Attributes\WithoutErrorHandler;
 use Tests\Support\Models\EntityModel;
 use Tests\Support\Models\UserModel;
 use Tests\Support\RESTful\Worker2;
@@ -29,14 +35,11 @@ use Tests\Support\RESTful\Worker2;
  * so we need to make sure that the methods routed to
  * return correct responses.
  *
- * @runTestsInSeparateProcesses
- *
- * @preserveGlobalState         disabled
- *
  * @internal
- *
- * @group SeparateProcess
  */
+#[Group('SeparateProcess')]
+#[PreserveGlobalState(false)]
+#[RunTestsInSeparateProcesses]
 final class ResourcePresenterTest extends CIUnitTestCase
 {
     private CodeIgniter $codeigniter;
@@ -46,6 +49,7 @@ final class ResourcePresenterTest extends CIUnitTestCase
      */
     protected $routes;
 
+    #[WithoutErrorHandler]
     protected function setUp(): void
     {
         parent::setUp();
@@ -59,8 +63,8 @@ final class ResourcePresenterTest extends CIUnitTestCase
         $_SERVER['SERVER_PROTOCOL'] = 'HTTP/1.1';
 
         // Inject mock router.
-        $this->routes = Services::routes();
-        $this->routes->presenter('work', ['controller' => Worker2::class]);
+        $this->routes = service('routes');
+        $this->routes->presenter('work', ['controller' => '\\' . Worker2::class]);
         Services::injectMock('routes', $this->routes);
 
         $config            = new App();
@@ -76,7 +80,7 @@ final class ResourcePresenterTest extends CIUnitTestCase
         }
     }
 
-    public function testResourceGet()
+    public function testResourceGet(): void
     {
         $_SERVER['argv'] = [
             'index.php',
@@ -96,7 +100,7 @@ final class ResourcePresenterTest extends CIUnitTestCase
         $this->assertSame(lang('RESTful.notImplemented', ['index']), $output);
     }
 
-    public function testResourceShow()
+    public function testResourceShow(): void
     {
         $_SERVER['argv'] = [
             'index.php',
@@ -118,7 +122,7 @@ final class ResourcePresenterTest extends CIUnitTestCase
         $this->assertStringContainsString(lang('RESTful.notImplemented', ['show']), $output);
     }
 
-    public function testResourceNew()
+    public function testResourceNew(): void
     {
         $_SERVER['argv'] = [
             'index.php',
@@ -139,7 +143,7 @@ final class ResourcePresenterTest extends CIUnitTestCase
         $this->assertStringContainsString(lang('RESTful.notImplemented', ['new']), $output);
     }
 
-    public function testResourceCreate()
+    public function testResourceCreate(): void
     {
         $_SERVER['argv'] = [
             'index.php',
@@ -160,7 +164,7 @@ final class ResourcePresenterTest extends CIUnitTestCase
         $this->assertStringContainsString(lang('RESTful.notImplemented', ['create']), $output);
     }
 
-    public function testResourceRemove()
+    public function testResourceRemove(): void
     {
         $_SERVER['argv'] = [
             'index.php',
@@ -182,7 +186,7 @@ final class ResourcePresenterTest extends CIUnitTestCase
         $this->assertStringContainsString(lang('RESTful.notImplemented', ['remove']), $output);
     }
 
-    public function testResourceDelete()
+    public function testResourceDelete(): void
     {
         $_SERVER['argv'] = [
             'index.php',
@@ -204,7 +208,7 @@ final class ResourcePresenterTest extends CIUnitTestCase
         $this->assertStringContainsString(lang('RESTful.notImplemented', ['delete']), $output);
     }
 
-    public function testResourceEdit()
+    public function testResourceEdit(): void
     {
         $_SERVER['argv'] = [
             'index.php',
@@ -227,7 +231,7 @@ final class ResourcePresenterTest extends CIUnitTestCase
         $this->assertStringContainsString(lang('RESTful.notImplemented', ['edit']), $output);
     }
 
-    public function testResourceUpdate()
+    public function testResourceUpdate(): void
     {
         $_SERVER['argv'] = [
             'index.php',
@@ -249,14 +253,14 @@ final class ResourcePresenterTest extends CIUnitTestCase
         $this->assertStringContainsString(lang('RESTful.notImplemented', ['update']), $output);
     }
 
-    public function testModel()
+    public function testModel(): void
     {
         $resource = new MockResourcePresenter();
         $this->assertEmpty($resource->getModel());
         $this->assertEmpty($resource->getModelName());
     }
 
-    public function testModelBogus()
+    public function testModelBogus(): void
     {
         $resource = new MockResourcePresenter();
 
@@ -265,7 +269,7 @@ final class ResourcePresenterTest extends CIUnitTestCase
         $this->assertSame('Something', $resource->getModelName());
     }
 
-    public function testModelByName()
+    public function testModelByName(): void
     {
         $resource = new MockResourcePresenter();
         $resource->setModel(UserModel::class);
@@ -273,7 +277,7 @@ final class ResourcePresenterTest extends CIUnitTestCase
         $this->assertSame(UserModel::class, $resource->getModelName());
     }
 
-    public function testModelByObject()
+    public function testModelByObject(): void
     {
         $resource = new MockResourcePresenter();
         $model    = new UserModel();
@@ -284,7 +288,7 @@ final class ResourcePresenterTest extends CIUnitTestCase
         $this->assertSame(UserModel::class, $resource->getModelName());
     }
 
-    public function testChangeSetModelByObject()
+    public function testChangeSetModelByObject(): void
     {
         $resource = new MockResourcePresenter();
         $resource->setModel(UserModel::class);
@@ -297,7 +301,7 @@ final class ResourcePresenterTest extends CIUnitTestCase
         $this->assertSame(EntityModel::class, $resource->getModelName());
     }
 
-    public function testChangeSetModelByName()
+    public function testChangeSetModelByName(): void
     {
         $resource = new MockResourcePresenter();
         $resource->setModel(UserModel::class);

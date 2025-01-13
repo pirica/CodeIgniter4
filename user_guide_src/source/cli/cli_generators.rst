@@ -14,9 +14,11 @@ Introduction
 ************
 
 All built-in generators reside under the ``Generators`` group when listed using ``php spark list``.
-To view the full description and usage information on a particular generator, use the command::
+To view the full description and usage information on a particular generator, use the command:
 
-    > php spark help <generator_command>
+.. code-block:: console
+
+    php spark help <generator_command>
 
 where ``<generator_command>`` will be replaced with the command to check.
 
@@ -33,10 +35,6 @@ where ``<generator_command>`` will be replaced with the command to check.
 .. warning:: Make sure when setting the ``--namespace`` option that the supplied namespace is a valid
     namespace defined in your ``$psr4`` array in ``Config\Autoload`` or defined in your composer autoload
     file. Otherwise, code generation will be interrupted.
-
-.. important:: Since v4.0.5, use of ``migrate:create`` to create migration files has been deprecated. It will be removed in
-    future releases. Please use ``make:migration`` as replacement. Also, please use ``make:migration --session``
-    to use instead of the deprecated ``session:migration``.
 
 *******************
 Built-in Generators
@@ -59,12 +57,11 @@ Usage:
 
 Argument:
 =========
-* ``name``: The name of the cell class. It should be in PascalCase.
+* ``name``: The name of the cell class. It should be in PascalCase. **[REQUIRED]**
 
 Options:
 ========
 * ``--namespace``: Set the root namespace. Defaults to value of ``APP_NAMESPACE``.
-* ``--suffix``: Append the component suffix to the generated class name.
 * ``--force``: Set this flag to overwrite existing files on destination.
 
 make:command
@@ -85,7 +82,7 @@ Argument:
 Options:
 ========
 * ``--command``: The command name to run in spark. Defaults to ``command:name``.
-* ``--group``: The group/namespace of the command. Defaults to ``CodeIgniter`` for basic commands, and ``Generators`` for generator commands.
+* ``--group``: The group/namespace of the command. Defaults to ``App`` for basic commands, and ``Generators`` for generator commands.
 * ``--type``: The type of command, whether a ``basic`` command or a ``generator`` command. Defaults to ``basic``.
 * ``--namespace``: Set the root namespace. Defaults to value of ``APP_NAMESPACE``.
 * ``--suffix``: Append the component suffix to the generated class name.
@@ -229,6 +226,31 @@ Options:
 * ``--suffix``: Append the component suffix to the generated class name.
 * ``--force``: Set this flag to overwrite existing files on destination.
 
+
+.. _cli-generators-make-test:
+
+make:test
+-----------
+
+.. versionadded:: 4.5.0
+
+Creates a new test file.
+
+Usage:
+======
+::
+
+    make:test <name> [options]
+
+Argument:
+=========
+* ``name``: The name of the test class. **[REQUIRED]**
+
+Options:
+========
+* ``--namespace``: Set the root namespace. Defaults to value of ``Tests``.
+* ``--force``: Set this flag to overwrite existing files on destination.
+
 make:migration
 --------------
 
@@ -288,9 +310,11 @@ wrapper to the controller, model, entity, migration, and seeder generator comman
 name that will be used to name all the generated classes. Also, **individual options** supported by each
 generator command are recognized by the scaffold command.
 
-Running this in your terminal::
+Running this in your terminal:
 
-    > php spark make:scaffold user
+.. code-block:: console
+
+    php spark make:scaffold user
 
 will create the following files:
 
@@ -308,3 +332,16 @@ GeneratorTrait
 
 All generator commands must use the ``GeneratorTrait`` to fully utilize its methods that are used in code
 generation.
+
+*************************************************************
+Declaring the Location of a Custom Generator Command Template
+*************************************************************
+
+The default order of lookup for generator templates is (1) the template defined in the **app/Config/Generators.php** file,
+and (2) if not found, the template found at the ``CodeIgniter\Commands\Generators\Views`` namespace.
+
+To declare the template location for your custom generator command, you will need to add it to the **app/Config/Generators.php**
+file. For example, if you have a command ``make:awesome-command`` and your generator template is located within your *app*
+directory **app/Commands/Generators/Views/awesomecommand.tpl.php**, you would update the config file like so:
+
+.. literalinclude:: cli_generators/001.php

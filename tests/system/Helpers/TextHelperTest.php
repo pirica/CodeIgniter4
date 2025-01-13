@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -13,12 +15,13 @@ namespace CodeIgniter\Helpers;
 
 use CodeIgniter\Test\CIUnitTestCase;
 use InvalidArgumentException;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * @internal
- *
- * @group Others
  */
+#[Group('Others')]
 final class TextHelperTest extends CIUnitTestCase
 {
     private string $_long_string = 'Once upon a time, a framework had no tests. It sad. So some nice people began to write tests. The more time that went on, the happier it became. Everyone was happy.';
@@ -30,7 +33,7 @@ final class TextHelperTest extends CIUnitTestCase
         helper('text');
     }
 
-    public function testStripSlashes()
+    public function testStripSlashes(): void
     {
         $expected = [
             "Is your name O'reilly?",
@@ -43,7 +46,7 @@ final class TextHelperTest extends CIUnitTestCase
         $this->assertSame($expected, strip_slashes($str));
     }
 
-    public function testStripQuotes()
+    public function testStripQuotes(): void
     {
         $strs = [
             '"me oh my!"'    => 'me oh my!',
@@ -55,7 +58,7 @@ final class TextHelperTest extends CIUnitTestCase
         }
     }
 
-    public function testQuotesToEntities()
+    public function testQuotesToEntities(): void
     {
         $strs = [
             '"me oh my!"'    => '&quot;me oh my!&quot;',
@@ -67,7 +70,7 @@ final class TextHelperTest extends CIUnitTestCase
         }
     }
 
-    public function testReduceDoubleSlashes()
+    public function testReduceDoubleSlashes(): void
     {
         $strs = [
             'http://codeigniter.com'      => 'http://codeigniter.com',
@@ -80,27 +83,45 @@ final class TextHelperTest extends CIUnitTestCase
         }
     }
 
-    public function testReduceMultiples()
+    #[DataProvider('provideReduceMultiples')]
+    public function testReduceMultiples(string $str, string $expected): void
     {
-        $strs = [
-            'Fred, Bill,, Joe, Jimmy' => 'Fred, Bill, Joe, Jimmy',
-            'Ringo, John, Paul,,'     => 'Ringo, John, Paul,',
-        ];
-
-        foreach ($strs as $str => $expect) {
-            $this->assertSame($expect, reduce_multiples($str));
-        }
-        $strs = [
-            'Fred, Bill,, Joe, Jimmy' => 'Fred, Bill, Joe, Jimmy',
-            'Ringo, John, Paul,,'     => 'Ringo, John, Paul',
-        ];
-
-        foreach ($strs as $str => $expect) {
-            $this->assertSame($expect, reduce_multiples($str, ',', true));
-        }
+        $this->assertSame($expected, reduce_multiples($str));
     }
 
-    public function testRandomString()
+    /**
+     * @return iterable<string, list<string>>
+     */
+    public static function provideReduceMultiples(): iterable
+    {
+        yield from [
+            // string, expected
+            'double commas'            => ['Fred, Bill,, Joe, Jimmy', 'Fred, Bill, Joe, Jimmy'],
+            'double commas at last'    => ['Ringo, John, Paul,,', 'Ringo, John, Paul,'],
+            'commas at first and last' => [',Fred, Bill,, Joe, Jimmy,', ',Fred, Bill, Joe, Jimmy,'],
+        ];
+    }
+
+    #[DataProvider('provideReduceMultiplesWithTrim')]
+    public function testReduceMultiplesWithTrim(string $str, string $expected): void
+    {
+        $this->assertSame($expected, reduce_multiples($str, ',', true));
+    }
+
+    /**
+     * @return iterable<string, list<string>>
+     */
+    public static function provideReduceMultiplesWithTrim(): iterable
+    {
+        yield from [
+            // string, expected
+            'double commas'            => ['Fred, Bill,, Joe, Jimmy', 'Fred, Bill, Joe, Jimmy'],
+            'double commas at last'    => ['Ringo, John, Paul,,', 'Ringo, John, Paul'],
+            'commas at first and last' => [',Fred, Bill,, Joe, Jimmy,', 'Fred, Bill, Joe, Jimmy'],
+        ];
+    }
+
+    public function testRandomString(): void
     {
         $this->assertSame(16, strlen(random_string('alnum', 16)));
         $this->assertSame(16, strlen(random_string('alpha', 16)));
@@ -119,30 +140,30 @@ final class TextHelperTest extends CIUnitTestCase
     /**
      * @see https://github.com/codeigniter4/CodeIgniter4/issues/6330
      */
-    public function testRandomStringCryptoOddNumber()
+    public function testRandomStringCryptoOddNumber(): void
     {
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage(
-            'You must set an even number to the second parameter when you use `crypto`'
+            'You must set an even number to the second parameter when you use `crypto`',
         );
 
         random_string('crypto', 9);
     }
 
-    public function testIncrementString()
+    public function testIncrementString(): void
     {
         $this->assertSame('my-test_1', increment_string('my-test'));
         $this->assertSame('my-test-1', increment_string('my-test', '-'));
         $this->assertSame('file_5', increment_string('file_4'));
         $this->assertSame('file-5', increment_string('file-4', '-'));
         $this->assertSame('file-5', increment_string('file-4', '-'));
-        $this->assertSame('file-1', increment_string('file', '-', '1'));
+        $this->assertSame('file-1', increment_string('file', '-', 1));
         $this->assertSame('124', increment_string('123', ''));
     }
 
     // Functions from text_helper_test.php
 
-    public function testWordLimiter()
+    public function testWordLimiter(): void
     {
         $this->assertSame('Once upon a time,&#8230;', word_limiter($this->_long_string, 4));
         $this->assertSame('Once upon a time,&hellip;', word_limiter($this->_long_string, 4, '&hellip;'));
@@ -151,7 +172,7 @@ final class TextHelperTest extends CIUnitTestCase
         $this->assertSame('Once upon a time', word_limiter('Once upon a time', 4, '&hellip;'));
     }
 
-    public function testCharacterLimiter()
+    public function testCharacterLimiter(): void
     {
         $this->assertSame('Once upon a time, a&#8230;', character_limiter($this->_long_string, 20));
         $this->assertSame('Once upon a time, a&hellip;', character_limiter($this->_long_string, 20, '&hellip;'));
@@ -159,7 +180,7 @@ final class TextHelperTest extends CIUnitTestCase
         $this->assertSame('Short', character_limiter('Short', 5));
     }
 
-    public function testAsciiToEntities()
+    public function testAsciiToEntities(): void
     {
         $strs = [
             'Œ'              => '&#338;',
@@ -174,7 +195,7 @@ final class TextHelperTest extends CIUnitTestCase
         }
     }
 
-    public function testEntitiesToAscii()
+    public function testEntitiesToAscii(): void
     {
         $strs = [
             '&#338;'                                                                                  => 'Œ',
@@ -189,31 +210,31 @@ final class TextHelperTest extends CIUnitTestCase
         }
     }
 
-    public function testEntitiesToAsciiUnsafe()
+    public function testEntitiesToAsciiUnsafe(): void
     {
         $str = '&lt;&gt;';
         $this->assertSame('<>', entities_to_ascii($str, true));
         $this->assertSame('&lt;&gt;', entities_to_ascii($str, false));
     }
 
-    public function testEntitiesToAsciiSmallOrdinals()
+    public function testEntitiesToAsciiSmallOrdinals(): void
     {
         $str = '&#07;';
         $this->assertSame(pack('c', 7), entities_to_ascii($str));
     }
 
-    public function testConvertAccentedCharacters()
+    public function testConvertAccentedCharacters(): void
     {
         $this->assertSame('AAAeEEEIIOOEUUUeY', convert_accented_characters('ÀÂÄÈÊËÎÏÔŒÙÛÜŸ'));
         $this->assertSame('a e i o u n ue', convert_accented_characters('á é í ó ú ñ ü'));
     }
 
-    public function testCensoredWords()
+    public function testCensoredWords(): void
     {
         $this->assertSame('fuck', word_censor('fuck', []));
     }
 
-    public function testCensoredWordsWithReplacement()
+    public function testCensoredWordsWithReplacement(): void
     {
         $censored = [
             'boob',
@@ -238,7 +259,7 @@ final class TextHelperTest extends CIUnitTestCase
         }
     }
 
-    public function testCensoredWordsNonReplacement()
+    public function testCensoredWordsNonReplacement(): void
     {
         $censored = [
             'boob',
@@ -261,13 +282,19 @@ final class TextHelperTest extends CIUnitTestCase
         }
     }
 
-    public function testHighlightCode()
+    public function testHighlightCode(): void
     {
-        $expect = "<code><span style=\"color: #000000\">\n<span style=\"color: #0000BB\">&lt;?php&nbsp;var_dump</span><span style=\"color: #007700\">(</span><span style=\"color: #0000BB\">\$this</span><span style=\"color: #007700\">);&nbsp;</span><span style=\"color: #0000BB\">?&gt;&nbsp;</span>\n</span>\n</code>";
+        // PHP 8.3 changes the output.
+        if (PHP_VERSION_ID >= 80300) {
+            $expect = '<pre><code style="color: #000000"><span style="color: #0000BB">&lt;?php var_dump</span><span style="color: #007700">(</span><span style="color: #0000BB">$this</span><span style="color: #007700">); </span><span style="color: #0000BB">?&gt; ?&gt;</span></code></pre>';
+        } else {
+            $expect = "<code><span style=\"color: #000000\">\n<span style=\"color: #0000BB\">&lt;?php&nbsp;var_dump</span><span style=\"color: #007700\">(</span><span style=\"color: #0000BB\">\$this</span><span style=\"color: #007700\">);&nbsp;</span><span style=\"color: #0000BB\">?&gt;&nbsp;</span>\n</span>\n</code>";
+        }
+
         $this->assertSame($expect, highlight_code('<?php var_dump($this); ?>'));
     }
 
-    public function testHighlightPhrase()
+    public function testHighlightPhrase(): void
     {
         $strs = [
             'this is a phrase'        => '<mark>this is</mark> a phrase',
@@ -284,7 +311,7 @@ final class TextHelperTest extends CIUnitTestCase
         $this->assertSame('<strong>this is</strong> a strong test', highlight_phrase('this is a strong test', 'this is', '<strong>', '</strong>'));
     }
 
-    public function testEllipsize()
+    public function testEllipsize(): void
     {
         $strs = [
             '0' => [
@@ -314,33 +341,33 @@ final class TextHelperTest extends CIUnitTestCase
         }
     }
 
-    public function testWordWrap()
+    public function testWordWrap(): void
     {
         $string   = 'Here is a simple string of text that will help us demonstrate this function.';
         $expected = "Here is a simple string\nof text that will help us\ndemonstrate this\nfunction.";
-        $this->assertSame(substr_count(word_wrap($string, 25), "\n"), 3);
+        $this->assertSame(3, substr_count(word_wrap($string, 25), "\n"));
         $this->assertSame($expected, word_wrap($string, 25));
 
         $string2   = "Here is a\nbroken up sentence\rspanning lines\r\nwoohoo!";
         $expected2 = "Here is a\nbroken up sentence\nspanning lines\nwoohoo!";
-        $this->assertSame(substr_count(word_wrap($string2, 25), "\n"), 3);
+        $this->assertSame(3, substr_count(word_wrap($string2, 25), "\n"));
         $this->assertSame($expected2, word_wrap($string2, 25));
 
         $string3   = "Here is another slightly longer\nbroken up sentence\rspanning lines\r\nwoohoo!";
         $expected3 = "Here is another slightly\nlonger\nbroken up sentence\nspanning lines\nwoohoo!";
-        $this->assertSame(substr_count(word_wrap($string3, 25), "\n"), 4);
+        $this->assertSame(4, substr_count(word_wrap($string3, 25), "\n"));
         $this->assertSame($expected3, word_wrap($string3, 25));
     }
 
-    public function testWordWrapUnwrap()
+    public function testWordWrapUnwrap(): void
     {
         $string   = 'Here is a {unwrap}simple string of text{/unwrap} that will help us demonstrate this function.';
         $expected = "Here is a simple string of text\nthat will help us\ndemonstrate this\nfunction.";
-        $this->assertSame(substr_count(word_wrap($string, 25), "\n"), 3);
+        $this->assertSame(3, substr_count(word_wrap($string, 25), "\n"));
         $this->assertSame($expected, word_wrap($string, 25));
     }
 
-    public function testWordWrapLongWords()
+    public function testWordWrapLongWords(): void
     {
         // the really really long word will be split
         $string   = 'Here is an unbelievable super-complicated and reallyreallyquiteextraordinarily sophisticated sentence.';
@@ -348,7 +375,7 @@ final class TextHelperTest extends CIUnitTestCase
         $this->assertSame($expected, word_wrap($string, 25));
     }
 
-    public function testWordWrapURL()
+    public function testWordWrapURL(): void
     {
         // the really really long word will be split
         $string   = 'Here is an unbelievable super-complicated and http://www.reallyreallyquiteextraordinarily.com sophisticated sentence.';
@@ -356,20 +383,20 @@ final class TextHelperTest extends CIUnitTestCase
         $this->assertSame($expected, word_wrap($string, 25));
     }
 
-    public function testDefaultWordWrapCharlim()
+    public function testDefaultWordWrapCharlim(): void
     {
         $string = 'Here is a longer string of text that will help us demonstrate the default charlim of this function.';
-        $this->assertSame(strpos(word_wrap($string), "\n"), 73);
+        $this->assertSame(73, strpos(word_wrap($string), "\n"));
     }
 
-    public function testExcerpt()
+    public function testExcerpt(): void
     {
         $string = $this->_long_string;
         $result = ' Once upon a time, a framework had no tests. It sad  So some nice people began to write tests. The more time that went on, the happier it became. ...';
         $this->assertSame(excerpt($string), $result);
     }
 
-    public function testExcerptRadius()
+    public function testExcerptRadius(): void
     {
         $string = $this->_long_string;
         $phrase = 'began';
@@ -377,7 +404,7 @@ final class TextHelperTest extends CIUnitTestCase
         $this->assertSame(excerpt($string, $phrase, 10), $result);
     }
 
-    public function testAlternator()
+    public function testAlternator(): void
     {
         $phrase = ' scream! ';
         $result = '';
@@ -389,7 +416,7 @@ final class TextHelperTest extends CIUnitTestCase
         $this->assertSame('I scream! you scream! we scream! I scream! ', $result);
     }
 
-    public function testEmptyAlternator()
+    public function testEmptyAlternator(): void
     {
         $phrase = ' scream! ';
         $result = '';

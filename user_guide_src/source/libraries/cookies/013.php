@@ -6,4 +6,4 @@ cookies()->get(); // array of Cookie objects
 cookies()->display();
 
 // or even from the Response
-Services::response()->getCookies();
+service('response')->getCookies();

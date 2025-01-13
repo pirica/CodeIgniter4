@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -14,12 +16,12 @@ namespace CodeIgniter\Helpers;
 use CodeIgniter\I18n\Time;
 use CodeIgniter\Test\CIUnitTestCase;
 use DateTimeZone;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * @internal
- *
- * @group Others
  */
+#[Group('Others')]
 final class DateHelperTest extends CIUnitTestCase
 {
     protected function setUp(): void
@@ -28,29 +30,29 @@ final class DateHelperTest extends CIUnitTestCase
         helper('date');
     }
 
-    public function testNowDefault()
+    public function testNowDefault(): void
     {
         Time::setTestNow('June 20, 2022', 'America/Chicago');
 
-        $this->assertSame(now(), 1_655_701_200);
+        $this->assertSame(1_655_701_200, now());
 
         Time::setTestNow();
     }
 
-    public function testNowSpecific()
+    public function testNowSpecific(): void
     {
         Time::setTestNow('June 20, 2022', 'America/Chicago');
 
         // Chicago should be two hours ahead of Vancouver
         $this->assertSame(
             7200,
-            now('America/Chicago') - now('America/Vancouver')
+            now('America/Chicago') - now('America/Vancouver'),
         );
 
         Time::setTestNow();
     }
 
-    public function testTimezoneSelectDefault()
+    public function testTimezoneSelectDefault(): void
     {
         $timezones = DateTimeZone::listIdentifiers(DateTimeZone::ALL, null);
 
@@ -66,7 +68,7 @@ final class DateHelperTest extends CIUnitTestCase
         $this->assertSame($expected, timezone_select('custom-select', 'Asia/Jakarta'));
     }
 
-    public function testTimezoneSelectSpecific()
+    public function testTimezoneSelectSpecific(): void
     {
         $spesificRegion = DateTimeZone::ASIA;
         $timezones      = DateTimeZone::listIdentifiers($spesificRegion, null);
@@ -82,11 +84,11 @@ final class DateHelperTest extends CIUnitTestCase
 
         $this->assertSame(
             $expected,
-            timezone_select('custom-select', 'Asia/Jakarta', $spesificRegion)
+            timezone_select('custom-select', 'Asia/Jakarta', $spesificRegion),
         );
     }
 
-    public function testTimezoneSelectSingle()
+    public function testTimezoneSelectSingle(): void
     {
         $spesificRegion = DateTimeZone::PER_COUNTRY;
         $country        = 'ID';
@@ -103,7 +105,7 @@ final class DateHelperTest extends CIUnitTestCase
 
         $this->assertSame(
             $expected,
-            timezone_select('custom-select', 'Asia/Jakarta', $spesificRegion, $country)
+            timezone_select('custom-select', 'Asia/Jakarta', $spesificRegion, $country),
         );
     }
 }

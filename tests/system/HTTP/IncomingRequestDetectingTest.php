@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -13,14 +15,14 @@ namespace CodeIgniter\HTTP;
 
 use CodeIgniter\Test\CIUnitTestCase;
 use Config\App;
+use PHPUnit\Framework\Attributes\BackupGlobals;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
- * @backupGlobals enabled
- *
  * @internal
- *
- * @group Others
  */
+#[BackupGlobals(true)]
+#[Group('Others')]
 final class IncomingRequestDetectingTest extends CIUnitTestCase
 {
     private IncomingRequest $request;
@@ -32,11 +34,10 @@ final class IncomingRequestDetectingTest extends CIUnitTestCase
         $_POST = $_GET = $_SERVER = $_REQUEST = $_ENV = $_COOKIE = $_SESSION = [];
 
         // The URI object is not used in detectPath().
-        $origin        = 'http://www.example.com/index.php/woot?code=good#pos';
-        $this->request = new IncomingRequest(new App(), new URI($origin), null, new UserAgent());
+        $this->request = new IncomingRequest(new App(), new SiteURI(new App(), 'woot?code=good#pos'), null, new UserAgent());
     }
 
-    public function testPathDefault()
+    public function testPathDefault(): void
     {
         // /index.php/woot?code=good#pos
         $_SERVER['REQUEST_URI'] = '/index.php/woot';
@@ -46,7 +47,7 @@ final class IncomingRequestDetectingTest extends CIUnitTestCase
         $this->assertSame($expected, $this->request->detectPath());
     }
 
-    public function testPathDefaultEmpty()
+    public function testPathDefaultEmpty(): void
     {
         // /
         $_SERVER['REQUEST_URI'] = '/';
@@ -56,7 +57,7 @@ final class IncomingRequestDetectingTest extends CIUnitTestCase
         $this->assertSame($expected, $this->request->detectPath());
     }
 
-    public function testPathRequestURI()
+    public function testPathRequestURI(): void
     {
         // /index.php/woot?code=good#pos
         $_SERVER['REQUEST_URI'] = '/index.php/woot';
@@ -66,7 +67,7 @@ final class IncomingRequestDetectingTest extends CIUnitTestCase
         $this->assertSame($expected, $this->request->detectPath('REQUEST_URI'));
     }
 
-    public function testPathRequestURINested()
+    public function testPathRequestURINested(): void
     {
         // I'm not sure but this is a case of Apache config making such SERVER
         // values?
@@ -84,7 +85,7 @@ final class IncomingRequestDetectingTest extends CIUnitTestCase
         $this->assertSame($expected, $this->request->detectPath('REQUEST_URI'));
     }
 
-    public function testPathRequestURISubfolder()
+    public function testPathRequestURISubfolder(): void
     {
         // /ci/index.php/popcorn/woot?code=good#pos
         $_SERVER['REQUEST_URI'] = '/ci/index.php/popcorn/woot';
@@ -94,7 +95,7 @@ final class IncomingRequestDetectingTest extends CIUnitTestCase
         $this->assertSame($expected, $this->request->detectPath('REQUEST_URI'));
     }
 
-    public function testPathRequestURINoIndex()
+    public function testPathRequestURINoIndex(): void
     {
         // /sub/example
         $_SERVER['REQUEST_URI'] = '/sub/example';
@@ -104,7 +105,7 @@ final class IncomingRequestDetectingTest extends CIUnitTestCase
         $this->assertSame($expected, $this->request->detectPath('REQUEST_URI'));
     }
 
-    public function testPathRequestURINginx()
+    public function testPathRequestURINginx(): void
     {
         // /ci/index.php/woot?code=good#pos
         $_SERVER['REQUEST_URI'] = '/index.php/woot?code=good';
@@ -114,7 +115,7 @@ final class IncomingRequestDetectingTest extends CIUnitTestCase
         $this->assertSame($expected, $this->request->detectPath('REQUEST_URI'));
     }
 
-    public function testPathRequestURINginxRedirecting()
+    public function testPathRequestURINginxRedirecting(): void
     {
         // /?/ci/index.php/woot
         $_SERVER['REQUEST_URI'] = '/?/ci/woot';
@@ -124,7 +125,7 @@ final class IncomingRequestDetectingTest extends CIUnitTestCase
         $this->assertSame($expected, $this->request->detectPath('REQUEST_URI'));
     }
 
-    public function testPathRequestURISuppressed()
+    public function testPathRequestURISuppressed(): void
     {
         // /woot?code=good#pos
         $_SERVER['REQUEST_URI'] = '/woot';
@@ -134,7 +135,7 @@ final class IncomingRequestDetectingTest extends CIUnitTestCase
         $this->assertSame($expected, $this->request->detectPath('REQUEST_URI'));
     }
 
-    public function testPathQueryString()
+    public function testPathQueryString(): void
     {
         // /index.php?/ci/woot
         $_SERVER['REQUEST_URI']  = '/index.php?/ci/woot';
@@ -145,7 +146,7 @@ final class IncomingRequestDetectingTest extends CIUnitTestCase
         $this->assertSame($expected, $this->request->detectPath('QUERY_STRING'));
     }
 
-    public function testPathQueryStringWithQueryString()
+    public function testPathQueryStringWithQueryString(): void
     {
         // /index.php?/ci/woot?code=good#pos
         $_SERVER['REQUEST_URI']  = '/index.php?/ci/woot?code=good';
@@ -156,7 +157,7 @@ final class IncomingRequestDetectingTest extends CIUnitTestCase
         $this->assertSame($expected, $this->request->detectPath('QUERY_STRING'));
     }
 
-    public function testPathQueryStringEmpty()
+    public function testPathQueryStringEmpty(): void
     {
         // /index.php?
         $_SERVER['REQUEST_URI']  = '/index.php?';
@@ -167,7 +168,7 @@ final class IncomingRequestDetectingTest extends CIUnitTestCase
         $this->assertSame($expected, $this->request->detectPath('QUERY_STRING'));
     }
 
-    public function testPathPathInfo()
+    public function testPathPathInfo(): void
     {
         // /index.php/woot?code=good#pos
         $this->request->setGlobal('server', [
@@ -180,7 +181,7 @@ final class IncomingRequestDetectingTest extends CIUnitTestCase
         $this->assertSame($expected, $this->request->detectPath('PATH_INFO'));
     }
 
-    public function testPathPathInfoGlobal()
+    public function testPathPathInfoGlobal(): void
     {
         // /index.php/woot?code=good#pos
         $this->request->setGlobal('server', [

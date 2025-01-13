@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -15,15 +17,15 @@ use CodeIgniter\Database\Forge;
 use CodeIgniter\Database\RawSql;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\Mock\MockConnection;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * @internal
- *
- * @group Others
  */
+#[Group('Others')]
 final class CreateTableTest extends CIUnitTestCase
 {
-    public function testCreateTableWithDefaultRawSql()
+    public function testCreateTableWithDefaultRawSql(): void
     {
         $sql = <<<'SQL'
             CREATE TABLE "foo" (

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -13,28 +15,27 @@ namespace CodeIgniter\CLI;
 
 use CodeIgniter\CodeIgniter;
 use CodeIgniter\Config\DotEnv;
+use CodeIgniter\Events\Events;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\Mock\MockCLIConfig;
 use CodeIgniter\Test\Mock\MockCodeIgniter;
 use CodeIgniter\Test\StreamFilterTrait;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * @internal
- *
- * @group Others
  */
+#[Group('Others')]
 final class ConsoleTest extends CIUnitTestCase
 {
     use StreamFilterTrait;
-
-    private DotEnv $env;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->env = new DotEnv(ROOTPATH);
-        $this->env->load();
+        $env = new DotEnv(ROOTPATH);
+        $env->load();
 
         // Set environment values that would otherwise stop the framework from functioning during tests.
         if (! isset($_SERVER['app.baseURL'])) {
@@ -45,7 +46,7 @@ final class ConsoleTest extends CIUnitTestCase
         $this->app->initialize();
     }
 
-    public function testHeader()
+    public function testHeader(): void
     {
         $console = new Console();
         $console->showHeader();
@@ -53,19 +54,19 @@ final class ConsoleTest extends CIUnitTestCase
             0,
             strpos(
                 $this->getStreamFilterBuffer(),
-                sprintf('CodeIgniter v%s Command Line Tool', CodeIgniter::CI_VERSION)
-            )
+                sprintf('CodeIgniter v%s Command Line Tool', CodeIgniter::CI_VERSION),
+            ),
         );
     }
 
-    public function testNoHeader()
+    public function testNoHeader(): void
     {
         $console = new Console();
         $console->showHeader(true);
         $this->assertSame('', $this->getStreamFilterBuffer());
     }
 
-    public function testRun()
+    public function testRun(): void
     {
         $this->initCLI();
 
@@ -77,7 +78,39 @@ final class ConsoleTest extends CIUnitTestCase
         $this->assertStringContainsString('Displays basic usage information.', $this->getStreamFilterBuffer());
     }
 
-    public function testBadCommand()
+    public function testRunEventsPreCommand(): void
+    {
+        $result = '';
+        Events::on('pre_command', static function () use (&$result): void {
+            $result = 'fired';
+        });
+
+        $this->initCLI();
+
+        $console = new Console();
+        $console->run();
+
+        $this->assertEventTriggered('pre_command');
+        $this->assertSame('fired', $result);
+    }
+
+    public function testRunEventsPostCommand(): void
+    {
+        $result = '';
+        Events::on('post_command', static function () use (&$result): void {
+            $result = 'fired';
+        });
+
+        $this->initCLI();
+
+        $console = new Console();
+        $console->run();
+
+        $this->assertEventTriggered('post_command');
+        $this->assertSame('fired', $result);
+    }
+
+    public function testBadCommand(): void
     {
         $this->initCLI('bogus');
 
@@ -88,9 +121,9 @@ final class ConsoleTest extends CIUnitTestCase
         $this->assertStringContainsString('Command "bogus" not found', $this->getStreamFilterBuffer());
     }
 
-    public function testHelpCommandDetails()
+    public function testHelpCommandDetails(): void
     {
-        $this->initCLI('help', 'session:migration');
+        $this->initCLI('help', 'make:migration');
 
         $console = new Console();
         $console->run();
@@ -101,7 +134,7 @@ final class ConsoleTest extends CIUnitTestCase
         $this->assertStringContainsString('Options:', $this->getStreamFilterBuffer());
     }
 
-    public function testHelpCommandUsingHelpOption()
+    public function testHelpCommandUsingHelpOption(): void
     {
         $this->initCLI('env', '--help');
 
@@ -110,11 +143,11 @@ final class ConsoleTest extends CIUnitTestCase
         $this->assertStringContainsString('env [<environment>]', $this->getStreamFilterBuffer());
         $this->assertStringContainsString(
             'Retrieves the current environment, or set a new one.',
-            $this->getStreamFilterBuffer()
+            $this->getStreamFilterBuffer(),
         );
     }
 
-    public function testHelpOptionIsOnlyPassed()
+    public function testHelpOptionIsOnlyPassed(): void
     {
         $this->initCLI('--help');
 
@@ -125,7 +158,7 @@ final class ConsoleTest extends CIUnitTestCase
         $this->assertStringContainsString('Lists the available commands.', $this->getStreamFilterBuffer());
     }
 
-    public function testHelpArgumentAndHelpOptionCombined()
+    public function testHelpArgumentAndHelpOptionCombined(): void
     {
         $this->initCLI('help', '--help');
 

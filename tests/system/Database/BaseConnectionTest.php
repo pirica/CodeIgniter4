@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -14,33 +16,38 @@ namespace CodeIgniter\Database;
 use CodeIgniter\Database\Exceptions\DatabaseException;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\Mock\MockConnection;
-use Generator;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use Throwable;
 
 /**
  * @internal
- *
- * @group Others
  */
+#[Group('Others')]
 final class BaseConnectionTest extends CIUnitTestCase
 {
     private array $options = [
-        'DSN'      => '',
-        'hostname' => 'localhost',
-        'username' => 'first',
-        'password' => 'last',
-        'database' => 'dbname',
-        'DBDriver' => 'MockDriver',
-        'DBPrefix' => 'test_',
-        'pConnect' => true,
-        'DBDebug'  => (ENVIRONMENT !== 'production'),
-        'charset'  => 'utf8',
-        'DBCollat' => 'utf8_general_ci',
-        'swapPre'  => '',
-        'encrypt'  => false,
-        'compress' => false,
-        'strictOn' => true,
-        'failover' => [],
+        'DSN'        => '',
+        'hostname'   => 'localhost',
+        'username'   => 'first',
+        'password'   => 'last',
+        'database'   => 'dbname',
+        'DBDriver'   => 'MockDriver',
+        'DBPrefix'   => 'test_',
+        'pConnect'   => true,
+        'DBDebug'    => true,
+        'charset'    => 'utf8mb4',
+        'DBCollat'   => 'utf8mb4_general_ci',
+        'swapPre'    => '',
+        'encrypt'    => false,
+        'compress'   => false,
+        'strictOn'   => true,
+        'failover'   => [],
+        'dateFormat' => [
+            'date'     => 'Y-m-d',
+            'datetime' => 'Y-m-d H:i:s',
+            'time'     => 'H:i:s',
+        ],
     ];
     private array $failoverOptions = [
         'DSN'      => '',
@@ -51,9 +58,9 @@ final class BaseConnectionTest extends CIUnitTestCase
         'DBDriver' => 'MockDriver',
         'DBPrefix' => 'test_',
         'pConnect' => true,
-        'DBDebug'  => (ENVIRONMENT !== 'production'),
-        'charset'  => 'utf8',
-        'DBCollat' => 'utf8_general_ci',
+        'DBDebug'  => true,
+        'charset'  => 'utf8mb4',
+        'DBCollat' => 'utf8mb4_general_ci',
         'swapPre'  => '',
         'encrypt'  => false,
         'compress' => false,
@@ -61,7 +68,7 @@ final class BaseConnectionTest extends CIUnitTestCase
         'failover' => [],
     ];
 
-    public function testSavesConfigOptions()
+    public function testSavesConfigOptions(): void
     {
         $db = new MockConnection($this->options);
 
@@ -72,16 +79,23 @@ final class BaseConnectionTest extends CIUnitTestCase
         $this->assertSame('MockDriver', $db->DBDriver);
         $this->assertTrue($db->pConnect);
         $this->assertTrue($db->DBDebug);
-        $this->assertSame('utf8', $db->charset);
-        $this->assertSame('utf8_general_ci', $db->DBCollat);
+        $this->assertSame('utf8mb4', $db->charset);
+        $this->assertSame('utf8mb4_general_ci', $db->DBCollat);
         $this->assertSame('', $db->swapPre);
         $this->assertFalse($db->encrypt);
         $this->assertFalse($db->compress);
         $this->assertTrue($db->strictOn);
         $this->assertSame([], $db->failover);
+        $this->assertSame([
+            'date'        => 'Y-m-d',
+            'datetime'    => 'Y-m-d H:i:s',
+            'datetime-ms' => 'Y-m-d H:i:s.v',
+            'datetime-us' => 'Y-m-d H:i:s.u',
+            'time'        => 'H:i:s',
+        ], $db->dateFormat);
     }
 
-    public function testConnectionThrowExceptionWhenCannotConnect()
+    public function testConnectionThrowExceptionWhenCannotConnect(): void
     {
         try {
             $db = new MockConnection($this->options);
@@ -92,7 +106,7 @@ final class BaseConnectionTest extends CIUnitTestCase
         }
     }
 
-    public function testCanConnectAndStoreConnection()
+    public function testCanConnectAndStoreConnection(): void
     {
         $db = new MockConnection($this->options);
         $db->shouldReturn('connect', 123)->initialize();
@@ -100,7 +114,7 @@ final class BaseConnectionTest extends CIUnitTestCase
         $this->assertSame(123, $db->getConnection());
     }
 
-    public function testCanConnectToFailoverWhenNoConnectionAvailable()
+    public function testCanConnectToFailoverWhenNoConnectionAvailable(): void
     {
         $options             = $this->options;
         $options['failover'] = [$this->failoverOptions];
@@ -115,7 +129,7 @@ final class BaseConnectionTest extends CIUnitTestCase
         $this->assertSame('failover', $db->username);
     }
 
-    public function testStoresConnectionTimings()
+    public function testStoresConnectionTimings(): void
     {
         $start = microtime(true);
 
@@ -123,41 +137,41 @@ final class BaseConnectionTest extends CIUnitTestCase
         $db->initialize();
 
         $this->assertGreaterThan($start, $db->getConnectStart());
-        $this->assertGreaterThan(0.0, $db->getConnectDuration());
+        $this->assertGreaterThanOrEqual(0.0, $db->getConnectDuration());
     }
 
     /**
      * @see https://github.com/codeigniter4/CodeIgniter4/issues/5535
      */
-    public function testStoresConnectionTimingsNotConnected()
+    public function testStoresConnectionTimingsNotConnected(): void
     {
         $db = new MockConnection($this->options);
 
         $this->assertSame('0.000000', $db->getConnectDuration());
     }
 
-    public function testMagicIssetTrue()
+    public function testMagicIssetTrue(): void
     {
         $db = new MockConnection($this->options);
 
         $this->assertTrue(isset($db->charset));
     }
 
-    public function testMagicIssetFalse()
+    public function testMagicIssetFalse(): void
     {
         $db = new MockConnection($this->options);
 
         $this->assertFalse(isset($db->foobar));
     }
 
-    public function testMagicGet()
+    public function testMagicGet(): void
     {
         $db = new MockConnection($this->options);
 
-        $this->assertSame('utf8', $db->charset);
+        $this->assertSame('utf8mb4', $db->charset);
     }
 
-    public function testMagicGetMissing()
+    public function testMagicGetMissing(): void
     {
         $db = new MockConnection($this->options);
 
@@ -167,16 +181,15 @@ final class BaseConnectionTest extends CIUnitTestCase
     /**
      * These tests are intended to confirm the current behavior.
      * We do not know if all of these are the correct behavior.
-     *
-     * @dataProvider identifiersProvider
      */
+    #[DataProvider('provideProtectIdentifiers')]
     public function testProtectIdentifiers(
         bool $prefixSingle,
         bool $protectIdentifiers,
         bool $fieldExists,
         string $item,
-        string $expected
-    ) {
+        string $expected,
+    ): void {
         $db = new MockConnection($this->options);
 
         $return = $db->protectIdentifiers($item, $prefixSingle, $protectIdentifiers, $fieldExists);
@@ -184,7 +197,7 @@ final class BaseConnectionTest extends CIUnitTestCase
         $this->assertSame($expected, $return);
     }
 
-    public function identifiersProvider(): Generator
+    public static function provideProtectIdentifiers(): iterable
     {
         yield from [
             // $prefixSingle, $protectIdentifiers, $fieldExists, $item, $expected
@@ -268,6 +281,53 @@ final class BaseConnectionTest extends CIUnitTestCase
                 '(SELECT MAX(advance_amount) FROM "orders" WHERE "id" > 2',
                 '(SELECT MAX(advance_amount) FROM "orders" WHERE "id" > 2',
             ],
+        ];
+    }
+
+    /**
+     * These tests are intended to confirm the current behavior.
+     */
+    #[DataProvider('provideEscapeIdentifiers')]
+    public function testEscapeIdentifiers(string $item, string $expected): void
+    {
+        $db = new MockConnection($this->options);
+
+        $return = $db->escapeIdentifiers($item);
+
+        $this->assertSame($expected, $return);
+    }
+
+    /**
+     * @return array<string, list<string>>
+     */
+    public static function provideEscapeIdentifiers(): iterable
+    {
+        yield from [
+            // $item, $expected
+            'simple'    => ['test', '"test"'],
+            'with dots' => ['com.sitedb.web', '"com"."sitedb"."web"'],
+        ];
+    }
+
+    #[DataProvider('provideEscapeIdentifier')]
+    public function testEscapeIdentifier(string $item, string $expected): void
+    {
+        $db = new MockConnection($this->options);
+
+        $return = $db->escapeIdentifier($item);
+
+        $this->assertSame($expected, $return);
+    }
+
+    /**
+     * @return array<string, list<string>>
+     */
+    public static function provideEscapeIdentifier(): iterable
+    {
+        yield from [
+            // $item, $expected
+            'simple'    => ['test', '"test"'],
+            'with dots' => ['com.sitedb.web', '"com.sitedb.web"'],
         ];
     }
 }

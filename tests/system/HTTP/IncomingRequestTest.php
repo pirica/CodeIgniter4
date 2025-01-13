@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -11,36 +13,53 @@
 
 namespace CodeIgniter\HTTP;
 
+use CodeIgniter\Config\Factories;
 use CodeIgniter\Exceptions\ConfigException;
 use CodeIgniter\HTTP\Exceptions\HTTPException;
 use CodeIgniter\HTTP\Files\UploadedFile;
 use CodeIgniter\Test\CIUnitTestCase;
 use Config\App;
-use Generator;
 use InvalidArgumentException;
+use JsonException;
+use PHPUnit\Framework\Attributes\BackupGlobals;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\PreserveGlobalState;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
+use PHPUnit\Framework\Attributes\WithoutErrorHandler;
 use TypeError;
 
 /**
- * @backupGlobals enabled
- *
  * @internal
- *
- * @group SeparateProcess
  */
+#[BackupGlobals(true)]
+#[Group('SeparateProcess')]
 final class IncomingRequestTest extends CIUnitTestCase
 {
     private Request $request;
 
+    #[WithoutErrorHandler]
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->request = new IncomingRequest(new App(), new URI(), null, new UserAgent());
+        $config        = new App();
+        $this->request = $this->createRequest($config);
 
         $_POST = $_GET = $_SERVER = $_REQUEST = $_ENV = $_COOKIE = $_SESSION = [];
     }
 
-    public function testCanGrabRequestVars()
+    private function createRequest(?App $config = null, $body = null, ?string $path = null): IncomingRequest
+    {
+        $config ??= new App();
+        $path ??= '';
+
+        $uri = new SiteURI($config, $path);
+
+        return new IncomingRequest($config, $uri, $body, new UserAgent());
+    }
+
+    public function testCanGrabRequestVars(): void
     {
         $_REQUEST['TEST'] = 5;
 
@@ -48,7 +67,7 @@ final class IncomingRequestTest extends CIUnitTestCase
         $this->assertNull($this->request->getVar('TESTY'));
     }
 
-    public function testCanGrabGetVars()
+    public function testCanGrabGetVars(): void
     {
         $_GET['TEST'] = 5;
 
@@ -56,7 +75,7 @@ final class IncomingRequestTest extends CIUnitTestCase
         $this->assertNull($this->request->getGet('TESTY'));
     }
 
-    public function testCanGrabPostVars()
+    public function testCanGrabPostVars(): void
     {
         $_POST['TEST'] = 5;
 
@@ -64,7 +83,7 @@ final class IncomingRequestTest extends CIUnitTestCase
         $this->assertNull($this->request->getPost('TESTY'));
     }
 
-    public function testCanGrabPostBeforeGet()
+    public function testCanGrabPostBeforeGet(): void
     {
         $_POST['TEST'] = 5;
         $_GET['TEST']  = 3;
@@ -73,12 +92,12 @@ final class IncomingRequestTest extends CIUnitTestCase
         $this->assertSame('3', $this->request->getGetPost('TEST'));
     }
 
-    public function testNoOldInput()
+    public function testNoOldInput(): void
     {
         $this->assertNull($this->request->getOldInput('name'));
     }
 
-    public function testCanGetOldInput()
+    public function testCanGetOldInput(): void
     {
         $_SESSION['_ci_old_input'] = [
             'get'  => ['one' => 'two'],
@@ -89,7 +108,7 @@ final class IncomingRequestTest extends CIUnitTestCase
         $this->assertSame('two', $this->request->getOldInput('one'));
     }
 
-    public function testCanGetOldInputDotted()
+    public function testCanGetOldInputDotted(): void
     {
         $_SESSION['_ci_old_input'] = [
             'get'  => ['apple' => ['name' => 'two']],
@@ -100,7 +119,7 @@ final class IncomingRequestTest extends CIUnitTestCase
         $this->assertSame('two', $this->request->getOldInput('apple.name'));
     }
 
-    public function testMissingOldInput()
+    public function testMissingOldInput(): void
     {
         $_SESSION['_ci_old_input'] = [
             'get'  => ['apple' => ['name' => 'two']],
@@ -113,7 +132,7 @@ final class IncomingRequestTest extends CIUnitTestCase
     /**
      * @see https://github.com/codeigniter4/CodeIgniter4/issues/1492
      */
-    public function testCanGetOldInputArrayWithSESSION()
+    public function testCanGetOldInputArrayWithSESSION(): void
     {
         $_SESSION['_ci_old_input'] = [
             'get'  => ['apple' => ['name' => 'two']],
@@ -126,11 +145,10 @@ final class IncomingRequestTest extends CIUnitTestCase
 
     /**
      * @see https://github.com/codeigniter4/CodeIgniter4/issues/1492
-     *
-     * @runInSeparateProcess
-     * @preserveGlobalState disabled
      */
-    public function testCanGetOldInputArrayWithSessionService()
+    #[PreserveGlobalState(false)]
+    #[RunInSeparateProcess]
+    public function testCanGetOldInputArrayWithSessionService(): void
     {
         $locations = [
             'AB' => 'Alberta',
@@ -143,7 +161,7 @@ final class IncomingRequestTest extends CIUnitTestCase
         $this->assertSame($locations, $this->request->getOldInput('location'));
     }
 
-    public function testCanGrabServerVars()
+    public function testCanGrabServerVars(): void
     {
         $server                   = $this->getPrivateProperty($this->request, 'globals');
         $server['server']['TEST'] = 5;
@@ -153,7 +171,7 @@ final class IncomingRequestTest extends CIUnitTestCase
         $this->assertNull($this->request->getServer('TESTY'));
     }
 
-    public function testCanGrabEnvVars()
+    public function testCanGrabEnvVars(): void
     {
         $server                = $this->getPrivateProperty($this->request, 'globals');
         $server['env']['TEST'] = 5;
@@ -163,7 +181,7 @@ final class IncomingRequestTest extends CIUnitTestCase
         $this->assertNull($this->request->getEnv('TESTY'));
     }
 
-    public function testCanGrabCookieVars()
+    public function testCanGrabCookieVars(): void
     {
         $_COOKIE['TEST'] = 5;
 
@@ -171,7 +189,7 @@ final class IncomingRequestTest extends CIUnitTestCase
         $this->assertNull($this->request->getCookie('TESTY'));
     }
 
-    public function testStoresDefaultLocale()
+    public function testStoresDefaultLocale(): void
     {
         $config = new App();
 
@@ -179,36 +197,51 @@ final class IncomingRequestTest extends CIUnitTestCase
         $this->assertSame($config->defaultLocale, $this->request->getLocale());
     }
 
-    public function testSetLocaleSaves()
+    public function testSetLocaleSaves(): void
     {
         $config                   = new App();
         $config->supportedLocales = ['en', 'es'];
         $config->defaultLocale    = 'es';
         $config->baseURL          = 'http://example.com/';
 
-        $request = new IncomingRequest($config, new URI(), null, new UserAgent());
+        $request = $this->createRequest($config);
 
         $request->setLocale('en');
         $this->assertSame('en', $request->getLocale());
     }
 
-    public function testSetBadLocale()
+    public function testSetBadLocale(): void
     {
         $config                   = new App();
         $config->supportedLocales = ['en', 'es'];
         $config->defaultLocale    = 'es';
         $config->baseURL          = 'http://example.com/';
 
-        $request = new IncomingRequest($config, new URI(), null, new UserAgent());
+        $request = $this->createRequest($config);
 
         $request->setLocale('xx');
         $this->assertSame('es', $request->getLocale());
     }
 
+    public function testSetValidLocales(): void
+    {
+        $config                   = new App();
+        $config->supportedLocales = ['en', 'es'];
+        $config->defaultLocale    = 'es';
+        $config->baseURL          = 'http://example.com/';
+
+        $request = new IncomingRequest($config, new SiteURI($config), null, new UserAgent());
+
+        $request->setValidLocales(['ja']);
+        $request->setLocale('ja');
+
+        $this->assertSame('ja', $request->getLocale());
+    }
+
     /**
      * @see https://github.com/codeigniter4/CodeIgniter4/issues/2774
      */
-    public function testNegotiatesLocale()
+    public function testNegotiatesLocale(): void
     {
         $_SERVER['HTTP_ACCEPT_LANGUAGE'] = 'fr-FR; q=1.0, en; q=0.5';
 
@@ -217,13 +250,13 @@ final class IncomingRequestTest extends CIUnitTestCase
         $config->supportedLocales = ['fr', 'en'];
         $config->baseURL          = 'http://example.com/';
 
-        $request = new IncomingRequest($config, new URI(), null, new UserAgent());
+        $request = $this->createRequest($config);
 
         $this->assertSame($config->defaultLocale, $request->getDefaultLocale());
         $this->assertSame('fr', $request->getLocale());
     }
 
-    public function testNegotiatesLocaleOnlyBroad()
+    public function testNegotiatesLocaleOnlyBroad(): void
     {
         $_SERVER['HTTP_ACCEPT_LANGUAGE'] = 'fr; q=1.0, en; q=0.5';
 
@@ -232,7 +265,7 @@ final class IncomingRequestTest extends CIUnitTestCase
         $config->supportedLocales = ['fr', 'en'];
         $config->baseURL          = 'http://example.com/';
 
-        $request = new IncomingRequest($config, new URI(), null, new UserAgent());
+        $request = $this->createRequest($config);
 
         $this->assertSame($config->defaultLocale, $request->getDefaultLocale());
         $this->assertSame('fr', $request->getLocale());
@@ -242,7 +275,7 @@ final class IncomingRequestTest extends CIUnitTestCase
     // that is up to the NegotiateTest. These are only to make sure that the requests
     // flow through to the negotiator
 
-    public function testNegotiatesNot()
+    public function testNegotiatesNot(): void
     {
         $this->request->setHeader('Accept-Charset', 'iso-8859-5, unicode-1-1;q=0.8');
 
@@ -250,39 +283,39 @@ final class IncomingRequestTest extends CIUnitTestCase
         $this->request->negotiate('something bogus', ['iso-8859-5', 'unicode-1-1']);
     }
 
-    public function testNegotiatesCharset()
+    public function testNegotiatesCharset(): void
     {
         // $_SERVER['HTTP_ACCEPT_CHARSET'] = 'iso-8859-5, unicode-1-1;q=0.8';
         $this->request->setHeader('Accept-Charset', 'iso-8859-5, unicode-1-1;q=0.8');
 
         $this->assertSame(
             'utf-8',
-            $this->request->negotiate('charset', ['iso-8859', 'unicode-1-2'])
+            $this->request->negotiate('charset', ['iso-8859', 'unicode-1-2']),
         );
     }
 
-    public function testNegotiatesMedia()
+    public function testNegotiatesMedia(): void
     {
         $this->request->setHeader('Accept', 'text/plain; q=0.5, text/html, text/x-dvi; q=0.8, text/x-c');
         $this->assertSame(
             'text/html',
-            $this->request->negotiate('media', ['text/html', 'text/x-c', 'text/x-dvi', 'text/plain'])
+            $this->request->negotiate('media', ['text/html', 'text/x-c', 'text/x-dvi', 'text/plain']),
         );
     }
 
-    public function testNegotiatesEncoding()
+    public function testNegotiatesEncoding(): void
     {
         $this->request->setHeader('Accept-Encoding', 'gzip;q=1.0, identity; q=0.4, compress;q=0.5');
         $this->assertSame('gzip', $this->request->negotiate('encoding', ['gzip', 'compress']));
     }
 
-    public function testNegotiatesLanguage()
+    public function testNegotiatesLanguage(): void
     {
         $this->request->setHeader('Accept-Language', 'da, en-gb;q=0.8, en;q=0.7');
         $this->assertSame('en', $this->request->negotiate('language', ['en', 'da']));
     }
 
-    public function testCanGrabGetRawJSON()
+    public function testCanGrabGetRawJSON(): void
     {
         $json = '{"code":1, "message":"ok"}';
 
@@ -291,12 +324,12 @@ final class IncomingRequestTest extends CIUnitTestCase
         $config          = new App();
         $config->baseURL = 'http://example.com/';
 
-        $request = new IncomingRequest($config, new URI(), $json, new UserAgent());
+        $request = $this->createRequest($config, $json);
 
         $this->assertSame($expected, $request->getJSON(true));
     }
 
-    public function testCanGetAVariableFromJson()
+    public function testCanGetAVariableFromJson(): void
     {
         $jsonObj = [
             'foo'   => 'bar',
@@ -312,7 +345,7 @@ final class IncomingRequestTest extends CIUnitTestCase
         $config          = new App();
         $config->baseURL = 'http://example.com/';
 
-        $request = new IncomingRequest($config, new URI(), $json, new UserAgent());
+        $request = $this->createRequest($config, $json);
 
         $this->assertSame('bar', $request->getJsonVar('foo'));
         $this->assertNull($request->getJsonVar('notExists'));
@@ -322,13 +355,13 @@ final class IncomingRequestTest extends CIUnitTestCase
         $this->assertSame('buzz', $jsonVar->fizz);
         $this->assertSame('buzz', $request->getJsonVar('baz.fizz'));
         $this->assertSame(123, $request->getJsonVar('int'));
-        $this->assertSame(3.14, $request->getJsonVar('float'));
+        $this->assertEqualsWithDelta(3.14, $request->getJsonVar('float'), PHP_FLOAT_EPSILON);
         $this->assertTrue($request->getJsonVar('true'));
         $this->assertFalse($request->getJsonVar('false'));
         $this->assertNull($request->getJsonVar('null'));
     }
 
-    public function testGetJsonVarAsArray()
+    public function testGetJsonVarAsArray(): void
     {
         $jsonObj = [
             'baz' => [
@@ -346,32 +379,32 @@ final class IncomingRequestTest extends CIUnitTestCase
         $config          = new App();
         $config->baseURL = 'http://example.com/';
 
-        $request = new IncomingRequest($config, new URI(), $json, new UserAgent());
+        $request = $this->createRequest($config, $json);
 
         $jsonVar = $request->getJsonVar('baz', true);
         $this->assertIsArray($jsonVar);
         $this->assertSame('buzz', $jsonVar['fizz']);
         $this->assertSame('bar', $jsonVar['foo']);
         $this->assertSame(123, $jsonVar['int']);
-        $this->assertSame(3.14, $jsonVar['float']);
+        $this->assertEqualsWithDelta(3.14, $jsonVar['float'], PHP_FLOAT_EPSILON);
         $this->assertTrue($jsonVar['true']);
         $this->assertFalse($jsonVar['false']);
         $this->assertNull($jsonVar['null']);
     }
 
-    public function testGetJsonVarCanFilter()
+    public function testGetJsonVarCanFilter(): void
     {
         $json = json_encode(['foo' => 'bar']);
 
         $config          = new App();
         $config->baseURL = 'http://example.com/';
 
-        $request = new IncomingRequest($config, new URI(), $json, new UserAgent());
+        $request = $this->createRequest($config, $json);
 
         $this->assertFalse($request->getJsonVar('foo', false, FILTER_VALIDATE_INT));
     }
 
-    public function testGetJsonVarCanFilterArray()
+    public function testGetJsonVarCanFilterArray(): void
     {
         $json = json_encode([
             'string'      => 'hello123world',
@@ -387,7 +420,7 @@ final class IncomingRequestTest extends CIUnitTestCase
         $config          = new App();
         $config->baseURL = 'http://example.com/';
 
-        $request = new IncomingRequest($config, new URI(), $json, new UserAgent());
+        $request = $this->createRequest($config, $json);
         $request->setHeader('Content-Type', 'application/json');
 
         $expected = [
@@ -403,17 +436,17 @@ final class IncomingRequestTest extends CIUnitTestCase
 
         $this->assertSame(
             $expected,
-            $request->getJsonVar(null, true, FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION)
+            $request->getJsonVar(null, true, FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION),
         );
 
         $this->assertSame(
             $expected['array'],
-            $request->getJsonVar('array', true, FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION)
+            $request->getJsonVar('array', true, FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION),
         );
 
         $this->assertSame(
             ['array' => $expected['array'], 'float' => $expected['float']],
-            $request->getJsonVar(['array', 'float'], true, FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION)
+            $request->getJsonVar(['array', 'float'], true, FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION),
         );
 
         $result = $request->getJsonVar(['array', 'float'], false, FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION);
@@ -424,14 +457,14 @@ final class IncomingRequestTest extends CIUnitTestCase
         );
     }
 
-    public function testGetVarWorksWithJson()
+    public function testGetVarWorksWithJson(): void
     {
         $json = json_encode(['foo' => 'bar', 'fizz' => 'buzz']);
 
         $config          = new App();
         $config->baseURL = 'http://example.com/';
 
-        $request = new IncomingRequest($config, new URI(), $json, new UserAgent());
+        $request = $this->createRequest($config, $json);
         $request->setHeader('Content-Type', 'application/json');
 
         $this->assertSame('bar', $request->getVar('foo'));
@@ -449,7 +482,7 @@ final class IncomingRequestTest extends CIUnitTestCase
         $this->assertSame('buzz', $all->fizz);
     }
 
-    public function testGetVarWorksWithJsonAndGetParams()
+    public function testGetVarWorksWithJsonAndGetParams(): void
     {
         $config          = new App();
         $config->baseURL = 'http://example.com/';
@@ -458,12 +491,13 @@ final class IncomingRequestTest extends CIUnitTestCase
         $_REQUEST['foo']  = 'bar';
         $_REQUEST['fizz'] = 'buzz';
 
-        $request = new IncomingRequest($config, new URI('http://example.com/path?foo=bar&fizz=buzz'), 'php://input', new UserAgent());
+        $request = $this->createRequest($config, null);
         $request = $request->withMethod('GET');
 
         // JSON type
         $request->setHeader('Content-Type', 'application/json');
 
+        // The body is null, so this works.
         $this->assertSame('bar', $request->getVar('foo'));
         $this->assertSame('buzz', $request->getVar('fizz'));
 
@@ -481,27 +515,53 @@ final class IncomingRequestTest extends CIUnitTestCase
     /**
      * @see https://github.com/codeigniter4/CodeIgniter4/issues/5391
      */
-    public function testGetJsonVarReturnsNullFromNullBody()
+    public function testGetJsonVarReturnsNullFromNullBody(): void
     {
         $config          = new App();
         $config->baseURL = 'http://example.com/';
         $json            = null;
-        $request         = new IncomingRequest($config, new URI(), $json, new UserAgent());
+        $request         = $this->createRequest($config, $json);
 
         $this->assertNull($request->getJsonVar('myKey'));
     }
 
-    public function testgetJSONReturnsNullFromNullBody()
+    public function testGetJSONReturnsNullFromNullBody(): void
     {
         $config          = new App();
         $config->baseURL = 'http://example.com/';
         $json            = null;
-        $request         = new IncomingRequest($config, new URI(), $json, new UserAgent());
+        $request         = $this->createRequest($config, $json);
 
         $this->assertNull($request->getJSON());
     }
 
-    public function testCanGrabGetRawInput()
+    public function testGetJSONWithInvalidJSONString(): void
+    {
+        $this->expectException(HTTPException::class);
+        $this->expectExceptionMessage('Failed to parse JSON string. Error: Syntax error');
+
+        $config          = new App();
+        $config->baseURL = 'http://example.com/';
+        $json            = 'Invalid JSON string';
+        $request         = $this->createRequest($config, $json);
+
+        $request->getJSON();
+    }
+
+    public function testGetJSONWithJsonThrowOnErrorAndInvalidJSONString(): void
+    {
+        $this->expectException(JsonException::class);
+        $this->expectExceptionMessage('Syntax error');
+
+        $config          = new App();
+        $config->baseURL = 'http://example.com/';
+        $json            = 'Invalid JSON string';
+        $request         = $this->createRequest($config, $json);
+
+        $request->getJSON(false, 512, JSON_THROW_ON_ERROR);
+    }
+
+    public function testCanGrabGetRawInput(): void
     {
         $rawstring = 'username=admin001&role=administrator&usepass=0';
 
@@ -514,12 +574,12 @@ final class IncomingRequestTest extends CIUnitTestCase
         $config          = new App();
         $config->baseURL = 'http://example.com/';
 
-        $request = new IncomingRequest($config, new URI(), $rawstring, new UserAgent());
+        $request = $this->createRequest($config, $rawstring);
 
         $this->assertSame($expected, $request->getRawInput());
     }
 
-    public function provideRawInputVarChecks()
+    public static function provideCanGrabGetRawInputVar(): iterable
     {
         return [
             [
@@ -599,35 +659,32 @@ final class IncomingRequestTest extends CIUnitTestCase
     }
 
     /**
-     * @dataProvider provideRawInputVarChecks
-     *
      * @param string $rawstring
      * @param mixed  $var
      * @param mixed  $expected
      * @param mixed  $filter
      * @param mixed  $flag
      */
-    public function testCanGrabGetRawInputVar($rawstring, $var, $expected, $filter, $flag)
+    #[DataProvider('provideCanGrabGetRawInputVar')]
+    public function testCanGrabGetRawInputVar($rawstring, $var, $expected, $filter, $flag): void
     {
         $config          = new App();
         $config->baseURL = 'http://example.com/';
 
-        $request = new IncomingRequest($config, new URI(), $rawstring, new UserAgent());
+        $request = $this->createRequest($config, $rawstring);
 
         $this->assertSame($expected, $request->getRawInputVar($var, $filter, $flag));
     }
 
-    /**
-     * @dataProvider provideIsHTTPMethods
-     */
-    public function testIsHTTPMethodLowerCase(string $value)
+    #[DataProvider('provideIsHTTPMethods')]
+    public function testIsHTTPMethodLowerCase(string $value): void
     {
         $request = $this->request->withMethod($value);
 
         $this->assertTrue($request->is(strtolower($value)));
     }
 
-    public function provideIsHTTPMethods(): Generator
+    public static function provideIsHTTPMethods(): iterable
     {
         yield from [
             ['GET'],
@@ -640,17 +697,15 @@ final class IncomingRequestTest extends CIUnitTestCase
         ];
     }
 
-    /**
-     * @dataProvider provideIsHTTPMethods
-     */
-    public function testIsHTTPMethodUpperCase(string $value)
+    #[DataProvider('provideIsHTTPMethods')]
+    public function testIsHTTPMethodUpperCase(string $value): void
     {
         $request = $this->request->withMethod($value);
 
         $this->assertTrue($request->is($value));
     }
 
-    public function testIsInvalidValue()
+    public function testIsInvalidValue(): void
     {
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Unknown type: invalid');
@@ -660,60 +715,60 @@ final class IncomingRequestTest extends CIUnitTestCase
         $request->is('invalid');
     }
 
-    public function testIsJson()
+    public function testIsJson(): void
     {
         $request = $this->request->setHeader('Content-Type', 'application/json');
 
         $this->assertTrue($request->is('json'));
     }
 
-    public function testIsWithAjax()
+    public function testIsWithAjax(): void
     {
         $request = $this->request->setHeader('X-Requested-With', 'XMLHttpRequest');
 
         $this->assertTrue($request->is('ajax'));
     }
 
-    public function testIsCLI()
+    public function testIsCLI(): void
     {
         $this->assertFalse($this->request->isCLI());
     }
 
-    public function testIsAJAX()
+    public function testIsAJAX(): void
     {
         $this->request->appendHeader('X-Requested-With', 'XMLHttpRequest');
         $this->assertTrue($this->request->isAJAX());
     }
 
-    public function testIsSecure()
+    public function testIsSecure(): void
     {
         $_SERVER['HTTPS'] = 'on';
         $this->assertTrue($this->request->isSecure());
     }
 
-    public function testIsSecureFrontEnd()
+    public function testIsSecureFrontEnd(): void
     {
         $this->request->appendHeader('Front-End-Https', 'on');
         $this->assertTrue($this->request->isSecure());
     }
 
-    public function testIsSecureForwarded()
+    public function testIsSecureForwarded(): void
     {
         $this->request->appendHeader('X-Forwarded-Proto', 'https');
         $this->assertTrue($this->request->isSecure());
     }
 
-    public function testUserAgent()
+    public function testUserAgent(): void
     {
         $_SERVER['HTTP_USER_AGENT'] = 'Mozilla';
 
         $config  = new App();
-        $request = new IncomingRequest($config, new URI(), null, new UserAgent());
+        $request = $this->createRequest($config);
 
         $this->assertSame('Mozilla', $request->getUserAgent()->__toString());
     }
 
-    public function testFileCollectionFactory()
+    public function testFileCollectionFactory(): void
     {
         $_FILES = [
             'userfile' => [
@@ -735,7 +790,7 @@ final class IncomingRequestTest extends CIUnitTestCase
         $this->assertSame(124, $file->getSize());
     }
 
-    public function testGetFileMultiple()
+    public function testGetFileMultiple(): void
     {
         $_FILES = [
             'userfile' => [
@@ -767,7 +822,7 @@ final class IncomingRequestTest extends CIUnitTestCase
         $this->assertSame(125, $gotit[1]->getSize());
     }
 
-    public function testGetFile()
+    public function testGetFile(): void
     {
         $_FILES = [
             'userfile' => [
@@ -783,16 +838,16 @@ final class IncomingRequestTest extends CIUnitTestCase
         $this->assertSame(124, $gotit->getSize());
     }
 
-    public function testSpoofing()
+    public function testSpoofing(): void
     {
         $this->request->setMethod('WINK');
-        $this->assertSame('wink', $this->request->getMethod());
+        $this->assertSame('WINK', $this->request->getMethod());
     }
 
     /**
      * @see https://github.com/codeigniter4/CodeIgniter4/issues/2839
      */
-    public function testGetPostEmpty()
+    public function testGetPostEmpty(): void
     {
         $_POST['TEST'] = '5';
         $_GET['TEST']  = '3';
@@ -800,19 +855,19 @@ final class IncomingRequestTest extends CIUnitTestCase
         $this->assertSame($_GET, $this->request->getGetPost());
     }
 
-    public function testPostGetSecondStream()
+    public function testPostGetSecondStream(): void
     {
         $_GET['get'] = '3';
         $this->assertSame($_GET, $this->request->getPostGet());
     }
 
-    public function testGetPostSecondStream()
+    public function testGetPostSecondStream(): void
     {
         $_POST['post'] = '5';
         $this->assertSame($_POST, $this->request->getGetPost());
     }
 
-    public function testGetPostSecondStreams()
+    public function testGetPostSecondStreams(): void
     {
         $_GET['get']   = '3';
         $_POST['post'] = '5';
@@ -820,19 +875,26 @@ final class IncomingRequestTest extends CIUnitTestCase
         $this->assertSame(array_merge($_POST, $_GET), $this->request->getGetPost());
     }
 
-    public function testWithFalseBody()
+    public function testGetBodyWithFalseBody(): void
     {
         // Use `false` here to simulate file_get_contents returning a false value
-        $request = new IncomingRequest(new App(), new URI(), false, new UserAgent());
+        $request = $this->createRequest(null, false);
 
         $this->assertNotFalse($request->getBody());
         $this->assertNull($request->getBody());
     }
 
+    public function testGetBodyWithZero(): void
+    {
+        $request = $this->createRequest(null, '0');
+
+        $this->assertSame('0', $request->getBody());
+    }
+
     /**
      * @see https://github.com/codeigniter4/CodeIgniter4/issues/3020
      */
-    public function testGetPostIndexNotExists()
+    public function testGetPostIndexNotExists(): void
     {
         $_POST['TEST'] = 5;
         $_GET['TEST']  = 3;
@@ -840,7 +902,7 @@ final class IncomingRequestTest extends CIUnitTestCase
         $this->assertNull($this->request->getGetPost('gc'));
     }
 
-    public function providePathChecks()
+    public static function provideExtensionPHP(): iterable
     {
         return [
             'not /index.php' => [
@@ -855,86 +917,39 @@ final class IncomingRequestTest extends CIUnitTestCase
     }
 
     /**
-     * @dataProvider providePathChecks
-     *
      * @param mixed $path
      * @param mixed $detectPath
      */
-    public function testExtensionPHP($path, $detectPath)
+    #[DataProvider('provideExtensionPHP')]
+    public function testExtensionPHP($path, $detectPath): void
     {
         $config          = new App();
         $config->baseURL = 'http://example.com/';
 
         $_SERVER['REQUEST_URI'] = $path;
         $_SERVER['SCRIPT_NAME'] = $path;
-        $request                = new IncomingRequest($config, new URI($path), null, new UserAgent());
+        $request                = new IncomingRequest($config, new SiteURI($config, $path), null, new UserAgent());
         $this->assertSame($detectPath, $request->detectPath());
     }
 
-    public function testGetPath()
+    public function testGetPath(): void
     {
-        $_SERVER['REQUEST_URI'] = '/index.php/fruits/banana';
-        $_SERVER['SCRIPT_NAME'] = '/index.php';
-
-        $request = new IncomingRequest(new App(), new URI(), null, new UserAgent());
+        $request = $this->createRequest(null, null, 'fruits/banana');
 
         $this->assertSame('fruits/banana', $request->getPath());
     }
 
-    public function testGetPathIsRelative()
+    public function testSetPath(): void
     {
-        $_SERVER['REQUEST_URI'] = '/sub/folder/index.php/fruits/banana';
-        $_SERVER['SCRIPT_NAME'] = '/sub/folder/index.php';
-
-        $request = new IncomingRequest(new App(), new URI(), null, new UserAgent());
-
-        $this->assertSame('fruits/banana', $request->getPath());
-    }
-
-    public function testGetPathStoresDetectedValue()
-    {
-        $_SERVER['REQUEST_URI'] = '/fruits/banana';
-        $_SERVER['SCRIPT_NAME'] = '/index.php';
-
-        $request = new IncomingRequest(new App(), new URI(), null, new UserAgent());
-
-        $_SERVER['REQUEST_URI'] = '/candy/snickers';
-
-        $this->assertSame('fruits/banana', $request->getPath());
-    }
-
-    public function testGetPathIsRediscovered()
-    {
-        $_SERVER['REQUEST_URI'] = '/fruits/banana';
-        $_SERVER['SCRIPT_NAME'] = '/index.php';
-
-        $request = new IncomingRequest(new App(), new URI(), null, new UserAgent());
-
-        $_SERVER['REQUEST_URI'] = '/candy/snickers';
-        $request->detectPath();
-
-        $this->assertSame('candy/snickers', $request->getPath());
-    }
-
-    public function testSetPath()
-    {
-        $request = new IncomingRequest(new App(), new URI(), null, new UserAgent());
+        $config  = new App();
+        $request = new IncomingRequest($config, new SiteURI($config), null, new UserAgent());
         $this->assertSame('', $request->getPath());
 
         $request->setPath('foobar');
         $this->assertSame('foobar', $request->getPath());
     }
 
-    public function testSetPathUpdatesURI()
-    {
-        $request = new IncomingRequest(new App(), new URI(), null, new UserAgent());
-
-        $request->setPath('apples');
-
-        $this->assertSame('apples', $request->getUri()->getPath());
-    }
-
-    public function testGetIPAddressNormal()
+    public function testGetIPAddressNormal(): void
     {
         $expected               = '123.123.123.123';
         $_SERVER['REMOTE_ADDR'] = $expected;
@@ -947,7 +962,7 @@ final class IncomingRequestTest extends CIUnitTestCase
         $this->assertSame($expected, $this->request->getIPAddress());
     }
 
-    public function testGetIPAddressThruProxy()
+    public function testGetIPAddressThruProxy(): void
     {
         $expected                        = '123.123.123.123';
         $_SERVER['HTTP_X_FORWARDED_FOR'] = $expected;
@@ -958,14 +973,15 @@ final class IncomingRequestTest extends CIUnitTestCase
             '10.0.1.200'     => 'X-Forwarded-For',
             '192.168.5.0/24' => 'X-Forwarded-For',
         ];
-        $this->request = new Request($config);
+        Factories::injectMock('config', App::class, $config);
+        $this->request = new Request();
         $this->request->populateHeaders();
 
         // we should see the original forwarded address
         $this->assertSame($expected, $this->request->getIPAddress());
     }
 
-    public function testGetIPAddressThruProxyIPv6()
+    public function testGetIPAddressThruProxyIPv6(): void
     {
         $expected                        = '123.123.123.123';
         $_SERVER['HTTP_X_FORWARDED_FOR'] = $expected;
@@ -975,14 +991,15 @@ final class IncomingRequestTest extends CIUnitTestCase
         $config->proxyIPs = [
             '2001:db8::2:1' => 'X-Forwarded-For',
         ];
-        $this->request = new Request($config);
+        Factories::injectMock('config', App::class, $config);
+        $this->request = new Request();
         $this->request->populateHeaders();
 
         // we should see the original forwarded address
         $this->assertSame($expected, $this->request->getIPAddress());
     }
 
-    public function testGetIPAddressThruProxyInvalidIPAddress()
+    public function testGetIPAddressThruProxyInvalidIPAddress(): void
     {
         $_SERVER['HTTP_X_FORWARDED_FOR'] = '123.456.23.123';
         $expected                        = '10.0.1.200';
@@ -1000,7 +1017,7 @@ final class IncomingRequestTest extends CIUnitTestCase
         $this->assertSame($expected, $this->request->getIPAddress());
     }
 
-    public function testGetIPAddressThruProxyInvalidIPAddressIPv6()
+    public function testGetIPAddressThruProxyInvalidIPAddressIPv6(): void
     {
         $_SERVER['HTTP_X_FORWARDED_FOR'] = '2001:xyz::1';
         $expected                        = '2001:db8::2:1';
@@ -1017,7 +1034,7 @@ final class IncomingRequestTest extends CIUnitTestCase
         $this->assertSame($expected, $this->request->getIPAddress());
     }
 
-    public function testGetIPAddressThruProxyNotWhitelisted()
+    public function testGetIPAddressThruProxyNotWhitelisted(): void
     {
         $expected                        = '10.10.1.200';
         $_SERVER['REMOTE_ADDR']          = $expected;
@@ -1035,7 +1052,7 @@ final class IncomingRequestTest extends CIUnitTestCase
         $this->assertSame($expected, $this->request->getIPAddress());
     }
 
-    public function testGetIPAddressThruProxyNotWhitelistedIPv6()
+    public function testGetIPAddressThruProxyNotWhitelistedIPv6(): void
     {
         $expected                        = '2001:db8::2:2';
         $_SERVER['REMOTE_ADDR']          = $expected;
@@ -1052,7 +1069,7 @@ final class IncomingRequestTest extends CIUnitTestCase
         $this->assertSame($expected, $this->request->getIPAddress());
     }
 
-    public function testGetIPAddressThruProxySubnet()
+    public function testGetIPAddressThruProxySubnet(): void
     {
         $expected                        = '123.123.123.123';
         $_SERVER['HTTP_X_FORWARDED_FOR'] = $expected;
@@ -1060,14 +1077,15 @@ final class IncomingRequestTest extends CIUnitTestCase
 
         $config           = new App();
         $config->proxyIPs = ['192.168.5.0/24' => 'X-Forwarded-For'];
-        $this->request    = new Request($config);
+        Factories::injectMock('config', App::class, $config);
+        $this->request = new Request();
         $this->request->populateHeaders();
 
         // we should see the original forwarded address
         $this->assertSame($expected, $this->request->getIPAddress());
     }
 
-    public function testGetIPAddressThruProxySubnetIPv6()
+    public function testGetIPAddressThruProxySubnetIPv6(): void
     {
         $expected                        = '123.123.123.123';
         $_SERVER['HTTP_X_FORWARDED_FOR'] = $expected;
@@ -1075,14 +1093,15 @@ final class IncomingRequestTest extends CIUnitTestCase
 
         $config           = new App();
         $config->proxyIPs = ['2001:db8:1234::/48' => 'X-Forwarded-For'];
-        $this->request    = new Request($config);
+        Factories::injectMock('config', App::class, $config);
+        $this->request = new Request();
         $this->request->populateHeaders();
 
         // we should see the original forwarded address
         $this->assertSame($expected, $this->request->getIPAddress());
     }
 
-    public function testGetIPAddressThruProxyOutOfSubnet()
+    public function testGetIPAddressThruProxyOutOfSubnet(): void
     {
         $expected                        = '192.168.5.21';
         $_SERVER['REMOTE_ADDR']          = $expected;
@@ -1097,7 +1116,7 @@ final class IncomingRequestTest extends CIUnitTestCase
         $this->assertSame($expected, $this->request->getIPAddress());
     }
 
-    public function testGetIPAddressThruProxyOutOfSubnetIPv6()
+    public function testGetIPAddressThruProxyOutOfSubnetIPv6(): void
     {
         $expected                        = '2001:db8:1235:ffff:ffff:ffff:ffff:ffff';
         $_SERVER['REMOTE_ADDR']          = $expected;
@@ -1112,7 +1131,7 @@ final class IncomingRequestTest extends CIUnitTestCase
         $this->assertSame($expected, $this->request->getIPAddress());
     }
 
-    public function testGetIPAddressThruProxyBothIPv4AndIPv6()
+    public function testGetIPAddressThruProxyBothIPv4AndIPv6(): void
     {
         $expected                        = '2001:db8:1235:ffff:ffff:ffff:ffff:ffff';
         $_SERVER['REMOTE_ADDR']          = $expected;
@@ -1130,7 +1149,7 @@ final class IncomingRequestTest extends CIUnitTestCase
         $this->assertSame($expected, $this->request->getIPAddress());
     }
 
-    public function testGetIPAddressThruProxyInvalidConfigString()
+    public function testGetIPAddressThruProxyInvalidConfigString(): void
     {
         $this->expectException(TypeError::class);
 
@@ -1142,16 +1161,17 @@ final class IncomingRequestTest extends CIUnitTestCase
         $this->request->getIPAddress();
     }
 
-    public function testGetIPAddressThruProxyInvalidConfigArray()
+    public function testGetIPAddressThruProxyInvalidConfigArray(): void
     {
         $this->expectException(ConfigException::class);
         $this->expectExceptionMessage(
-            'You must set an array with Proxy IP address key and HTTP header name value in Config\App::$proxyIPs.'
+            'You must set an array with Proxy IP address key and HTTP header name value in Config\App::$proxyIPs.',
         );
 
         $config           = new App();
         $config->proxyIPs = ['192.168.5.0/28'];
-        $this->request    = new Request($config);
+        Factories::injectMock('config', App::class, $config);
+        $this->request = new Request();
         $this->request->populateHeaders();
 
         $this->request->getIPAddress();

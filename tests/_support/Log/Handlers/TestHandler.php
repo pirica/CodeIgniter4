@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -11,13 +13,16 @@
 
 namespace Tests\Support\Log\Handlers;
 
+use CodeIgniter\I18n\Time;
+use CodeIgniter\Log\Handlers\FileHandler;
+
 /**
  * Class TestHandler
  *
  * A simple LogHandler that stores the logs in memory.
  * Only used for testing purposes.
  */
-class TestHandler extends \CodeIgniter\Log\Handlers\FileHandler
+class TestHandler extends FileHandler
 {
     /**
      * Local storage for logs.
@@ -36,7 +41,7 @@ class TestHandler extends \CodeIgniter\Log\Handlers\FileHandler
         parent::__construct($config);
 
         $this->handles     = $config['handles'] ?? [];
-        $this->destination = $this->path . 'log-' . date('Y-m-d') . '.' . $this->fileExtension;
+        $this->destination = $this->path . 'log-' . Time::now()->format('Y-m-d') . '.' . $this->fileExtension;
 
         self::$logs = [];
     }
@@ -52,7 +57,7 @@ class TestHandler extends \CodeIgniter\Log\Handlers\FileHandler
      */
     public function handle($level, $message): bool
     {
-        $date = date($this->dateFormat);
+        $date = Time::now()->format($this->dateFormat);
 
         self::$logs[] = strtoupper($level) . ' - ' . $date . ' --> ' . $message;
 

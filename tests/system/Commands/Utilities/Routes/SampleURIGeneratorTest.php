@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -11,21 +13,18 @@
 
 namespace CodeIgniter\Commands\Utilities\Routes;
 
-use CodeIgniter\Config\Services;
 use CodeIgniter\Test\CIUnitTestCase;
-use Generator;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * @internal
- *
- * @group Others
  */
+#[Group('Others')]
 final class SampleURIGeneratorTest extends CIUnitTestCase
 {
-    /**
-     * @dataProvider routeKeyProvider
-     */
-    public function testGet(string $routeKey, string $expected)
+    #[DataProvider('provideGet')]
+    public function testGet(string $routeKey, string $expected): void
     {
         $generator = new SampleURIGenerator();
 
@@ -34,23 +33,25 @@ final class SampleURIGeneratorTest extends CIUnitTestCase
         $this->assertSame($expected, $uri);
     }
 
-    public function routeKeyProvider(): Generator
+    public static function provideGet(): iterable
     {
         yield from [
             'root'                => ['/', '/'],
             'placeholder num'     => ['shop/product/([0-9]+)', 'shop/product/123'],
             'placeholder segment' => ['shop/product/([^/]+)', 'shop/product/abc_123'],
             'placeholder any'     => ['shop/product/(.*)', 'shop/product/123/abc'],
+            'locale'              => ['{locale}/home', 'en/home'],
+            'locale segment'      => ['{locale}/product/([^/]+)', 'en/product/abc_123'],
             'auto route'          => ['home/index[/...]', 'home/index/1/2/3/4/5'],
         ];
     }
 
-    public function testGetFromPlaceholderCustomPlaceholder()
+    public function testGetFromPlaceholderCustomPlaceholder(): void
     {
-        $routes = Services::routes();
+        $routes = service('routes');
         $routes->addPlaceholder(
             'uuid',
-            '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
+            '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}',
         );
 
         $generator = new SampleURIGenerator();

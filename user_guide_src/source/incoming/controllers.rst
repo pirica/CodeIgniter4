@@ -11,7 +11,9 @@ Controllers are the heart of your application, as they determine how HTTP reques
 What is a Controller?
 *********************
 
-A Controller is simply a class file that handles a HTTP request. :doc:`URI Routing <routing>` associates a URI with a controller.
+A Controller is simply a class file that handles an HTTP request.
+:doc:`URI Routing <routing>` associates a URI with a controller. It returns a
+view string or ``Response`` object.
 
 Every controller you create should extend ``BaseController`` class.
 This class provides several features that are available to all of your controllers.
@@ -66,8 +68,6 @@ inside the controller:
 
 .. literalinclude:: controllers/001.php
 
-.. _controllers-validating-data:
-
 forceHTTPS
 **********
 
@@ -84,39 +84,10 @@ modify this by passing the duration (in seconds) as the first parameter:
 
 .. note:: A number of :doc:`time-based constants </general/common_functions>` are always available for you to use, including ``YEAR``, ``MONTH``, and more.
 
-.. _controller-validate:
+.. _controllers-validating-data:
 
 Validating Data
 ***************
-
-$this->validate()
-=================
-
-To simplify data checking, the controller also provides the convenience method ``validate()``.
-The method accepts an array of rules in the first parameter,
-and in the optional second parameter, an array of custom error messages to display
-if the items are not valid. Internally, this uses the controller's
-``$this->request`` instance to get the data to be validated.
-
-.. warning::
-    The ``validate()`` method uses :ref:`Validation::withRequest() <validation-withrequest>` method.
-    It validates data from :ref:`$request->getJSON() <incomingrequest-getting-json-data>`
-    or :ref:`$request->getRawInput() <incomingrequest-retrieving-raw-data>`
-    or :ref:`$request->getVar() <incomingrequest-getting-data>`.
-    Which data is used depends on the request. Remember that an attacker is free to send any request to
-    the server.
-
-The :doc:`Validation Library docs </libraries/validation>` have details on
-rule and message array formats, as well as available rules:
-
-.. literalinclude:: controllers/004.php
-
-If you find it simpler to keep the rules in the configuration file, you can replace
-the ``$rules`` array with the name of the group as defined in **app/Config/Validation.php**:
-
-.. literalinclude:: controllers/005.php
-
-.. note:: Validation can also be handled automatically in the model, but sometimes it's easier to do it in the controller. Where is up to you.
 
 .. _controller-validatedata:
 
@@ -125,11 +96,67 @@ $this->validateData()
 
 .. versionadded:: 4.2.0
 
-Sometimes you may want to check the controller method parameters or other custom data.
-In that case, you can use the ``$this->validateData()`` method.
-The method accepts an array of data to validate in the first parameter:
+To simplify data checking, the controller also provides the convenience method
+``validateData()``.
+
+The method accepts (1) an array of data to validate, (2) an array of rules,
+(3) an optional array of custom error messages to display if the items are not valid,
+(4) an optional database group to use.
+
+The :doc:`Validation Library docs </libraries/validation>` have details on
+rule and message array formats, as well as available rules:
 
 .. literalinclude:: controllers/006.php
+
+.. _controller-validate:
+
+$this->validate()
+=================
+
+.. important:: This method exists only for backward compatibility. Do not use it
+    in new projects. Even if you are already using it, we recommend that you use
+    the ``validateData()`` method instead.
+
+The controller also provides the convenience method ``validate()``.
+
+.. warning:: Instead of ``validate()``, use ``validateData()`` to validate POST
+    data only. ``validate()`` uses ``$request->getVar()`` which returns
+    ``$_GET``, ``$_POST`` or ``$_COOKIE`` data in that order (depending on php.ini
+    `request-order <https://www.php.net/manual/en/ini.core.php#ini.request-order>`_).
+    Newer values override older values. POST values may be overridden by the
+    cookies if they have the same name.
+
+The method accepts an array of rules in the first parameter,
+and in the optional second parameter, an array of custom error messages to display
+if the items are not valid.
+
+Internally, this uses the controller's
+``$this->request`` instance to get the data to be validated.
+
+The :doc:`Validation Library docs </libraries/validation>` have details on
+rule and message array formats, as well as available rules:
+
+.. literalinclude:: controllers/004.php
+
+.. warning:: When you use the ``validate()`` method, you should use the
+    :ref:`getValidated() <validation-getting-validated-data>` method to get the
+    validated data. Because the ``validate()`` method uses the
+    :ref:`Validation::withRequest() <validation-withrequest>` method internally,
+    and it validates data from
+    :ref:`$request->getJSON() <incomingrequest-getting-json-data>`
+    or :ref:`$request->getRawInput() <incomingrequest-retrieving-raw-data>`
+    or :ref:`$request->getVar() <incomingrequest-getting-data>`, and an attacker
+    could change what data is validated.
+
+.. note:: The :ref:`$this->validator->getValidated() <validation-getting-validated-data>`
+    method can be used since v4.4.0.
+
+If you find it simpler to keep the rules in the configuration file, you can replace
+the ``$rules`` array with the name of the group as defined in **app/Config/Validation.php**:
+
+.. literalinclude:: controllers/005.php
+
+.. note:: Validation can also be handled automatically in the model, but sometimes it's easier to do it in the controller. Where is up to you.
 
 Protecting Methods
 ******************
@@ -158,7 +185,7 @@ Auto Routing (Improved)
 Since v4.2.0, the new more secure Auto Routing has been introduced.
 
 .. note:: If you are familiar with Auto Routing, which was enabled by default
-    from CodeIgniter 3 through 4.1.x, you can see the differences in
+    from CodeIgniter 3.x through 4.1.x, you can see the differences in
     :ref:`ChangeLog v4.2.0 <v420-new-improved-auto-routing>`.
 
 This section describes the functionality of the new auto-routing.
@@ -187,9 +214,13 @@ controllers. You can extend this class in any new controller.
 
 .. literalinclude:: controllers/020.php
 
-Then save the file to your **app/Controllers/** directory.
+Then save the file to your **app/Controllers** directory.
 
 .. important:: The file must be called **Helloworld.php**, with a capital ``H``. When you use Auto Routing, Controller class names MUST start with an uppercase letter and ONLY the first character can be uppercase.
+
+    Since v4.5.0, if you enable the ``$translateUriToCamelCase`` option, you can
+    use CamelCase classnames. See :ref:`controller-translate-uri-to-camelcase`
+    for details.
 
 .. important:: A controller method that will be executed by Auto Routing (Improved) needs HTTP verb (``get``, ``post``, ``put``, etc.) prefix like ``getIndex()``, ``postCreate()``.
 
@@ -213,13 +244,17 @@ This is **not** valid:
 
 .. literalinclude:: controllers/011.php
 
+.. note:: Since v4.5.0, if you enable the ``$translateUriToCamelCase`` option,
+    you can use CamelCase classnames like above. See
+    :ref:`controller-translate-uri-to-camelcase` for details.
+
 Also, always make sure your controller extends the parent controller
 class so that it can inherit all its methods.
 
 .. note::
     The system will attempt to match the URI against Controllers by matching each segment against
-    folders/files in **app/Controllers/**, when a match wasn't found against defined routes.
-    That's why your folders/files MUST start with a capital letter and the rest MUST be lowercase.
+    directories/files in **app/Controllers**, when a match wasn't found against defined routes.
+    That's why your directories/files MUST start with a capital letter and the rest MUST be lowercase.
 
     If you want another naming convention you need to manually define it using the
     :ref:`Defined Route Routing <defined-route-routing>`.
@@ -274,35 +309,91 @@ Your method will be passed URI segments 3 and 4 (``'sandals'`` and ``'123'``):
 
 .. literalinclude:: controllers/022.php
 
-.. note:: If there are more parameters in the URI than the method parameters,
-    Auto Routing (Improved) does not execute the method, and it results in 404
-    Not Found.
+Default Controller
+==================
+
+The Default Controller is a special controller that is used when a URI ends with
+a directory name or when a URI is not present, as will be the case when only your
+site root URL is requested.
 
 Defining a Default Controller
-=============================
+-----------------------------
 
-CodeIgniter can be told to load a default controller when a URI is not
-present, as will be the case when only your site root URL is requested. Let's try it
-with the ``Helloworld`` controller.
+Let's try it with the ``Helloworld`` controller.
 
-To specify a default controller open your **app/Config/Routes.php**
-file and set this variable:
+To specify a default controller open your **app/Config/Routing.php**
+file and set this property::
 
-.. literalinclude:: controllers/015.php
+    public string $defaultController = 'Helloworld';
 
 Where ``Helloworld`` is the name of the controller class you want to be used.
 
-A few lines further down **Routes.php** in the "Route Definitions" section, comment out the line:
+And comment out the line in **app/Config/Routes.php**:
 
 .. literalinclude:: controllers/016.php
+    :lines: 2-
 
 If you now browse to your site without specifying any URI segments you'll
 see the "Hello World" message.
 
-.. note:: The line ``$routes->get('/', 'Home::index');`` is an optimization that you will want to use in a "real-world" app. But for demonstration purposes we don't want to use that feature. ``$routes->get()`` is explained in :doc:`URI Routing <routing>`
+.. important:: When you use Auto Routing (Improved), you must remove the line
+    ``$routes->get('/', 'Home::index');``. Because defined routes take
+    precedence over Auto Routing, and controllers defined in the defined routes
+    are denied access by Auto Routing (Improved) for security reasons.
 
-For more information, please refer to the :ref:`routes-configuration-options` section of the
-:doc:`URI Routing <routing>` documentation.
+For more information, please refer to the
+:ref:`routing-auto-routing-improved-configuration-options` documentation.
+
+.. _controller-default-method-fallback:
+
+Default Method Fallback
+=======================
+
+.. versionadded:: 4.4.0
+
+If the controller method corresponding to the URI segment of the method name
+does not exist, and if the default method is defined, the remaining URI segments
+are passed to the default method for execution.
+
+.. literalinclude:: controllers/024.php
+
+Load the following URL::
+
+    example.com/index.php/product/15/edit
+
+The method will be passed URI segments 2 and 3 (``'15'`` and ``'edit'``):
+
+.. important:: If there are more parameters in the URI than the method parameters,
+    Auto Routing (Improved) does not execute the method, and it results in 404
+    Not Found.
+
+Fallback to Default Controller
+------------------------------
+
+If the controller corresponding to the URI segment of the controller name
+does not exist, and if the default controller (``Home`` by default) exists in
+the directory, the remaining URI segments are passed to the default controller's
+default method.
+
+For example, when you have the following default controller ``Home`` in the
+**app/Controllers/News** directory:
+
+.. literalinclude:: controllers/025.php
+
+Load the following URL::
+
+    example.com/index.php/news/101
+
+The ``News\Home`` controller and the default ``getIndex()`` method will be found.
+So the default method will be passed URI segments 2 (``'101'``):
+
+.. note:: If there is ``App\Controllers\News`` controller, it takes precedence.
+    The URI segments are searched sequentially and the first controller found
+    is used.
+
+.. note:: If there are more parameters in the URI than the method parameters,
+    Auto Routing (Improved) does not execute the method, and it results in 404
+    Not Found.
 
 Organizing Your Controllers into Sub-directories
 ================================================
@@ -311,13 +402,17 @@ If you are building a large application you might want to hierarchically
 organize or structure your controllers into sub-directories. CodeIgniter
 permits you to do this.
 
-Simply create sub-directories under the main **app/Controllers/**,
+Simply create sub-directories under the main **app/Controllers**,
 and place your controller classes within them.
 
-.. important:: Folder names MUST start with an uppercase letter and ONLY the first character can be uppercase.
+.. important:: Directory names MUST start with an uppercase letter and ONLY the first character can be uppercase.
+
+    Since v4.5.0, if you enable the ``$translateUriToCamelCase`` option, you can
+    use CamelCase directory names. See :ref:`controller-translate-uri-to-camelcase`
+    for details.
 
 When using this feature the first segment of your URI must
-specify the folder. For example, let's say you have a controller located here::
+specify the directory. For example, let's say you have a controller located here::
 
     app/Controllers/Products/Shoes.php
 
@@ -325,21 +420,54 @@ To call the above controller your URI will look something like this::
 
     example.com/index.php/products/shoes/show/123
 
-.. note:: You cannot have directories with the same name in **app/Controllers/** and **public/**.
+.. note:: You cannot have directories with the same name in **app/Controllers**
+    and **public**.
     This is because if there is a directory, the web server will search for it and
     it will not be routed to CodeIgniter.
 
 Each of your sub-directories may contain a default controller which will be
 called if the URL contains *only* the sub-directory. Simply put a controller
 in there that matches the name of your default controller as specified in
-your **app/Config/Routes.php** file.
+your **app/Config/Routing.php** file.
 
 CodeIgniter also permits you to map your URIs using its :ref:`Defined Route Routing <defined-route-routing>`..
+
+.. _controller-translate-uri-to-camelcase:
+
+Translate URI To CamelCase
+==========================
+
+.. versionadded:: 4.5.0
+
+Since v4.5.0, the ``$translateUriToCamelCase`` option has been implemented,
+which works well with the current CodeIgniter's coding standards.
+
+This option enables you to automatically translate URI with dashes (``-``) to
+CamelCase in the controller and method URI segments.
+
+For example, the URI ``sub-dir/hello-controller/some-method`` will execute the
+``SubDir\HelloController::getSomeMethod()`` method.
+
+.. note:: When this option is enabled, the ``$translateURIDashes`` option is
+    ignored.
+
+Enable Translate URI To CamelCase
+---------------------------------
+
+To enable it, you need to change the setting ``$translateUriToCamelCase`` option
+to ``true`` in **app/Config/Routing.php**::
+
+    public bool $translateUriToCamelCase = true;
+
 
 .. _controller-auto-routing-legacy:
 
 Auto Routing (Legacy)
 *********************
+
+.. important:: This feature exists only for backward compatibility. Do not use it
+    in new projects. Even if you are already using it, we recommend that you use
+    the :ref:`auto-routing-improved` instead.
 
 This section describes the functionality of Auto Routing (Legacy) that is a routing system from CodeIgniter 3.
 It automatically routes an HTTP request, and executes the corresponding controller method
@@ -349,7 +477,11 @@ without route definitions. The auto-routing is disabled by default.
     Auto Routing (Legacy). It is easy to create vulnerable apps where controller filters
     or CSRF protection are bypassed.
 
-.. important:: Auto Routing (Legacy) routes a HTTP request with **any** HTTP method to a controller method.
+.. important:: Auto Routing (Legacy) routes an HTTP request with **any** HTTP method to a controller method.
+
+.. important:: Since v4.5.0, if Auto Routing (Legacy) doesn't find the controller,
+    it will throw ``PageNotFoundException`` exception before the Controller Filters
+    execute.
 
 Consider this URI::
 
@@ -359,8 +491,8 @@ In the above example, CodeIgniter would attempt to find a controller named **Hel
 
 .. note:: When a controller's short name matches the first segment of a URI, it will be loaded.
 
-Let's try it: Hello World!
-==========================
+Let's try it: Hello World! (Legacy)
+===================================
 
 Let's create a simple controller so you can see it in action. Using your text editor, create a file called **Helloworld.php**,
 and put the following code in it. You will notice that the ``Helloworld`` Controller is extending the ``BaseController``. you can
@@ -373,7 +505,7 @@ For security reasons be sure to declare any new utility methods as ``protected``
 
 .. literalinclude:: controllers/008.php
 
-Then save the file to your **app/Controllers/** directory.
+Then save the file to your **app/Controllers** directory.
 
 .. important:: The file must be called **Helloworld.php**, with a capital ``H``. When you use Auto Routing, Controller class names MUST start with an uppercase letter and ONLY the first character can be uppercase.
 
@@ -402,8 +534,8 @@ class so that it can inherit all its methods.
 
 .. note::
     The system will attempt to match the URI against Controllers by matching each segment against
-    folders/files in **app/Controllers/**, when a match wasn't found against defined routes.
-    That's why your folders/files MUST start with a capital letter and the rest MUST be lowercase.
+    directories/files in **app/Controllers**, when a match wasn't found against defined routes.
+    That's why your directories/files MUST start with a capital letter and the rest MUST be lowercase.
 
     If you want another naming convention you need to manually define it using the
     :ref:`Defined Route Routing <defined-route-routing>`.
@@ -411,8 +543,8 @@ class so that it can inherit all its methods.
 
     .. literalinclude:: controllers/012.php
 
-Methods
-=======
+Methods (Legacy)
+================
 
 In the above example, the method name is ``index()``. The ``index()`` method
 is always loaded by default if the **second segment** of the URI is
@@ -433,8 +565,8 @@ Now load the following URL to see the comment method::
 
 You should see your new message.
 
-Passing URI Segments to Your Methods
-====================================
+Passing URI Segments to Your Methods (Legacy)
+=============================================
 
 If your URI contains more than two segments they will be passed to your
 method as parameters.
@@ -447,46 +579,52 @@ Your method will be passed URI segments 3 and 4 (``'sandals'`` and ``'123'``):
 
 .. literalinclude:: controllers/014.php
 
-Defining a Default Controller
-=============================
+Default Controller (Legacy)
+===========================
 
-CodeIgniter can be told to load a default controller when a URI is not
-present, as will be the case when only your site root URL is requested. Let's try it
-with the ``Helloworld`` controller.
+The Default Controller is a special controller that is used when a URI end with
+a directory name or when a URI is not present, as will be the case when only your
+site root URL is requested.
 
-To specify a default controller open your **app/Config/Routes.php**
-file and set this variable:
+Defining a Default Controller (Legacy)
+--------------------------------------
 
-.. literalinclude:: controllers/015.php
+Let's try it with the ``Helloworld`` controller.
+
+To specify a default controller open your **app/Config/Routing.php**
+file and set this property::
+
+    public string $defaultController = 'Helloworld';
 
 Where ``Helloworld`` is the name of the controller class you want to be used.
 
-A few lines further down **Routes.php** in the "Route Definitions" section, comment out the line:
+And comment out the line in **app/Config/Routes.php**:
 
 .. literalinclude:: controllers/016.php
+    :lines: 2-
 
 If you now browse to your site without specifying any URI segments you'll
 see the "Hello World" message.
 
 .. note:: The line ``$routes->get('/', 'Home::index');`` is an optimization that you will want to use in a "real-world" app. But for demonstration purposes we don't want to use that feature. ``$routes->get()`` is explained in :doc:`URI Routing <routing>`
 
-For more information, please refer to the :ref:`routes-configuration-options` section of the
-:doc:`URI Routing <routing>` documentation.
+For more information, please refer to the the
+:ref:`routing-auto-routing-legacy-configuration-options` documentation.
 
-Organizing Your Controllers into Sub-directories
-================================================
+Organizing Your Controllers into Sub-directories (Legacy)
+=========================================================
 
 If you are building a large application you might want to hierarchically
 organize or structure your controllers into sub-directories. CodeIgniter
 permits you to do this.
 
-Simply create sub-directories under the main **app/Controllers/**,
+Simply create sub-directories under the main **app/Controllers**,
 and place your controller classes within them.
 
-.. important:: Folder names MUST start with an uppercase letter and ONLY the first character can be uppercase.
+.. important:: Directory names MUST start with an uppercase letter and ONLY the first character can be uppercase.
 
 When using this feature the first segment of your URI must
-specify the folder. For example, let's say you have a controller located here::
+specify the directory. For example, let's say you have a controller located here::
 
     app/Controllers/Products/Shoes.php
 
@@ -494,14 +632,14 @@ To call the above controller your URI will look something like this::
 
     example.com/index.php/products/shoes/show/123
 
-.. note:: You cannot have directories with the same name in **app/Controllers/** and **public/**.
+.. note:: You cannot have directories with the same name in **app/Controllers** and **public/**.
     This is because if there is a directory, the web server will search for it and
     it will not be routed to CodeIgniter.
 
 Each of your sub-directories may contain a default controller which will be
 called if the URL contains *only* the sub-directory. Simply put a controller
 in there that matches the name of your default controller as specified in
-your **app/Config/Routes.php** file.
+your **app/Config/Routing.php** file.
 
 CodeIgniter also permits you to map your URIs using its :ref:`Defined Route Routing <defined-route-routing>`..
 

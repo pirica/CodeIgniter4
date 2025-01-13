@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -15,17 +17,15 @@ use CodeIgniter\HTTP\Exceptions\HTTPException;
 use CodeIgniter\Test\CIUnitTestCase;
 use org\bovigo\vfs\vfsStream;
 use org\bovigo\vfs\vfsStreamDirectory;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * @internal
- *
- * @group Others
  */
+#[Group('Others')]
 final class FileMovingTest extends CIUnitTestCase
 {
     private ?vfsStreamDirectory $root;
-    private string $path;
-    private string $start;
     private string $destination;
 
     protected function setUp(): void
@@ -33,11 +33,11 @@ final class FileMovingTest extends CIUnitTestCase
         parent::setUp();
 
         $this->root = vfsStream::setup();
-        $this->path = '_support/Files/';
-        vfsStream::copyFromFileSystem(TESTPATH . $this->path, $this->root);
-        $this->start = $this->root->url() . '/';
+        $path       = '_support/Files/';
+        vfsStream::copyFromFileSystem(TESTPATH . $path, $this->root);
+        $start = $this->root->url() . '/';
 
-        $this->destination = $this->start . 'destination';
+        $this->destination = $start . 'destination';
         if (is_dir($this->destination)) {
             rmdir($this->destination);
         }
@@ -60,7 +60,7 @@ final class FileMovingTest extends CIUnitTestCase
         }
     }
 
-    public function testMove()
+    public function testMove(): void
     {
         $finalFilename = 'fileA';
         $_FILES        = [
@@ -100,7 +100,7 @@ final class FileMovingTest extends CIUnitTestCase
         $this->assertTrue($this->root->hasChild('destination/' . $finalFilename . '_1.txt'));
     }
 
-    public function testMoveOverwriting()
+    public function testMoveOverwriting(): void
     {
         $finalFilename = 'file_with_delimiters_underscore';
         $_FILES        = [
@@ -150,7 +150,7 @@ final class FileMovingTest extends CIUnitTestCase
         $this->assertFileExists($destination . '/' . $finalFilename . '.txt');
     }
 
-    public function testMoved()
+    public function testMoved(): void
     {
         $finalFilename = 'fileA';
         $_FILES        = [
@@ -183,7 +183,7 @@ final class FileMovingTest extends CIUnitTestCase
         $this->assertTrue($file->hasMoved());
     }
 
-    public function testStore()
+    public function testStore(): void
     {
         $finalFilename = 'fileA';
         $_FILES        = [
@@ -215,7 +215,7 @@ final class FileMovingTest extends CIUnitTestCase
         $this->assertSame($destination . '/fileA.txt', $path);
     }
 
-    public function testAlreadyMoved()
+    public function testAlreadyMoved(): void
     {
         $finalFilename = 'fileA';
         $_FILES        = [
@@ -246,7 +246,7 @@ final class FileMovingTest extends CIUnitTestCase
         }
     }
 
-    public function testInvalidFile()
+    public function testInvalidFile(): void
     {
         $_FILES = [
             'userfile' => [
@@ -267,7 +267,7 @@ final class FileMovingTest extends CIUnitTestCase
         $file->move($destination, $file->getName(), false);
     }
 
-    public function testFailedMoveBecauseOfWarning()
+    public function testFailedMoveBecauseOfWarning(): void
     {
         $_FILES = [
             'userfile' => [
@@ -293,7 +293,7 @@ final class FileMovingTest extends CIUnitTestCase
         $file->move($destination, $file->getName(), false);
     }
 
-    public function testFailedMoveBecauseOfFalseReturned()
+    public function testFailedMoveBecauseOfFalseReturned(): void
     {
         $_FILES = [
             'userfile1' => [
@@ -363,7 +363,7 @@ function move_uploaded_file($filename, $destination, ?bool $setReturnValue = nul
     return $return;
 }
 
-function rrmdir($src)
+function rrmdir($src): void
 {
     $dir = opendir($src);
 

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -11,15 +13,15 @@
 
 namespace CodeIgniter\Commands\Utilities\Routes\AutoRouterImproved;
 
+use CodeIgniter\HTTP\Method;
 use CodeIgniter\Test\CIUnitTestCase;
 use Config\Filters;
-use Config\Services;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * @internal
- *
- * @group Others
  */
+#[Group('Others')]
 final class AutoRouteCollectorTest extends CIUnitTestCase
 {
     protected function setUp(): void
@@ -31,7 +33,7 @@ final class AutoRouteCollectorTest extends CIUnitTestCase
 
     private function createAutoRouteCollector(array $filterConfigFilters): AutoRouteCollector
     {
-        $routes = Services::routes();
+        $routes = service('routes');
         $routes->resetRoutes();
         $routes->setAutoRoute(true);
         config('Feature')->autoRoutesImproved = true;
@@ -41,18 +43,18 @@ final class AutoRouteCollectorTest extends CIUnitTestCase
         /** @var Filters $filterConfig */
         $filterConfig          = config('Filters');
         $filterConfig->filters = $filterConfigFilters;
-        Services::filters($filterConfig);
+        service('filters', $filterConfig);
 
         return new AutoRouteCollector(
             $namespace,
             'Home',
             'index',
-            ['get', 'post'],
+            [Method::GET, Method::POST],
             [],
         );
     }
 
-    public function testGetFilterMatches()
+    public function testGetFilterMatches(): void
     {
         $filterConfigFilters = ['honeypot' => ['before' => ['newautorouting/save*']]];
         $collector           = $this->createAutoRouteCollector($filterConfigFilters);
@@ -62,11 +64,11 @@ final class AutoRouteCollectorTest extends CIUnitTestCase
         $expected = [
             0 => [
                 'GET(auto)',
-                'newautorouting',
+                'newautorouting[/..]',
                 '',
                 '\\Tests\\Support\\Controllers\\Newautorouting::getIndex',
                 '',
-                'toolbar',
+                '',
             ],
             1 => [
                 'POST(auto)',
@@ -74,13 +76,13 @@ final class AutoRouteCollectorTest extends CIUnitTestCase
                 '',
                 '\\Tests\\Support\\Controllers\\Newautorouting::postSave',
                 'honeypot',
-                'toolbar',
+                '',
             ],
         ];
         $this->assertSame($expected, $routes);
     }
 
-    public function testGetFilterDoesNotMatch()
+    public function testGetFilterDoesNotMatch(): void
     {
         $filterConfigFilters = ['honeypot' => ['before' => ['newautorouting/save/*/*']]];
         $collector           = $this->createAutoRouteCollector($filterConfigFilters);
@@ -90,11 +92,11 @@ final class AutoRouteCollectorTest extends CIUnitTestCase
         $expected = [
             0 => [
                 'GET(auto)',
-                'newautorouting',
+                'newautorouting[/..]',
                 '',
                 '\\Tests\\Support\\Controllers\\Newautorouting::getIndex',
                 '',
-                'toolbar',
+                '',
             ],
             1 => [
                 'POST(auto)',
@@ -102,7 +104,7 @@ final class AutoRouteCollectorTest extends CIUnitTestCase
                 '',
                 '\\Tests\\Support\\Controllers\\Newautorouting::postSave',
                 '',
-                'toolbar',
+                '',
             ],
         ];
         $this->assertSame($expected, $routes);

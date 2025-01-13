@@ -28,18 +28,24 @@ to install it globally we do not recommend it, since it can cause compatibility 
 system as time goes on.
 
 Ensure that you have Composer installed on your system. From the project root (the directory that contains the
-application and system directories) type the following from the command line::
+application and system directories) type the following from the command line:
 
-    > composer require --dev phpunit/phpunit
+.. code-block:: console
+
+    composer require --dev phpunit/phpunit
 
 This will install the correct version for your current PHP version. Once that is done, you can run all of the
-tests for this project by typing::
+tests for this project by typing:
 
-    > vendor/bin/phpunit
+.. code-block:: console
 
-If you are using Windows, use the following command::
+    vendor/bin/phpunit
 
-    > vendor\bin\phpunit
+If you are using Windows, use the following command:
+
+.. code-block:: console
+
+    vendor\bin\phpunit
 
 Phar
 ----
@@ -54,24 +60,31 @@ Testing Your Application
 PHPUnit Configuration
 =====================
 
-The framework has a ``phpunit.xml.dist`` file in the project root. This controls unit
-testing of the framework itself. If you provide your own ``phpunit.xml``, it will
-over-ride this.
+In your CodeIgniter project root, there is the ``phpunit.xml.dist`` file. This
+controls unit testing of your application. If you provide your own ``phpunit.xml``,
+it will over-ride this.
 
-Your ``phpunit.xml`` should exclude the ``system`` folder, as well as any ``vendor`` or
-``ThirdParty`` folders, if you are unit testing your application.
+By default, test files are placed under the **tests** directory in the project root.
 
 The Test Class
 ==============
 
-In order to take advantage of the additional tools provided, your tests must extend ``CIUnitTestCase``. All tests
-are expected to be located in the **tests/app** directory by default.
+In order to take advantage of the additional tools provided, your tests must extend
+``CodeIgniter\Test\CIUnitTestCase``.
 
-To test a new library, **Foo**, you would create a new file at **tests/app/Libraries/FooTest.php**:
+There are no rules for how test files must be placed. However, we recommend that
+you establish placement rules in advance so that you can quickly understand where
+the test files are located.
+
+In this document, the test files corresponding to the classes in the **app** directory
+will be placed in the **tests/app** directory. To test a new library,
+**app/Libraries/Foo.php**, you would create a new file at
+**tests/app/Libraries/FooTest.php**:
 
 .. literalinclude:: overview/001.php
 
-To test one of your models, you might end up with something like this in **tests/app/Models/OneOfMyModelsTest.php**:
+To test one of your models, **app/Models/UserModel.php**, you might end up with
+something like this in **tests/app/Models/UserModelTest.php**:
 
 .. literalinclude:: overview/002.php
 
@@ -98,7 +111,7 @@ to help with staging and clean up::
 The static methods ``setUpBeforeClass()`` and ``tearDownAfterClass()`` run before and after the entire test case, whereas the protected methods ``setUp()`` and ``tearDown()`` run
 between each test.
 
-If you implement any of these special functions make sure you run their
+If you implement any of these special functions, make sure you run their
 parent as well so extended test cases do not interfere with staging:
 
 .. literalinclude:: overview/003.php
@@ -108,7 +121,7 @@ parent as well so extended test cases do not interfere with staging:
 Traits
 ------
 
-A common way to enhance your tests is by using traits to consolidate staging across different
+A common way to enhance your tests is using traits to consolidate staging across different
 test cases. ``CIUnitTestCase`` will detect any class traits and look for staging methods
 to run named for the trait itself (i.e. `setUp{NameOfTrait}()` and `tearDown{NameOfTrait}()`).
 
@@ -117,6 +130,8 @@ of your test cases you could create an authentication trait with a set up method
 logged in user:
 
 .. literalinclude:: overview/006.php
+
+.. literalinclude:: overview/022.php
 
 Additional Assertions
 ---------------------
@@ -149,8 +164,12 @@ Ensure that a header or cookie was actually emitted:
 
 .. literalinclude:: overview/009.php
 
-.. note:: the test case with this should be `run as a separate process
-    in PHPunit <https://phpunit.readthedocs.io/en/9.5/annotations.html#runinseparateprocess>`_.
+.. note:: The test case with this should be run as a separate process
+    (with `@runInSeparateProcess annotation`_ or `RunInSeparateProcess attribute`_)
+    in PHPUnit.
+
+.. _@runInSeparateProcess annotation: https://docs.phpunit.de/en/10.5/annotations.html#runinseparateprocess
+.. _RunInSeparateProcess attribute: https://docs.phpunit.de/en/10.5/attributes.html#runinseparateprocess
 
 assertHeaderNotEmitted($header, $ignoreCase = false)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -159,8 +178,9 @@ Ensure that a header or cookie was not emitted:
 
 .. literalinclude:: overview/010.php
 
-.. note:: the test case with this should be `run as a separate process
-    in PHPunit <https://phpunit.readthedocs.io/en/9.5/annotations.html#runinseparateprocess>`_.
+.. note:: The test case with this should be run as a separate process
+    (with `@runInSeparateProcess annotation`_ or `RunInSeparateProcess attribute`_)
+    in PHPUnit.
 
 assertCloseEnough($expected, $actual, $message = '', $tolerance = 1)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -238,6 +258,10 @@ Removes all mocked classes from the Services class, bringing it back to its orig
 
 You can also use the ``$this->resetServices()`` method that ``CIUnitTestCase`` provides.
 
+.. note:: This method resets the all states of Services, and the ``RouteCollection``
+    will have no routes. If you want to use your routes to be loaded, you need to
+    call the ``loadRoutes()`` method like ``Services::routes()->loadRoutes()``.
+
 Services::resetSingle(string $name)
 -----------------------------------
 
@@ -257,85 +281,19 @@ component name:
 
 .. note:: All component Factories are reset by default between each test. Modify your test case's ``$setUpMethods`` if you need instances to persist.
 
-.. _testing-cli-output:
+Testing and Time
+================
 
-Testing CLI Output
-==================
+Testing time-dependent code can be challenging. However, when using the
+:doc:`Time <../libraries/time>` class, the current time can be fixed or changed
+at will during testing.
 
-StreamFilterTrait
------------------
+Below is a sample test code that fixes the current time:
 
-.. versionadded:: 4.3.0
+.. literalinclude:: overview/021.php
 
-**StreamFilterTrait** provides an alternate to these helper methods.
+You can fix the current time with the ``Time::setTestNow()`` method.
+Optionally, you can specify a locale as the second parameter.
 
-You may need to test things that are difficult to test. Sometimes, capturing a stream, like PHP's own STDOUT, or STDERR,
-might be helpful. The ``StreamFilterTrait`` helps you capture the output from the stream of your choice.
-
-**Overview of methods**
-
-- ``StreamFilterTrait::getStreamFilterBuffer()`` Get the captured data from the buffer.
-- ``StreamFilterTrait::resetStreamFilterBuffer()`` Reset captured data.
-
-An example demonstrating this inside one of your test cases:
-
-.. literalinclude:: overview/018.php
-
-The ``StreamFilterTrait`` has a configurator that is called automatically.
-See :ref:`Testing Traits <testing-overview-traits>`.
-
-If you override the ``setUp()`` or ``tearDown()`` methods in your test, then you must call the ``parent::setUp()`` and
-``parent::tearDown()`` methods respectively to configure the ``StreamFilterTrait``.
-
-CITestStreamFilter
-------------------
-
-**CITestStreamFilter** for manual/single use.
-
-If you need to capture streams in only one test, then instead of using the StreamFilterTrait trait, you can manually
-add a filter to streams.
-
-**Overview of methods**
-
-- ``CITestStreamFilter::registration()`` Filter registration.
-- ``CITestStreamFilter::addOutputFilter()`` Adding a filter to the output stream.
-- ``CITestStreamFilter::addErrorFilter()`` Adding a filter to the error stream.
-- ``CITestStreamFilter::removeOutputFilter()`` Removing a filter from the output stream.
-- ``CITestStreamFilter::removeErrorFilter()`` Removing a filter from the error stream.
-
-.. literalinclude:: overview/020.php
-
-.. _testing-cli-input:
-
-Testing CLI Input
-=================
-
-PhpStreamWrapper
-----------------
-
-.. versionadded:: 4.3.0
-
-**PhpStreamWrapper** provides a way to write tests for methods that require user input,
-such as ``CLI::prompt()``, ``CLI::wait()``, and ``CLI::input()``.
-
-.. note:: The PhpStreamWrapper is a stream wrapper class.
-    If you don't know PHP's stream wrapper,
-    see `The streamWrapper class <https://www.php.net/manual/en/class.streamwrapper.php>`_
-    in the PHP maual.
-
-**Overview of methods**
-
-- ``PhpStreamWrapper::register()`` Register the ``PhpStreamWrapper`` to the ``php`` protocol.
-- ``PhpStreamWrapper::restore()`` Restore the php protocol wrapper back to the PHP built-in wrapper.
-- ``PhpStreamWrapper::setContent()`` Set the input data.
-
-.. important:: The PhpStreamWrapper is intended for only testing ``php://stdin``.
-    But when you register it, it handles all the `php protocol <https://www.php.net/manual/en/wrappers.php.php>`_ streams,
-    such as ``php://stdout``, ``php://stderr``, ``php://memory``.
-    So it is strongly recommended that ``PhpStreamWrapper`` be registered/unregistered
-    only when needed. Otherwise, it will interfere with other built-in php streams
-    while registered.
-
-An example demonstrating this inside one of your test cases:
-
-.. literalinclude:: overview/019.php
+Don't forget to reset the current time after the test with calling it without
+parameters.

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -12,18 +14,18 @@
 namespace CodeIgniter\Validation;
 
 use CodeIgniter\Test\CIUnitTestCase;
-use Config\Services;
-use Generator;
+use ErrorException;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use stdClass;
 use Tests\Support\Validation\TestRules;
 
 /**
  * @internal
  *
- * @group Others
- *
  * @no-final
  */
+#[Group('Others')]
 class RulesTest extends CIUnitTestCase
 {
     protected Validation $validation;
@@ -48,22 +50,22 @@ class RulesTest extends CIUnitTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->validation = new Validation((object) $this->config, Services::renderer());
+
+        $this->validation = new Validation((object) $this->config, service('renderer'));
         $this->validation->reset();
     }
 
-    /**
-     * @dataProvider provideRequiredCases
-     */
+    #[DataProvider('provideRequired')]
     public function testRequired(array $data, bool $expected): void
     {
         $this->validation->setRules(['foo' => 'required']);
         $this->assertSame($expected, $this->validation->run($data));
     }
 
-    public function provideRequiredCases(): Generator
+    public static function provideRequired(): iterable
     {
         yield from [
+            [[], false],
             [['foo' => null], false],
             [['foo' => 123], true],
             [['foo' => null, 'bar' => 123], false],
@@ -73,16 +75,14 @@ class RulesTest extends CIUnitTestCase
         ];
     }
 
-    /**
-     * @dataProvider ifExistProvider
-     */
+    #[DataProvider('provideIfExist')]
     public function testIfExist(array $rules, array $data, bool $expected): void
     {
         $this->validation->setRules($rules);
         $this->assertSame($expected, $this->validation->run($data));
     }
 
-    public function ifExistProvider(): Generator
+    public static function provideIfExist(): iterable
     {
         yield from [
             [
@@ -117,22 +117,44 @@ class RulesTest extends CIUnitTestCase
                 ['foo' => []],
                 true,
             ],
+            // Testing with closure
+            [
+                ['foo' => ['if_exist', static fn ($value): bool => true]],
+                ['foo' => []],
+                true,
+            ],
         ];
     }
 
-    /**
-     * @dataProvider providePermitEmptyCases
-     */
+    public function testIfExistArray(): void
+    {
+        $this->expectException(ErrorException::class);
+        $this->expectExceptionMessage('Array to string conversion');
+
+        $rules = ['foo' => 'if_exist|alpha'];
+        // Invalid array input
+        $data = ['foo' => ['bar' => '12345']];
+
+        $this->validation->setRules($rules);
+        $this->validation->run($data);
+    }
+
+    #[DataProvider('providePermitEmpty')]
     public function testPermitEmpty(array $rules, array $data, bool $expected): void
     {
         $this->validation->setRules($rules);
         $this->assertSame($expected, $this->validation->run($data));
     }
 
-    public function providePermitEmptyCases(): Generator
+    public static function providePermitEmpty(): iterable
     {
         yield from [
             // If the rule is only `permit_empty`, any value will pass.
+            [
+                ['foo' => 'permit_empty|valid_email'],
+                [],
+                true,
+            ],
             [
                 ['foo' => 'permit_empty|valid_email'],
                 ['foo' => ''],
@@ -198,8 +220,8 @@ class RulesTest extends CIUnitTestCase
                 ['foo' => 'invalid'],
                 false,
             ],
-            // Required has more priority
             [
+                // Required has more priority
                 ['foo' => 'permit_empty|required|valid_email'],
                 ['foo' => ''],
                 false,
@@ -219,8 +241,8 @@ class RulesTest extends CIUnitTestCase
                 ['foo' => false],
                 false,
             ],
-            // This tests will return true because the input data is trimmed
             [
+                // This tests will return true because the input data is trimmed
                 ['foo' => 'permit_empty|required'],
                 ['foo' => '0'],
                 true,
@@ -275,37 +297,89 @@ class RulesTest extends CIUnitTestCase
                 ['foo' => '', 'bar' => 1],
                 true,
             ],
+            [
+                // Testing with closure
+                ['foo' => ['permit_empty', static fn ($value): bool => true]],
+                ['foo' => ''],
+                true,
+            ],
         ];
     }
 
-    /**
-     * @dataProvider provideMatchesCases
-     */
+    #[DataProvider('provideMatches')]
     public function testMatches(array $data, bool $expected): void
     {
         $this->validation->setRules(['foo' => 'matches[bar]']);
         $this->assertSame($expected, $this->validation->run($data));
     }
 
-    public function provideMatchesCases(): Generator
+    public static function provideMatches(): iterable
     {
         yield from [
-            [['foo' => null, 'bar' => null], true],
-            [['foo' => 'match', 'bar' => 'match'], true],
-            [['foo' => 'match', 'bar' => 'nope'], false],
+            'foo bar not exist'        => [[], false],
+            'bar not exist'            => [['foo' => null], false],
+            'foo not exist'            => [['bar' => null], false],
+            'foo bar null'             => [['foo' => null, 'bar' => null], false], // Strict Rule: true
+            'foo bar string match'     => [['foo' => 'match', 'bar' => 'match'], true],
+            'foo bar string not match' => [['foo' => 'match', 'bar' => 'nope'], false],
+            'foo bar float match'      => [['foo' => 1.2, 'bar' => 1.2], true],
+            'foo bar float not match'  => [['foo' => 1.2, 'bar' => 2.3], false],
+            'foo bar bool match'       => [['foo' => true, 'bar' => true], true],
         ];
     }
 
-    /**
-     * @dataProvider provideMatchesNestedCases
-     */
+    #[DataProvider('provideMatchesNestedCases')]
     public function testMatchesNested(array $data, bool $expected): void
     {
         $this->validation->setRules(['nested.foo' => 'matches[nested.bar]']);
         $this->assertSame($expected, $this->validation->run($data));
     }
 
-    public function provideMatchesNestedCases(): Generator
+    public function testMatchesWithDotArrayPass(): void
+    {
+        $rules = [
+            'name'         => 'permit_empty',
+            'emailAddress' => 'permit_empty|valid_email',
+            'alias.*'      => 'permit_empty|matches[name]',
+        ];
+        $this->validation->setRules($rules);
+
+        $data = [
+            'name'         => 'Princess Peach',
+            'emailAddress' => 'valid@example.com',
+            'alias'        => [
+                'Princess Peach',
+                'Princess Peach',
+            ],
+        ];
+        $this->assertTrue($this->validation->run($data));
+    }
+
+    public function testMatchesWithDotArrayFail(): void
+    {
+        $rules = [
+            'name'         => 'permit_empty',
+            'emailAddress' => 'permit_empty|valid_email',
+            'alias.*'      => 'permit_empty|matches[name]',
+        ];
+        $this->validation->setRules($rules);
+
+        $data = [
+            'name'         => 'Princess Peach',
+            'emailAddress' => 'valid@example.com',
+            'alias'        => [
+                'Princess ',
+                'Princess Peach',
+            ],
+        ];
+        $this->assertFalse($this->validation->run($data));
+        $this->assertSame(
+            ['alias.0' => 'The alias.* field does not match the name field.'],
+            $this->validation->getErrors(),
+        );
+    }
+
+    public static function provideMatchesNestedCases(): iterable
     {
         yield from [
             [['nested' => ['foo' => 'match', 'bar' => 'match']], true],
@@ -313,34 +387,87 @@ class RulesTest extends CIUnitTestCase
         ];
     }
 
-    /**
-     * @dataProvider provideMatchesCases
-     */
+    #[DataProvider('provideDiffers')]
     public function testDiffers(array $data, bool $expected): void
     {
         $this->validation->setRules(['foo' => 'differs[bar]']);
-        $this->assertSame(! $expected, $this->validation->run($data));
+        $this->assertSame($expected, $this->validation->run($data));
     }
 
-    /**
-     * @dataProvider provideMatchesNestedCases
-     */
+    public static function provideDiffers(): iterable
+    {
+        yield from [
+            'foo bar not exist'        => [[], false],
+            'bar not exist'            => [['foo' => null], false],
+            'foo not exist'            => [['bar' => null], false],
+            'foo bar null'             => [['foo' => null, 'bar' => null], false],
+            'foo bar string match'     => [['foo' => 'match', 'bar' => 'match'], false],
+            'foo bar string not match' => [['foo' => 'match', 'bar' => 'nope'], true],
+            'foo bar float match'      => [['foo' => 1.2, 'bar' => 1.2], false],
+            'foo bar float not match'  => [['foo' => 1.2, 'bar' => 2.3], true],
+            'foo bar bool match'       => [['foo' => true, 'bar' => true], false],
+        ];
+    }
+
+    #[DataProvider('provideMatchesNestedCases')]
     public function testDiffersNested(array $data, bool $expected): void
     {
         $this->validation->setRules(['nested.foo' => 'differs[nested.bar]']);
         $this->assertSame(! $expected, $this->validation->run($data));
     }
 
-    /**
-     * @dataProvider provideEqualsCases
-     */
+    public function testDiffersWithDotArrayPass(): void
+    {
+        $rules = [
+            'name'         => 'permit_empty',
+            'emailAddress' => 'permit_empty|valid_email',
+            'alias.*'      => 'permit_empty|differs[name]',
+        ];
+        $this->validation->setRules($rules);
+
+        $data = [
+            'name'         => 'Princess Peach',
+            'emailAddress' => 'valid@example.com',
+            'alias'        => [
+                'Princess Toadstool',
+                'Peach',
+            ],
+        ];
+        $this->assertTrue($this->validation->run($data));
+    }
+
+    public function testDiffersWithDotArrayFail(): void
+    {
+        $rules = [
+            'name'         => 'permit_empty',
+            'emailAddress' => 'permit_empty|valid_email',
+            'alias.*'      => 'permit_empty|differs[name]',
+        ];
+        $this->validation->setRules($rules);
+
+        $data = [
+            'name'         => 'Princess Peach',
+            'emailAddress' => 'valid@example.com',
+            'alias'        => [
+                'Princess Toadstool',
+                'Princess Peach',
+            ],
+        ];
+        $this->assertFalse($this->validation->run($data));
+        $this->assertSame(
+            ['alias.1' => 'The alias.* field must differ from the name field.'],
+            $this->validation->getErrors(),
+        );
+    }
+
+    #[DataProvider('provideEquals')]
     public function testEquals(array $data, string $param, bool $expected): void
     {
         $this->validation->setRules(['foo' => "equals[{$param}]"]);
         $this->assertSame($expected, $this->validation->run($data));
     }
 
-    public function provideEqualsCases(): Generator
+    public static function provideEquals(): iterable
     {
         yield from [
             'null'   => [['foo' => null], '', false],
@@ -351,16 +478,14 @@ class RulesTest extends CIUnitTestCase
         ];
     }
 
-    /**
-     * @dataProvider provideMinLengthCases
-     */
+    #[DataProvider('provideMinLengthCases')]
     public function testMinLength(?string $data, string $length, bool $expected): void
     {
         $this->validation->setRules(['foo' => "min_length[{$length}]"]);
         $this->assertSame($expected, $this->validation->run(['foo' => $data]));
     }
 
-    public function provideMinLengthCases(): Generator
+    public static function provideMinLengthCases(): iterable
     {
         yield from [
             'null'    => [null, '2', false],
@@ -370,9 +495,7 @@ class RulesTest extends CIUnitTestCase
         ];
     }
 
-    /**
-     * @dataProvider provideMinLengthCases
-     */
+    #[DataProvider('provideMinLengthCases')]
     public function testMaxLength(?string $data, string $length, bool $expected): void
     {
         $this->validation->setRules(['foo' => "max_length[{$length}]"]);
@@ -386,21 +509,25 @@ class RulesTest extends CIUnitTestCase
     }
 
     /**
-     * @dataProvider provideExactLengthCases
+     * @param int|string|null $data
      */
-    public function testExactLength(?string $data, bool $expected): void
+    #[DataProvider('provideExactLength')]
+    public function testExactLength($data, bool $expected): void
     {
         $this->validation->setRules(['foo' => 'exact_length[3]']);
         $this->assertSame($expected, $this->validation->run(['foo' => $data]));
     }
 
-    public function provideExactLengthCases(): Generator
+    public static function provideExactLength(): iterable
     {
         yield from [
-            'null'    => [null, false],
-            'exact'   => ['bar', true],
-            'less'    => ['ba', false],
-            'greater' => ['bars', false],
+            'null'        => [null, false],
+            'exact'       => ['bar', true],
+            'exact_int'   => [123, true],
+            'less'        => ['ba', false],
+            'less_int'    => [12, false],
+            'greater'     => ['bars', false],
+            'greater_int' => [1234, false],
         ];
     }
 
@@ -411,9 +538,7 @@ class RulesTest extends CIUnitTestCase
         $this->assertFalse($this->validation->run($data));
     }
 
-    /**
-     * @dataProvider greaterThanProvider
-     */
+    #[DataProvider('provideGreaterThan')]
     public function testGreaterThan(?string $first, ?string $second, bool $expected): void
     {
         $data = ['foo' => $first];
@@ -421,7 +546,7 @@ class RulesTest extends CIUnitTestCase
         $this->assertSame($expected, $this->validation->run($data));
     }
 
-    public function greaterThanProvider(): Generator
+    public static function provideGreaterThan(): iterable
     {
         yield from [
             ['-10', '-11', true],
@@ -436,9 +561,7 @@ class RulesTest extends CIUnitTestCase
         ];
     }
 
-    /**
-     * @dataProvider greaterThanEqualProvider
-     */
+    #[DataProvider('provideGreaterThanEqual')]
     public function testGreaterThanEqual(?string $first, ?string $second, bool $expected): void
     {
         $data = ['foo' => $first];
@@ -446,7 +569,7 @@ class RulesTest extends CIUnitTestCase
         $this->assertSame($expected, $this->validation->run($data));
     }
 
-    public function greaterThanEqualProvider(): Generator
+    public static function provideGreaterThanEqual(): iterable
     {
         yield from [
             ['0', '0', true],
@@ -462,9 +585,7 @@ class RulesTest extends CIUnitTestCase
         ];
     }
 
-    /**
-     * @dataProvider lessThanProvider
-     */
+    #[DataProvider('provideLessThan')]
     public function testLessThan(?string $first, ?string $second, bool $expected): void
     {
         $data = ['foo' => $first];
@@ -472,7 +593,7 @@ class RulesTest extends CIUnitTestCase
         $this->assertSame($expected, $this->validation->run($data));
     }
 
-    public function lessThanProvider(): Generator
+    public static function provideLessThan(): iterable
     {
         yield from [
             ['-10', '-11', false],
@@ -488,9 +609,7 @@ class RulesTest extends CIUnitTestCase
         ];
     }
 
-    /**
-     * @dataProvider lessThanEqualProvider
-     */
+    #[DataProvider('provideLessThanEqual')]
     public function testLessThanEqual(?string $first, ?string $second, bool $expected): void
     {
         $data = ['foo' => $first];
@@ -498,7 +617,7 @@ class RulesTest extends CIUnitTestCase
         $this->assertSame($expected, $this->validation->run($data));
     }
 
-    public function lessThanEqualProvider(): Generator
+    public static function provideLessThanEqual(): iterable
     {
         yield from [
             ['0', '0', true],
@@ -514,9 +633,7 @@ class RulesTest extends CIUnitTestCase
         ];
     }
 
-    /**
-     * @dataProvider inListProvider
-     */
+    #[DataProvider('provideInList')]
     public function testInList(?string $first, ?string $second, bool $expected): void
     {
         $data = ['foo' => $first];
@@ -524,9 +641,7 @@ class RulesTest extends CIUnitTestCase
         $this->assertSame($expected, $this->validation->run($data));
     }
 
-    /**
-     * @dataProvider inListProvider
-     */
+    #[DataProvider('provideInList')]
     public function testNotInList(?string $first, ?string $second, bool $expected): void
     {
         $data = ['foo' => $first];
@@ -534,7 +649,7 @@ class RulesTest extends CIUnitTestCase
         $this->assertSame(! $expected, $this->validation->run($data));
     }
 
-    public function inListProvider(): Generator
+    public static function provideInList(): iterable
     {
         yield from [
             ['red', 'red,Blue,123', true],
@@ -549,9 +664,7 @@ class RulesTest extends CIUnitTestCase
         ];
     }
 
-    /**
-     * @dataProvider requiredWithProvider
-     */
+    #[DataProvider('provideRequiredWith')]
     public function testRequiredWith(?string $field, ?string $check, bool $expected): void
     {
         $data = [
@@ -570,7 +683,7 @@ class RulesTest extends CIUnitTestCase
         $this->assertSame($expected, $this->validation->run($data));
     }
 
-    public function requiredWithProvider(): Generator
+    public static function provideRequiredWith(): iterable
     {
         yield from [
             ['nope', 'bar', false],
@@ -603,8 +716,65 @@ class RulesTest extends CIUnitTestCase
     }
 
     /**
-     * @dataProvider requiredWithoutProvider
+     * @see https://github.com/codeigniter4/CodeIgniter4/issues/7557
      */
+    #[DataProvider('provideRequiredWithAndOtherRules')]
+    public function testRequiredWithAndOtherRules(bool $expected, array $data): void
+    {
+        $this->validation->setRules([
+            'mustBeADate' => 'required_with[otherField]|permit_empty|valid_date',
+        ]);
+
+        $result = $this->validation->run($data);
+
+        $this->assertSame($expected, $result);
+    }
+
+    public static function provideRequiredWithAndOtherRules(): iterable
+    {
+        yield from [
+            // `otherField` and `mustBeADate` do not exist
+            [true, []],
+            // `mustBeADate` does not exist
+            [false, ['otherField' => 'exists']],
+            // ``otherField` does not exist
+            [true, ['mustBeADate' => '2023-06-12']],
+            [true, ['mustBeADate' => '']],
+            [true, ['mustBeADate' => null]],
+            [true, ['mustBeADate' => []]],
+            // `otherField` and `mustBeADate` exist
+            [true, ['mustBeADate' => '', 'otherField' => '']],
+            [true, ['mustBeADate' => '2023-06-12', 'otherField' => 'exists']],
+            [true, ['mustBeADate' => '2023-06-12', 'otherField' => '']],
+            [false, ['mustBeADate' => '', 'otherField' => 'exists']],
+            [false, ['mustBeADate' => [], 'otherField' => 'exists']],
+            [false, ['mustBeADate' => null, 'otherField' => 'exists']],
+        ];
+    }
+
+    #[DataProvider('provideRequiredWithAndOtherRuleWithValueZero')]
+    public function testRequiredWithAndOtherRuleWithValueZero(bool $expected, array $data): void
+    {
+        $this->validation->setRules([
+            'married'      => ['rules' => ['in_list[0,1]']],
+            'partner_name' => ['rules' => ['permit_empty', 'required_with[married]', 'alpha_space']],
+        ]);
+
+        $result = $this->validation->run($data);
+
+        $this->assertSame($expected, $result);
+    }
+
+    public static function provideRequiredWithAndOtherRuleWithValueZero(): iterable
+    {
+        yield from [
+            [true, ['married' => '0', 'partner_name' => '']],
+            [true, ['married' => '1', 'partner_name' => 'Foo']],
+            [false, ['married' => '1', 'partner_name' => '']],
+        ];
+    }
+
+    #[DataProvider('provideRequiredWithout')]
     public function testRequiredWithout(?string $field, ?string $check, bool $expected): void
     {
         $data = [
@@ -623,7 +793,7 @@ class RulesTest extends CIUnitTestCase
         $this->assertSame($expected, $this->validation->run($data));
     }
 
-    public function requiredWithoutProvider(): Generator
+    public static function provideRequiredWithout(): iterable
     {
         yield from [
             ['nope', 'bars', false],
@@ -654,9 +824,7 @@ class RulesTest extends CIUnitTestCase
         ];
     }
 
-    /**
-     * @dataProvider requiredWithoutMultipleProvider
-     */
+    #[DataProvider('provideRequiredWithoutMultiple')]
     public function testRequiredWithoutMultiple(string $foo, string $bar, string $baz, bool $result): void
     {
         $this->validation->setRules(['foo' => 'required_without[bar,baz]']);
@@ -669,7 +837,7 @@ class RulesTest extends CIUnitTestCase
         $this->assertSame($result, $this->validation->run($data));
     }
 
-    public function requiredWithoutMultipleProvider(): Generator
+    public static function provideRequiredWithoutMultiple(): iterable
     {
         yield from [
             'all empty' => [
@@ -705,9 +873,7 @@ class RulesTest extends CIUnitTestCase
         ];
     }
 
-    /**
-     * @dataProvider requiredWithoutMultipleWithoutFieldsProvider
-     */
+    #[DataProvider('provideRequiredWithoutMultipleWithoutFields')]
     public function testRequiredWithoutMultipleWithoutFields(array $data, bool $result): void
     {
         $this->validation->setRules(['foo' => 'required_without[bar,baz]']);
@@ -715,7 +881,7 @@ class RulesTest extends CIUnitTestCase
         $this->assertSame($result, $this->validation->run($data));
     }
 
-    public function requiredWithoutMultipleWithoutFieldsProvider(): Generator
+    public static function provideRequiredWithoutMultipleWithoutFields(): iterable
     {
         yield from [
             'baz is missing' => [
@@ -745,5 +911,103 @@ class RulesTest extends CIUnitTestCase
                 true,
             ],
         ];
+    }
+
+    #[DataProvider('provideFieldExists')]
+    public function testFieldExists(array $rules, array $data, bool $expected): void
+    {
+        $this->validation->setRules($rules);
+        $this->assertSame($expected, $this->validation->run($data));
+    }
+
+    public static function provideFieldExists(): iterable
+    {
+        // Do not use `foo`, because there is a lang file `Foo`, and
+        // the error message may be messed up.
+        yield from [
+            'empty string' => [
+                ['fiz' => 'field_exists'],
+                ['fiz' => ''],
+                true,
+            ],
+            'null' => [
+                ['fiz' => 'field_exists'],
+                ['fiz' => null],
+                true,
+            ],
+            'false' => [
+                ['fiz' => 'field_exists'],
+                ['fiz' => false],
+                true,
+            ],
+            'empty array' => [
+                ['fiz' => 'field_exists'],
+                ['fiz' => []],
+                true,
+            ],
+            'empty data' => [
+                ['fiz' => 'field_exists'],
+                [],
+                false,
+            ],
+            'dot array syntax: true' => [
+                ['fiz.bar' => 'field_exists'],
+                [
+                    'fiz' => ['bar' => null],
+                ],
+                true,
+            ],
+            'dot array syntax: false' => [
+                ['fiz.bar' => 'field_exists'],
+                [],
+                false,
+            ],
+            'dot array syntax asterisk: true' => [
+                ['fiz.*.baz' => 'field_exists'],
+                [
+                    'fiz' => [
+                        'bar' => [
+                            'baz' => null,
+                        ],
+                    ],
+                ],
+                true,
+            ],
+            'dot array syntax asterisk: false' => [
+                ['fiz.*.baz' => 'field_exists'],
+                [
+                    'fiz' => [
+                        'bar' => [
+                            'baz' => null,
+                        ],
+                        'hoge' => [
+                            // 'baz' is missing.
+                        ],
+                    ],
+                ],
+                false,
+            ],
+        ];
+    }
+
+    public function testFieldExistsErrorMessage(): void
+    {
+        $this->validation->setRules(['fiz.*.baz' => 'field_exists']);
+        $data = [
+            'fiz' => [
+                'bar' => [
+                    'baz' => null,
+                ],
+                'hoge' => [
+                    // 'baz' is missing.
+                ],
+            ],
+        ];
+
+        $this->assertFalse($this->validation->run($data));
+        $this->assertSame(
+            ['fiz.*.baz' => 'The fiz.*.baz field must exist.'],
+            $this->validation->getErrors(),
+        );
     }
 }

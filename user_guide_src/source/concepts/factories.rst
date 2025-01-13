@@ -4,7 +4,7 @@ Factories
 
 .. contents::
     :local:
-    :depth: 2
+    :depth: 3
 
 Introduction
 ************
@@ -41,68 +41,85 @@ On the other hand, Services have code to create instances, so it can create a co
 that needs other services or class instances. When you get a service, Services require a service name,
 not a class name, so the returned instance can be changed without changing the client code.
 
+.. _factories-loading-class:
+
 Loading Classes
 ***************
 
 Loading a Class
 ===============
 
-.. _factories-example:
-
-Model Example
--------------
-
 Take a look at **Models** as an example. You can access the Factory specific to Models
 by using the magic static method of the Factories class, ``Factories::models()``.
 
 The static method name is called *component*.
 
-By default, Factories first searches in the ``App`` namespace for the path corresponding to the magic static method name.
+.. _factories-passing-classname-without-namespace:
+
+Passing Classname without Namespace
+-----------------------------------
+
+If you pass a classname without a namespace, Factories first searches in the
+``App`` namespace for the path corresponding to the magic static method name.
 ``Factories::models()`` searches the **app/Models** directory.
+
+Passing Short Classname
+^^^^^^^^^^^^^^^^^^^^^^^
 
 In the following code, if you have ``App\Models\UserModel``, the instance will be returned:
 
 .. literalinclude:: factories/001.php
 
-Or you could also request a specific class:
-
-.. literalinclude:: factories/002.php
-   :lines: 2-
-
-If you have only ``Blog\Models\UserModel``, the instance will be returned.
-But if you have both ``App\Models\UserModel`` and ``Blog\Models\UserModel``,
-the instance of ``App\Models\UserModel`` will be returned.
-
-If you want to get ``Blog\Models\UserModel``, you need to disable the option ``preferApp``:
-
-.. literalinclude:: factories/010.php
-   :lines: 2-
-
-See :ref:`factories-options` for the details.
+If you don't have ``App\Models\UserModel``, it searches for ``Models\UserModel`` in all namespaces.
 
 Next time you ask for the same class anywhere in your code, Factories will be sure
 you get back the instance as before:
 
 .. literalinclude:: factories/003.php
 
-Loading a Class in Sub-directories
-==================================
+Passing Short Classname with Sub-directories
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 If you want to load a class in sub directories, you use the ``/`` as a separator.
-The following code loads **app/Libraries/Sub/SubLib.php**:
+The following code loads **app/Libraries/Sub/SubLib.php** if it exists:
 
 .. literalinclude:: factories/013.php
    :lines: 2-
+
+.. _factories-passing-fully-qualified-classname:
+
+Passing Fully Qualified Classname
+---------------------------------
+
+You could also request a fully qualified classname:
+
+.. literalinclude:: factories/002.php
+   :lines: 2-
+
+It returns the instance of ``Blog\Models\UserModel`` if it exists.
+
+.. note:: Prior to v4.4.0, when you requested a fully qualified classname,
+    if you had only ``Blog\Models\UserModel``, the instance would be returned.
+    But if you had both ``App\Models\UserModel`` and ``Blog\Models\UserModel``,
+    the instance of ``App\Models\UserModel`` would be returned.
+
+    If you wanted to get ``Blog\Models\UserModel``, you needed to disable the
+    option ``preferApp``:
+
+    .. literalinclude:: factories/010.php
+       :lines: 2-
 
 Convenience Functions
 *********************
 
 Two shortcut functions for Factories have been provided. These functions are always available.
 
+.. _factories-config:
+
 config()
 ========
 
-The first is ``config()`` which returns a new instance of a Config class. The only required parameter is the class name:
+The first is :php:func:`config()` which returns a new instance of a Config class. The only required parameter is the class name:
 
 .. literalinclude:: factories/008.php
 
@@ -112,6 +129,29 @@ model()
 The second function, :php:func:`model()` returns a new instance of a Model class. The only required parameter is the class name:
 
 .. literalinclude:: factories/009.php
+
+.. _factories-defining-classname-to-be-loaded:
+
+Defining Classname to be Loaded
+*******************************
+
+.. versionadded:: 4.4.0
+
+You could define a classname to be loaded before loading the class with
+the ``Factories::define()`` method:
+
+.. literalinclude:: factories/014.php
+   :lines: 2-
+
+The first parameter is a component. The second parameter is a class alias
+(the first parameter to Factories magic static method), and the third parameter
+is the true fully qualified classname to be loaded.
+
+After that, if you load ``Myth\Auth\Models\UserModel`` with Factories, the
+``App\Models\UserModel`` instance will be returned:
+
+.. literalinclude:: factories/015.php
+   :lines: 2-
 
 Factory Parameters
 ******************
@@ -151,6 +191,9 @@ getShared  boolean        Whether to return a shared instance of the class or lo
 preferApp  boolean        Whether a class with the same basename in the App namespace  ``true``
                           overrides other explicit class requests.
 ========== ============== ============================================================ ===================================================
+
+.. note:: Since v4.4.0, ``preferApp`` works only when you request
+    :ref:`a classname without a namespace <factories-passing-classname-without-namespace>`.
 
 Factories Behavior
 ******************
@@ -221,3 +264,104 @@ that single call will return a new or shared instance:
 
 .. literalinclude:: factories/007.php
    :lines: 2-
+
+.. _factories-config-caching:
+
+Config Caching
+**************
+
+.. versionadded:: 4.4.0
+
+.. important:: Do not use this feature unless you have carefully read this section
+    and understand how this feature works. Otherwise, your application will not
+    function properly.
+
+To improve performance, Config Caching has been implemented.
+
+Prerequisite
+============
+
+.. important:: Using this feature when the prerequisites are not met will prevent
+    CodeIgniter from operating properly. Do not use this feature in such cases.
+
+- To use this feature, the properties of all Config objects instantiated in
+  Factories must not be modified after instantiation. Put another way, the Config
+  classes must be an immutable or readonly classes.
+- By default, every Config class that is cached must implement ``__set_state()``
+  method.
+
+How It Works
+============
+
+.. important:: Once cached, configuration values are never changed until the cache
+    is deleted, even if the configuration file or **.env** is changed.
+
+- Save the all Config instances in Factories into a cache file before shutdown,
+  if the state of the Config instances in Factories changes.
+- Restore cached Config instances before CodeIgniter initialization if a cache
+  is available.
+
+Simply put, all Config instances held by Factories are cached immediately prior
+to shutdown, and the cached instances are used permanently.
+
+How to Update Config Values
+===========================
+
+Once stored, the cached versions never expire. Changing a existing Config file
+(or changing Environment Variables for it) will not update the cache nor the Config
+values.
+
+So if you want to update Config values, update Config files or Environment Variables
+for them, and you must manually delete the cache file.
+
+You can use the ``spark cache:clear`` command:
+
+.. code-block:: console
+
+    php spark cache:clear
+
+Or simply delete the **writable/cache/FactoriesCache_config** file.
+
+.. note::
+    Since v4.5.0, the ``spark optimize`` command clears the cache.
+
+How to Enable Config Caching
+============================
+
+.. versionadded:: 4.5.0
+
+Set the following property to ``true`` in **app/Config/Optimize.php**::
+
+    public bool $configCacheEnabled = true;
+
+Or you can enable this with the ``spark optimize`` command.
+
+.. note::
+    This property cannot be overridden by
+    :ref:`environment variables <configuration-classes-and-environment-variables>`.
+
+.. note::
+    In v4.4.x, uncomment the following code in **public/index.php**::
+
+        --- a/public/index.php
+        +++ b/public/index.php
+        @@ -49,8 +49,8 @@ if (! defined('ENVIRONMENT')) {
+         }
+
+         // Load Config Cache
+        -// $factoriesCache = new \CodeIgniter\Cache\FactoriesCache();
+        -// $factoriesCache->load('config');
+        +$factoriesCache = new \CodeIgniter\Cache\FactoriesCache();
+        +$factoriesCache->load('config');
+         // ^^^ Uncomment these lines if you want to use Config Caching.
+
+         /*
+        @@ -79,7 +79,7 @@ $app->setContext($context);
+         $app->run();
+
+         // Save Config Cache
+        -// $factoriesCache->save('config');
+        +$factoriesCache->save('config');
+         // ^^^ Uncomment this line if you want to use Config Caching.
+
+         // Exits the application, setting the exit code for CLI-based applications

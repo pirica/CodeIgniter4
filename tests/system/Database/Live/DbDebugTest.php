@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -14,19 +16,19 @@ namespace CodeIgniter\Database\Live;
 use CodeIgniter\Database\Exceptions\DatabaseException;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\DatabaseTestTrait;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
- * @group DatabaseLive
- *
  * @internal
  */
+#[Group('DatabaseLive')]
 final class DbDebugTest extends CIUnitTestCase
 {
     use DatabaseTestTrait;
 
     protected $refresh = true;
 
-    public function testDBDebugTrue()
+    public function testDBDebugTrue(): void
     {
         $this->enableDBDebug();
 
@@ -35,7 +37,7 @@ final class DbDebugTest extends CIUnitTestCase
         $this->db->simpleQuery('SELECT * FROM db_error');
     }
 
-    public function testDBDebugFalse()
+    public function testDBDebugFalse(): void
     {
         // WARNING this value will persist! take care to roll it back.
         $this->disableDBDebug();

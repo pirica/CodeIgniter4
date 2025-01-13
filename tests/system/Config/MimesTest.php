@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -13,15 +15,16 @@ namespace CodeIgniter\Config;
 
 use CodeIgniter\Test\CIUnitTestCase;
 use Config\Mimes;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * @internal
- *
- * @group Others
  */
+#[Group('Others')]
 final class MimesTest extends CIUnitTestCase
 {
-    public function extensionsList()
+    public static function provideGuessExtensionFromType(): iterable
     {
         return [
             'null' => [
@@ -47,15 +50,13 @@ final class MimesTest extends CIUnitTestCase
         ];
     }
 
-    /**
-     * @dataProvider extensionsList
-     */
-    public function testGuessExtensionFromType(?string $expected, string $mime)
+    #[DataProvider('provideGuessExtensionFromType')]
+    public function testGuessExtensionFromType(?string $expected, string $mime): void
     {
         $this->assertSame($expected, Mimes::guessExtensionFromType($mime));
     }
 
-    public function mimesList()
+    public static function provideGuessTypeFromExtension(): iterable
     {
         return [
             'null' => [
@@ -81,10 +82,8 @@ final class MimesTest extends CIUnitTestCase
         ];
     }
 
-    /**
-     * @dataProvider mimesList
-     */
-    public function testGuessTypeFromExtension(?string $expected, string $ext)
+    #[DataProvider('provideGuessTypeFromExtension')]
+    public function testGuessTypeFromExtension(?string $expected, string $ext): void
     {
         $this->assertSame($expected, Mimes::guessTypeFromExtension($ext));
     }

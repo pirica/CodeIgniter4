@@ -10,11 +10,13 @@ Helper Functions
 What are Helpers?
 *****************
 
-Helpers, as the name suggests, help you with tasks. Each helper file is
-simply a collection of functions in a particular category. There are **URL
-Helpers**, that assist in creating links, there are **Form Helpers** that help
-you create form elements, **Text Helpers** perform various text formatting
-routines, **Cookie Helpers** set and read cookies, **File Helpers** help you
+Helpers, as the name suggests, help you with tasks. Each helper file is simply a
+collection of functions in a particular category. There are
+:doc:`URL Helpers <../helpers/url_helper>`,
+that assist in creating links, there are :doc:`Form Helpers <../helpers/form_helper>`
+that help you create form elements, :doc:`Test Helpers <../helpers/text_helper>`
+perform various text formatting routines,  :doc:`Cookie Helpers <../helpers/cookie_helper>`
+set and read cookies, :doc:`Filesystem Helpers <../helpers/filesystem_helper>` help you
 deal with files, etc.
 
 Unlike most other systems in CodeIgniter, Helpers are not written in an
@@ -28,35 +30,64 @@ in your :doc:`controller <../incoming/controllers>` and
 :doc:`views <../outgoing/views>`.
 
 Helpers are typically stored in your **system/Helpers**, or
-**app/Helpers** directory. CodeIgniter will look first in your
-**app/Helpers** directory. If the directory does not exist or the
-specified helper is not located there CI will instead look in your
-global **system/Helpers** directory.
+**app/Helpers** directory.
 
-****************
+***************
+Loading Helpers
+***************
+
+.. note:: The :doc:`../helpers/url_helper` is always loaded so you do not need to load it yourself.
+
 Loading a Helper
-****************
-
-.. note:: The URL helper is always loaded so you do not need to load it yourself.
+================
 
 Loading a helper file is quite simple using the following method:
 
 .. literalinclude:: helpers/001.php
 
-Where ``name`` is the file name of the helper, without the "**.php**" file
-extension or the "**_helper**" part.
+The above code loads the **name_helper.php** file.
 
 .. important:: CodeIgniter helper file names are all lowercase.
     Therefore, ``helper('Name')`` will not work on case-sensitive file systems
     such as Linux.
 
-For example, to load the **Cookie Helper** file, which is named
+For example, to load the :doc:`../helpers/cookie_helper` file, which is named
 **cookie_helper.php**, you would do this:
 
 .. literalinclude:: helpers/002.php
 
-.. note:: The Helper loading method above does not return a value, so
+.. note:: The :php:func:`helper()` function does not return a value, so
     don't try to assign it to a variable. Just use it as shown.
+
+Auto-Discovery and Composer Packages
+------------------------------------
+
+By default, CodeIgniter will search for the helper files in all defined namespaces
+by :ref:`auto-discovery`.
+You can check your defined namespaces by the spark command. See :ref:`confirming-namespaces`.
+
+If you use many Composer packages, you will have many defined namespaces.
+CodeIgniter will scan all namespaces by default.
+
+To avoid wasting time scanning for irrelevant Composer packages, you can manually
+specify packages for Auto-Discovery. See :ref:`modules-specify-composer-packages`
+for details.
+
+Or you can :ref:`specify a namespace <helpers-loading-from-specified-namespace>`
+for a helper that you want to load.
+
+Load Order
+----------
+
+The :php:func:`helper()` function will scan through all defined namespaces and
+load in ALL matching helpers of the same name. This allows any module's helpers
+to be loaded, as well as any helpers you've created specifically for this application.
+
+The load order is as follows:
+
+1. app/Helpers - Files loaded here are always loaded first.
+2. {namespace}/Helpers - All namespaces are looped through in the order they are defined.
+3. system/Helpers - The base file is loaded last.
 
 Loading Multiple Helpers
 ========================
@@ -81,17 +112,18 @@ it.
 However if you want to load in your controller constructor, you can use the ``$helpers``
 property in Controller instead. See :ref:`Controllers <controllers-helpers>`.
 
-.. _helpers-loading-from-non-standard-locations:
+.. _helpers-loading-from-specified-namespace:
 
-Loading from Non-standard Locations
-===================================
+Loading from Specified Namespace
+================================
 
-Helpers can be loaded from directories outside of **app/Helpers** and
-**system/Helpers**, as long as that path can be found through a namespace that
-has been set up within the PSR-4 section of the :doc:`Autoloader config file <../concepts/autoloader>`.
-You would prefix the name of the Helper with the namespace that it can be located
-in. Within that namespaced directory, the loader expects it to live within a
-sub-directory named **Helpers**. An example will help understand this.
+By default, CodeIgniter will search for the helper files in all defined namespaces
+and load all found files.
+
+If you want to load only a helper in a specific namespace, prefix the name of the
+helper with the namespace that it can be located in. Within that namespaced directory,
+the loader expects it to live within a sub-directory named **Helpers**. An example
+will help understand this.
 
 For this example, assume that we have grouped together all of our Blog-related
 code into its own namespace, ``Example\Blog``. The files exist on our server at
@@ -136,11 +168,26 @@ your view files you would do this:
 Where ``Click Here`` is the name of the link, and ``blog/comments`` is the
 URI to the controller/method you wish to link to.
 
-*******************
-"Extending" Helpers
-*******************
+****************
+Creating Helpers
+****************
 
-To "extend" Helpers, create a file in your **app/Helpers/** folder
+Creating Custom Helpers
+=======================
+
+The helper filename is the **helper name** and **_helper.php**.
+
+For example, to create info helper, you’ll create a file named
+**app/Helpers/info_helper.php**, and add a function to the file:
+
+.. literalinclude:: helpers/008.php
+
+You can add as many functions as you like to a single helper file.
+
+"Extending" Helpers
+===================
+
+To "extend" Helpers, create a file in your **app/Helpers** folder
 with an identical name to the existing Helper.
 
 If all you need to do is add some functionality to an existing helper -
@@ -161,14 +208,7 @@ functions:
 
 .. important:: Do not specify the namespace ``App\Helpers``.
 
-The :php:func:`helper()` function will scan through all PSR-4 namespaces defined in **app/Config/Autoload.php**
-and load in ALL matching helpers of the same name. This allows any module's helpers
-to be loaded, as well as any helpers you've created specifically for this application. The load order
-is as follows:
-
-1. app/Helpers - Files loaded here are always loaded first.
-2. {namespace}/Helpers - All namespaces are looped through in the order they are defined.
-3. system/Helpers - The base file is loaded last
+See `Load Order`_ for the order in which helper files are loaded.
 
 *********
 Now What?

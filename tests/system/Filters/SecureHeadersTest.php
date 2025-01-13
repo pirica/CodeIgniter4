@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -11,21 +13,20 @@
 
 namespace CodeIgniter\Filters;
 
-use CodeIgniter\Config\Services;
 use CodeIgniter\Test\CIUnitTestCase;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * @internal
- *
- * @group Others
  */
+#[Group('Others')]
 final class SecureHeadersTest extends CIUnitTestCase
 {
-    public function testAfter()
+    public function testAfter(): void
     {
         $filter   = new SecureHeaders();
-        $request  = Services::request(null, false);
-        $response = Services::response(null, false);
+        $request  = service('request', null, false);
+        $response = service('response', null, false);
 
         $filter->after($request, $response);
 

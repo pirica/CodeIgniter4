@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -21,7 +23,7 @@ class ParamsReveal extends BaseCommand
     protected $description = 'Reveal params';
     public static $args;
 
-    public function run(array $params)
+    public function run(array $params): void
     {
         static::$args = $params;
     }

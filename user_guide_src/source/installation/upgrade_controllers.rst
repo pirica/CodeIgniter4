@@ -8,8 +8,8 @@ Upgrade Controllers
 Documentations
 ==============
 
-- `Controller Documentation CodeIgniter 3.X <http://codeigniter.com/userguide3/general/controllers.html>`_
-- :doc:`Controller Documentation CodeIgniter 4.X </incoming/controllers>`
+- `Controller Documentation CodeIgniter 3.x <http://codeigniter.com/userguide3/general/controllers.html>`_
+- :doc:`Controller Documentation CodeIgniter 4.x </incoming/controllers>`
 
 What has been changed
 =====================
@@ -20,6 +20,8 @@ What has been changed
 - CI4 provides :doc:`Request </incoming/incomingrequest>` and :doc:`Responses </outgoing/response>`
   objects for you to work with - more powerful than the CI3-way.
 - If you want a base controller (``MY_Controller`` in CI3), use **app/Controllers/BaseController.php**.
+- Calling ``echo`` within Controllers, as in CI3, is still supported, but
+  it is recommended that a string or Response object be returned from Controllers.
 
 Upgrade Guide
 =============

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -13,12 +15,12 @@ namespace CodeIgniter\Commands;
 
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\StreamFilterTrait;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * @internal
- *
- * @group Others
  */
+#[Group('Others')]
 final class ValidationGeneratorTest extends CIUnitTestCase
 {
     use StreamFilterTrait;
@@ -38,13 +40,13 @@ final class ValidationGeneratorTest extends CIUnitTestCase
         }
     }
 
-    public function testGenerateValidation()
+    public function testGenerateValidation(): void
     {
         command('make:validation user');
         $this->assertFileExists(APPPATH . 'Validation/User.php');
     }
 
-    public function testGenerateValidationWithOptionSuffix()
+    public function testGenerateValidationWithOptionSuffix(): void
     {
         command('make:validation admin -suffix');
         $this->assertFileExists(APPPATH . 'Validation/AdminValidation.php');

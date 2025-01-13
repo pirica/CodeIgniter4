@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -18,12 +20,12 @@ use CodeIgniter\Database\SQLite3\Connection as SQLite3Connection;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\StreamFilterTrait;
 use Config\Database;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
- * @group DatabaseLive
- *
  * @internal
  */
+#[Group('DatabaseLive')]
 final class CreateDatabaseTest extends CIUnitTestCase
 {
     use StreamFilterTrait;
@@ -67,7 +69,7 @@ final class CreateDatabaseTest extends CIUnitTestCase
         return $this->getStreamFilterBuffer();
     }
 
-    public function testCreateDatabase()
+    public function testCreateDatabase(): void
     {
         if ($this->connection instanceof OCI8Connection) {
             $this->markTestSkipped('Needs to run on non-OCI8 drivers.');
@@ -77,7 +79,7 @@ final class CreateDatabaseTest extends CIUnitTestCase
         $this->assertStringContainsString('successfully created.', $this->getBuffer());
     }
 
-    public function testSqliteDatabaseDuplicated()
+    public function testSqliteDatabaseDuplicated(): void
     {
         if (! $this->connection instanceof SQLite3Connection) {
             $this->markTestSkipped('Needs to run on SQLite3.');
@@ -90,7 +92,7 @@ final class CreateDatabaseTest extends CIUnitTestCase
         $this->assertStringContainsString('already exists.', $this->getBuffer());
     }
 
-    public function testOtherDriverDuplicatedDatabase()
+    public function testOtherDriverDuplicatedDatabase(): void
     {
         if ($this->connection instanceof SQLite3Connection || $this->connection instanceof OCI8Connection) {
             $this->markTestSkipped('Needs to run on non-SQLite3 and non-OCI8 drivers.');

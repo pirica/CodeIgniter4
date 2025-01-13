@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -12,22 +14,22 @@
 namespace CodeIgniter\Cache\Handlers;
 
 use CodeIgniter\Test\CIUnitTestCase;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use stdClass;
 use Tests\Support\Cache\RestrictiveHandler;
 
 /**
  * @internal
- *
- * @group Others
  */
+#[Group('Others')]
 final class BaseHandlerTest extends CIUnitTestCase
 {
     /**
-     * @dataProvider invalidTypeProvider
-     *
      * @param mixed $input
      */
-    public function testValidateKeyInvalidType($input)
+    #[DataProvider('provideValidateKeyInvalidType')]
+    public function testValidateKeyInvalidType($input): void
     {
         $this->expectException('InvalidArgumentException');
         $this->expectExceptionMessage('Cache key must be a string');
@@ -35,7 +37,7 @@ final class BaseHandlerTest extends CIUnitTestCase
         BaseHandler::validateKey($input);
     }
 
-    public function invalidTypeProvider(): array
+    public static function provideValidateKeyInvalidType(): iterable
     {
         return [
             [true],
@@ -46,7 +48,7 @@ final class BaseHandlerTest extends CIUnitTestCase
         ];
     }
 
-    public function testValidateKeyUsesConfig()
+    public function testValidateKeyUsesConfig(): void
     {
         config('Cache')->reservedCharacters = 'b';
 
@@ -56,7 +58,7 @@ final class BaseHandlerTest extends CIUnitTestCase
         BaseHandler::validateKey('banana');
     }
 
-    public function testValidateKeySuccess()
+    public function testValidateKeySuccess(): void
     {
         $string = 'banana';
         $result = BaseHandler::validateKey($string);
@@ -64,7 +66,7 @@ final class BaseHandlerTest extends CIUnitTestCase
         $this->assertSame($string, $result);
     }
 
-    public function testValidateKeySuccessWithPrefix()
+    public function testValidateKeySuccessWithPrefix(): void
     {
         $string = 'banana';
         $result = BaseHandler::validateKey($string, 'prefix');
@@ -72,7 +74,7 @@ final class BaseHandlerTest extends CIUnitTestCase
         $this->assertSame('prefix' . $string, $result);
     }
 
-    public function testValidateExcessiveLength()
+    public function testValidateExcessiveLength(): void
     {
         $string   = 'MoreThanTenCharacters';
         $expected = md5($string);
@@ -82,7 +84,7 @@ final class BaseHandlerTest extends CIUnitTestCase
         $this->assertSame($expected, $result);
     }
 
-    public function testValidateExcessiveLengthWithPrefix()
+    public function testValidateExcessiveLengthWithPrefix(): void
     {
         $string   = 'MoreThanTenCharacters';
         $expected = 'prefix' . md5($string);

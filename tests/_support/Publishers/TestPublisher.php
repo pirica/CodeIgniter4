@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -17,10 +19,8 @@ final class TestPublisher extends Publisher
 {
     /**
      * Return value for publish()
-     *
-     * @var bool
      */
-    private static $result = true;
+    private static bool $result = true;
 
     /**
      * Base path to use for the source.
@@ -39,7 +39,7 @@ final class TestPublisher extends Publisher
     /**
      * Fakes an error on the given file.
      */
-    public static function setResult(bool $result)
+    public static function setResult(bool $result): void
     {
         self::$result = $result;
     }

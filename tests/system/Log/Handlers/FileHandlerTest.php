@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -15,27 +17,25 @@ use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\Mock\MockFileLogger;
 use CodeIgniter\Test\Mock\MockLogger as LoggerConfig;
 use org\bovigo\vfs\vfsStream;
-use org\bovigo\vfs\vfsStreamDirectory;
+use PHPUnit\Framework\Attributes\Group;
 use Tests\Support\Log\Handlers\TestHandler;
 
 /**
  * @internal
- *
- * @group Others
  */
+#[Group('Others')]
 final class FileHandlerTest extends CIUnitTestCase
 {
-    private vfsStreamDirectory $root;
     private string $start;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->root  = vfsStream::setup('root');
-        $this->start = $this->root->url() . '/';
+        $root        = vfsStream::setup('root');
+        $this->start = $root->url() . '/';
     }
 
-    public function testHandle()
+    public function testHandle(): void
     {
         $config = new LoggerConfig();
 
@@ -46,7 +46,7 @@ final class FileHandlerTest extends CIUnitTestCase
         $this->assertTrue($logger->handle('warning', 'This is a test log'));
     }
 
-    public function testBasicHandle()
+    public function testBasicHandle(): void
     {
         $config                                          = new LoggerConfig();
         $config->handlers[TestHandler::class]['path']    = $this->start . 'charlie/';
@@ -59,7 +59,7 @@ final class FileHandlerTest extends CIUnitTestCase
         $this->assertTrue($logger->handle('warning', 'This is a test log'));
     }
 
-    public function testHandleCreateFile()
+    public function testHandleCreateFile(): void
     {
         $config                                       = new LoggerConfig();
         $config->handlers[TestHandler::class]['path'] = $this->start;
@@ -79,7 +79,7 @@ final class FileHandlerTest extends CIUnitTestCase
         $this->assertStringContainsString($expectedResult, $line);
     }
 
-    public function testHandleDateTimeCorrectly()
+    public function testHandleDateTimeCorrectly(): void
     {
         $config                                       = new LoggerConfig();
         $config->handlers[TestHandler::class]['path'] = $this->start;

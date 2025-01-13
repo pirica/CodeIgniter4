@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -13,12 +15,12 @@ namespace CodeIgniter\Commands;
 
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\StreamFilterTrait;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * @internal
- *
- * @group Others
  */
+#[Group('Others')]
 final class ConfigGeneratorTest extends CIUnitTestCase
 {
     use StreamFilterTrait;
@@ -32,13 +34,13 @@ final class ConfigGeneratorTest extends CIUnitTestCase
         }
     }
 
-    public function testGenerateConfig()
+    public function testGenerateConfig(): void
     {
         command('make:config auth');
         $this->assertFileExists(APPPATH . 'Config/Auth.php');
     }
 
-    public function testGenerateConfigWithOptionSuffix()
+    public function testGenerateConfigWithOptionSuffix(): void
     {
         command('make:config auth -suffix');
         $this->assertFileExists(APPPATH . 'Config/AuthConfig.php');

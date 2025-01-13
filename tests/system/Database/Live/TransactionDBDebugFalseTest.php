@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -11,11 +13,12 @@
 
 namespace CodeIgniter\Database\Live;
 
+use PHPUnit\Framework\Attributes\Group;
+
 /**
- * @group DatabaseLive
- *
  * @internal
  */
+#[Group('DatabaseLive')]
 final class TransactionDBDebugFalseTest extends TransactionDBDebugTrueTest
 {
     protected function setUp(): void
@@ -32,7 +35,7 @@ final class TransactionDBDebugFalseTest extends TransactionDBDebugTrueTest
         $this->enableDBDebug();
     }
 
-    public function testTransStartTransException()
+    public function testTransStartTransException(): void
     {
         $builder = $this->db->table('job');
 

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -17,7 +19,7 @@ class AdditionCell extends Cell
 {
     public int $value = 2;
 
-    public function mount(?int $number = null, bool $skipAddition = false)
+    public function mount(?int $number = null, bool $skipAddition = false): void
     {
         $this->value = ! $skipAddition
             ? $this->value + (int) $number

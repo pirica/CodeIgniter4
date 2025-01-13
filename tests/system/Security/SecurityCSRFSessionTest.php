@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -14,7 +16,7 @@ namespace CodeIgniter\Security;
 use CodeIgniter\Config\Factories;
 use CodeIgniter\Config\Services;
 use CodeIgniter\HTTP\IncomingRequest;
-use CodeIgniter\HTTP\URI;
+use CodeIgniter\HTTP\SiteURI;
 use CodeIgniter\HTTP\UserAgent;
 use CodeIgniter\Security\Exceptions\SecurityException;
 use CodeIgniter\Session\Handlers\ArrayHandler;
@@ -24,19 +26,22 @@ use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\Mock\MockAppConfig;
 use CodeIgniter\Test\Mock\MockSession;
 use CodeIgniter\Test\TestLogger;
-use Config\App as AppConfig;
+use Config\App;
+use Config\Cookie;
 use Config\Logger as LoggerConfig;
 use Config\Security as SecurityConfig;
+use Config\Session as SessionConfig;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\PreserveGlobalState;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
+use PHPUnit\Framework\Attributes\WithoutErrorHandler;
 
 /**
- * @runTestsInSeparateProcesses
- *
- * @preserveGlobalState disabled
- *
  * @internal
- *
- * @group SeparateProcess
  */
+#[Group('SeparateProcess')]
+#[PreserveGlobalState(false)]
+#[RunTestsInSeparateProcesses]
 final class SecurityCSRFSessionTest extends CIUnitTestCase
 {
     /**
@@ -44,6 +49,9 @@ final class SecurityCSRFSessionTest extends CIUnitTestCase
      */
     private string $hash = '8b9218a55906f9dcc1dc263dce7f005a';
 
+    private SecurityConfig $config;
+
+    #[WithoutErrorHandler]
     protected function setUp(): void
     {
         parent::setUp();
@@ -51,9 +59,9 @@ final class SecurityCSRFSessionTest extends CIUnitTestCase
         $_SESSION = [];
         Factories::reset();
 
-        $config                 = new SecurityConfig();
-        $config->csrfProtection = Security::CSRF_PROTECTION_SESSION;
-        Factories::injectMock('config', 'Security', $config);
+        $this->config                 = new SecurityConfig();
+        $this->config->csrfProtection = Security::CSRF_PROTECTION_SESSION;
+        Factories::injectMock('config', 'Security', $this->config);
 
         $this->injectSession($this->hash);
     }
@@ -61,28 +69,36 @@ final class SecurityCSRFSessionTest extends CIUnitTestCase
     private function createSession($options = []): Session
     {
         $defaults = [
-            'sessionDriver'            => FileHandler::class,
-            'sessionCookieName'        => 'ci_session',
-            'sessionExpiration'        => 7200,
-            'sessionSavePath'          => '',
-            'sessionMatchIP'           => false,
-            'sessionTimeToUpdate'      => 300,
-            'sessionRegenerateDestroy' => false,
-            'cookieDomain'             => '',
-            'cookiePrefix'             => '',
-            'cookiePath'               => '/',
-            'cookieSecure'             => false,
-            'cookieSameSite'           => 'Lax',
+            'driver'            => FileHandler::class,
+            'cookieName'        => 'ci_session',
+            'expiration'        => 7200,
+            'savePath'          => '',
+            'matchIP'           => false,
+            'timeToUpdate'      => 300,
+            'regenerateDestroy' => false,
         ];
+        $config = array_merge($defaults, $options);
 
-        $config    = array_merge($defaults, $options);
-        $appConfig = new AppConfig();
+        $sessionConfig = new SessionConfig();
 
         foreach ($config as $key => $c) {
-            $appConfig->{$key} = $c;
+            $sessionConfig->{$key} = $c;
         }
 
-        $session = new MockSession(new ArrayHandler($appConfig, '127.0.0.1'), $appConfig);
+        $cookie = new Cookie();
+
+        foreach ([
+            'prefix'   => '',
+            'domain'   => '',
+            'path'     => '/',
+            'secure'   => false,
+            'samesite' => 'Lax',
+        ] as $key => $value) {
+            $cookie->{$key} = $value;
+        }
+        Factories::injectMock('config', 'Cookie', $cookie);
+
+        $session = new MockSession(new ArrayHandler($sessionConfig, '127.0.0.1'), $sessionConfig);
         $session->setLogger(new TestLogger(new LoggerConfig()));
 
         return $session;
@@ -95,125 +111,141 @@ final class SecurityCSRFSessionTest extends CIUnitTestCase
         Services::injectMock('session', $session);
     }
 
-    public function testHashIsReadFromSession()
+    private function createSecurity(): Security
     {
-        $security = new Security(new MockAppConfig());
+        return new Security($this->config);
+    }
+
+    public function testHashIsReadFromSession(): void
+    {
+        $security = $this->createSecurity();
 
         $this->assertSame($this->hash, $security->getHash());
     }
 
-    public function testCSRFVerifyPostThrowsExceptionOnNoMatch()
+    public function testCSRFVerifyPostThrowsExceptionOnNoMatch(): void
     {
         $this->expectException(SecurityException::class);
 
         $_SERVER['REQUEST_METHOD'] = 'POST';
         $_POST['csrf_test_name']   = '8b9218a55906f9dcc1dc263dce7f005b';
 
-        $request = new IncomingRequest(new MockAppConfig(), new URI('http://badurl.com'), null, new UserAgent());
-
-        $security = new Security(new MockAppConfig());
+        $request  = $this->createIncomingRequest();
+        $security = $this->createSecurity();
 
         $security->verify($request);
     }
 
-    public function testCSRFVerifyPostReturnsSelfOnMatch()
+    private function createIncomingRequest(?App $config = null): IncomingRequest
+    {
+        $config ??= new MockAppConfig();
+
+        return new IncomingRequest($config, new SiteURI($config), null, new UserAgent());
+    }
+
+    public function testCSRFVerifyPostReturnsSelfOnMatch(): void
     {
         $_SERVER['REQUEST_METHOD'] = 'POST';
         $_POST['foo']              = 'bar';
         $_POST['csrf_test_name']   = '8b9218a55906f9dcc1dc263dce7f005a';
 
-        $request = new IncomingRequest(new MockAppConfig(), new URI('http://badurl.com'), null, new UserAgent());
-
-        $security = new Security(new MockAppConfig());
+        $request  = $this->createIncomingRequest();
+        $security = $this->createSecurity();
 
         $this->assertInstanceOf(Security::class, $security->verify($request));
         $this->assertLogged('info', 'CSRF token verified.');
         $this->assertCount(1, $_POST);
     }
 
-    public function testCSRFVerifyPOSTHeaderThrowsExceptionOnNoMatch()
+    public function testCSRFVerifyPOSTHeaderThrowsExceptionOnNoMatch(): void
     {
         $_SERVER['REQUEST_METHOD'] = 'POST';
 
-        $request = new IncomingRequest(new MockAppConfig(), new URI('http://badurl.com'), null, new UserAgent());
+        $request = $this->createIncomingRequest();
         $request->setHeader('X-CSRF-TOKEN', '8b9218a55906f9dcc1dc263dce7f005b');
-
-        $security = new Security(new MockAppConfig());
+        $security = $this->createSecurity();
 
         $this->expectException(SecurityException::class);
         $security->verify($request);
     }
 
-    public function testCSRFVerifyPOSTHeaderReturnsSelfOnMatch()
+    public function testCSRFVerifyPOSTHeaderReturnsSelfOnMatch(): void
     {
         $_SERVER['REQUEST_METHOD'] = 'POST';
         $_POST['foo']              = 'bar';
 
-        $request = new IncomingRequest(new MockAppConfig(), new URI('http://badurl.com'), null, new UserAgent());
+        $request = $this->createIncomingRequest();
         $request->setHeader('X-CSRF-TOKEN', '8b9218a55906f9dcc1dc263dce7f005a');
-
-        $security = new Security(new MockAppConfig());
+        $security = $this->createSecurity();
 
         $this->assertInstanceOf(Security::class, $security->verify($request));
         $this->assertLogged('info', 'CSRF token verified.');
         $this->assertCount(1, $_POST);
     }
 
-    public function testCSRFVerifyPUTHeaderThrowsExceptionOnNoMatch()
+    public function testCSRFVerifyPUTHeaderThrowsExceptionOnNoMatch(): void
     {
         $_SERVER['REQUEST_METHOD'] = 'PUT';
 
-        $request = new IncomingRequest(new MockAppConfig(), new URI('http://badurl.com'), null, new UserAgent());
+        $request = $this->createIncomingRequest();
         $request->setHeader('X-CSRF-TOKEN', '8b9218a55906f9dcc1dc263dce7f005b');
-
-        $security = new Security(new MockAppConfig());
+        $security = $this->createSecurity();
 
         $this->expectException(SecurityException::class);
         $security->verify($request);
     }
 
-    public function testCSRFVerifyPUTHeaderReturnsSelfOnMatch()
+    public function testCSRFVerifyPUTHeaderReturnsSelfOnMatch(): void
     {
         $_SERVER['REQUEST_METHOD'] = 'PUT';
 
-        $request = new IncomingRequest(new MockAppConfig(), new URI('http://badurl.com'), null, new UserAgent());
+        $request = $this->createIncomingRequest();
         $request->setHeader('X-CSRF-TOKEN', '8b9218a55906f9dcc1dc263dce7f005a');
-
-        $security = new Security(new MockAppConfig());
+        $security = $this->createSecurity();
 
         $this->assertInstanceOf(Security::class, $security->verify($request));
         $this->assertLogged('info', 'CSRF token verified.');
     }
 
-    public function testCSRFVerifyJsonThrowsExceptionOnNoMatch()
+    public function testCSRFVerifyPUTBodyReturnsSelfOnMatch(): void
+    {
+        $_SERVER['REQUEST_METHOD'] = 'PUT';
+
+        $request = $this->createIncomingRequest();
+        $request->setBody('csrf_test_name=8b9218a55906f9dcc1dc263dce7f005a&foo=bar');
+        $security = $this->createSecurity();
+
+        $this->assertInstanceOf(Security::class, $security->verify($request));
+        $this->assertLogged('info', 'CSRF token verified.');
+    }
+
+    public function testCSRFVerifyJsonThrowsExceptionOnNoMatch(): void
     {
         $this->expectException(SecurityException::class);
 
         $_SERVER['REQUEST_METHOD'] = 'POST';
 
-        $request = new IncomingRequest(new MockAppConfig(), new URI('http://badurl.com'), null, new UserAgent());
+        $request = $this->createIncomingRequest();
         $request->setBody('{"csrf_test_name":"8b9218a55906f9dcc1dc263dce7f005b"}');
-
-        $security = new Security(new MockAppConfig());
+        $security = $this->createSecurity();
 
         $security->verify($request);
     }
 
-    public function testCSRFVerifyJsonReturnsSelfOnMatch()
+    public function testCSRFVerifyJsonReturnsSelfOnMatch(): void
     {
         $_SERVER['REQUEST_METHOD'] = 'POST';
 
-        $request = new IncomingRequest(new MockAppConfig(), new URI('http://badurl.com'), null, new UserAgent());
+        $request = $this->createIncomingRequest();
         $request->setBody('{"csrf_test_name":"8b9218a55906f9dcc1dc263dce7f005a","foo":"bar"}');
-
-        $security = new Security(new MockAppConfig());
+        $security = $this->createSecurity();
 
         $this->assertInstanceOf(Security::class, $security->verify($request));
         $this->assertLogged('info', 'CSRF token verified.');
         $this->assertSame('{"foo":"bar"}', $request->getBody());
     }
 
-    public function testRegenerateWithFalseSecurityRegenerateProperty()
+    public function testRegenerateWithFalseSecurityRegenerateProperty(): void
     {
         $_SERVER['REQUEST_METHOD'] = 'POST';
         $_POST['csrf_test_name']   = '8b9218a55906f9dcc1dc263dce7f005a';
@@ -222,9 +254,8 @@ final class SecurityCSRFSessionTest extends CIUnitTestCase
         $config->regenerate = false;
         Factories::injectMock('config', 'Security', $config);
 
-        $request = new IncomingRequest(new MockAppConfig(), new URI('http://badurl.com'), null, new UserAgent());
-
-        $security = new Security(new MockAppConfig());
+        $request  = $this->createIncomingRequest();
+        $security = $this->createSecurity();
 
         $oldHash = $security->getHash();
         $security->verify($request);
@@ -233,7 +264,7 @@ final class SecurityCSRFSessionTest extends CIUnitTestCase
         $this->assertSame($oldHash, $newHash);
     }
 
-    public function testRegenerateWithTrueSecurityRegenerateProperty()
+    public function testRegenerateWithTrueSecurityRegenerateProperty(): void
     {
         $_SERVER['REQUEST_METHOD'] = 'POST';
         $_POST['csrf_test_name']   = '8b9218a55906f9dcc1dc263dce7f005a';
@@ -242,9 +273,8 @@ final class SecurityCSRFSessionTest extends CIUnitTestCase
         $config->regenerate = true;
         Factories::injectMock('config', 'Security', $config);
 
-        $request = new IncomingRequest(new MockAppConfig(), new URI('http://badurl.com'), null, new UserAgent());
-
-        $security = new Security(new MockAppConfig());
+        $request  = $this->createIncomingRequest();
+        $security = $this->createSecurity();
 
         $oldHash = $security->getHash();
         $security->verify($request);

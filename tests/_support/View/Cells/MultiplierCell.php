@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -20,6 +22,6 @@ class MultiplierCell extends Cell
 
     public function mount(): void
     {
-        $this->value = $this->value * $this->multiplier;
+        $this->value *= $this->multiplier;
     }
 }

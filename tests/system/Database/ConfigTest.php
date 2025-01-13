@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -13,12 +15,13 @@ namespace CodeIgniter\Database;
 
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\ReflectionHelper;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * @internal
- *
- * @group Others
  */
+#[Group('Others')]
 final class ConfigTest extends CIUnitTestCase
 {
     use ReflectionHelper;
@@ -32,9 +35,9 @@ final class ConfigTest extends CIUnitTestCase
         'DBDriver' => 'MySQLi',
         'DBPrefix' => 'test_',
         'pConnect' => true,
-        'DBDebug'  => (ENVIRONMENT !== 'production'),
-        'charset'  => 'utf8',
-        'DBCollat' => 'utf8_general_ci',
+        'DBDebug'  => true,
+        'charset'  => 'utf8mb4',
+        'DBCollat' => 'utf8mb4_general_ci',
         'swapPre'  => '',
         'encrypt'  => false,
         'compress' => false,
@@ -51,9 +54,9 @@ final class ConfigTest extends CIUnitTestCase
         'DBDriver' => 'SQLite3',
         'DBPrefix' => 't_',
         'pConnect' => false,
-        'DBDebug'  => (ENVIRONMENT !== 'production'),
-        'charset'  => 'utf8',
-        'DBCollat' => 'utf8_general_ci',
+        'DBDebug'  => true,
+        'charset'  => 'utf8mb4',
+        'DBCollat' => 'utf8mb4_general_ci',
         'swapPre'  => '',
         'encrypt'  => false,
         'compress' => false,
@@ -70,9 +73,9 @@ final class ConfigTest extends CIUnitTestCase
         'DBDriver' => 'SQLite3',
         'DBPrefix' => 't_',
         'pConnect' => false,
-        'DBDebug'  => (ENVIRONMENT !== 'production'),
-        'charset'  => 'utf8',
-        'DBCollat' => 'utf8_general_ci',
+        'DBDebug'  => true,
+        'charset'  => 'utf8mb4',
+        'DBCollat' => 'utf8mb4_general_ci',
         'swapPre'  => '',
         'encrypt'  => false,
         'compress' => false,
@@ -89,9 +92,9 @@ final class ConfigTest extends CIUnitTestCase
         'DBDriver' => 'Postgre',
         'DBPrefix' => 't_',
         'pConnect' => false,
-        'DBDebug'  => (ENVIRONMENT !== 'production'),
-        'charset'  => 'utf8',
-        'DBCollat' => 'utf8_general_ci',
+        'DBDebug'  => true,
+        'charset'  => 'utf8mb4',
+        'DBCollat' => 'utf8mb4_general_ci',
         'swapPre'  => '',
         'encrypt'  => false,
         'compress' => false,
@@ -105,7 +108,7 @@ final class ConfigTest extends CIUnitTestCase
         $this->setPrivateProperty(Config::class, 'instances', []);
     }
 
-    public function testConnectionGroup()
+    public function testConnectionGroup(): void
     {
         $conn = Config::connect($this->group, false);
         $this->assertInstanceOf(BaseConnection::class, $conn);
@@ -123,7 +126,7 @@ final class ConfigTest extends CIUnitTestCase
         $this->assertSame($this->group['DBCollat'], $this->getPrivateProperty($conn, 'DBCollat'));
     }
 
-    public function testConnectionGroupWithDSN()
+    public function testConnectionGroupWithDSN(): void
     {
         $conn = Config::connect($this->dsnGroup, false);
         $this->assertInstanceOf(BaseConnection::class, $conn);
@@ -143,7 +146,7 @@ final class ConfigTest extends CIUnitTestCase
         $this->assertSame([], $this->getPrivateProperty($conn, 'failover'));
     }
 
-    public function testConnectionGroupWithDSNPostgre()
+    public function testConnectionGroupWithDSNPostgre(): void
     {
         $conn = Config::connect($this->dsnGroupPostgre, false);
         $this->assertInstanceOf(BaseConnection::class, $conn);
@@ -157,8 +160,8 @@ final class ConfigTest extends CIUnitTestCase
         $this->assertSame('Postgre', $this->getPrivateProperty($conn, 'DBDriver'));
         $this->assertSame('test_', $this->getPrivateProperty($conn, 'DBPrefix'));
         $this->assertFalse($this->getPrivateProperty($conn, 'pConnect'));
-        $this->assertSame('utf8', $this->getPrivateProperty($conn, 'charset'));
-        $this->assertSame('utf8_general_ci', $this->getPrivateProperty($conn, 'DBCollat'));
+        $this->assertSame('utf8mb4', $this->getPrivateProperty($conn, 'charset'));
+        $this->assertSame('utf8mb4_general_ci', $this->getPrivateProperty($conn, 'DBCollat'));
         $this->assertTrue($this->getPrivateProperty($conn, 'strictOn'));
         $this->assertSame([], $this->getPrivateProperty($conn, 'failover'));
         $this->assertSame('5', $this->getPrivateProperty($conn, 'connect_timeout'));
@@ -171,7 +174,7 @@ final class ConfigTest extends CIUnitTestCase
         $this->assertSame($expected, $this->getPrivateProperty($conn, 'DSN'));
     }
 
-    public function testConnectionGroupWithDSNPostgreNative()
+    public function testConnectionGroupWithDSNPostgreNative(): void
     {
         $conn = Config::connect($this->dsnGroupPostgreNative, false);
         $this->assertInstanceOf(BaseConnection::class, $conn);
@@ -185,9 +188,54 @@ final class ConfigTest extends CIUnitTestCase
         $this->assertSame('Postgre', $this->getPrivateProperty($conn, 'DBDriver'));
         $this->assertSame('t_', $this->getPrivateProperty($conn, 'DBPrefix'));
         $this->assertFalse($this->getPrivateProperty($conn, 'pConnect'));
-        $this->assertSame('utf8', $this->getPrivateProperty($conn, 'charset'));
-        $this->assertSame('utf8_general_ci', $this->getPrivateProperty($conn, 'DBCollat'));
+        $this->assertSame('utf8mb4', $this->getPrivateProperty($conn, 'charset'));
+        $this->assertSame('utf8mb4_general_ci', $this->getPrivateProperty($conn, 'DBCollat'));
         $this->assertTrue($this->getPrivateProperty($conn, 'strictOn'));
         $this->assertSame([], $this->getPrivateProperty($conn, 'failover'));
+    }
+
+    /**
+     * @see https://github.com/codeigniter4/CodeIgniter4/issues/7550
+     */
+    #[DataProvider('provideConvertDSN')]
+    public function testConvertDSN(string $input, string $expected): void
+    {
+        // @TODO This format is for PDO_PGSQL.
+        //      https://www.php.net/manual/en/ref.pdo-pgsql.connection.php
+        //      Should deprecate?
+        $this->dsnGroupPostgreNative['DSN'] = $input;
+        $conn                               = Config::connect($this->dsnGroupPostgreNative, false);
+        $this->assertInstanceOf(BaseConnection::class, $conn);
+
+        $method = $this->getPrivateMethodInvoker($conn, 'convertDSN');
+        $method();
+
+        $this->assertSame($expected, $this->getPrivateProperty($conn, 'DSN'));
+    }
+
+    public static function provideConvertDSN(): iterable
+    {
+        yield from [
+            [
+                'pgsql:host=localhost;port=5432;dbname=database_name;user=username;password=password',
+                'host=localhost port=5432 dbname=database_name user=username password=password',
+            ],
+            [
+                'pgsql:host=localhost;port=5432;dbname=database_name;user=username;password=we;port=we',
+                'host=localhost port=5432 dbname=database_name user=username password=we;port=we',
+            ],
+            [
+                'pgsql:host=localhost;port=5432;dbname=database_name',
+                'host=localhost port=5432 dbname=database_name',
+            ],
+            [
+                "pgsql:host=localhost;port=5432;dbname=database_name;options='--client_encoding=UTF8'",
+                "host=localhost port=5432 dbname=database_name options='--client_encoding=UTF8'",
+            ],
+            [
+                'pgsql:host=localhost;port=5432;dbname=database_name;something=stupid',
+                'host=localhost port=5432 dbname=database_name;something=stupid',
+            ],
+        ];
     }
 }

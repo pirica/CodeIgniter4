@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -14,12 +16,12 @@ namespace CodeIgniter\Format;
 use CodeIgniter\Format\Exceptions\FormatException;
 use CodeIgniter\HTTP\URI;
 use CodeIgniter\Test\CIUnitTestCase;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * @internal
- *
- * @group Others
  */
+#[Group('Others')]
 final class FormatTest extends CIUnitTestCase
 {
     private Format $format;
@@ -29,7 +31,7 @@ final class FormatTest extends CIUnitTestCase
         $this->format = new Format(new \Config\Format());
     }
 
-    public function testFormatConfigType()
+    public function testFormatConfigType(): void
     {
         $config = new \Config\Format();
         $format = new Format($config);
@@ -38,23 +40,23 @@ final class FormatTest extends CIUnitTestCase
         $this->assertSame($config, $format->getConfig());
     }
 
-    public function testGetFormatter()
+    public function testGetFormatter(): void
     {
-        $this->assertInstanceof(FormatterInterface::class, $this->format->getFormatter('application/json'));
+        $this->assertInstanceOf(FormatterInterface::class, $this->format->getFormatter('application/json'));
     }
 
-    public function testGetFormatterExpectsExceptionOnUndefinedMime()
+    public function testGetFormatterExpectsExceptionOnUndefinedMime(): void
     {
         $this->expectException(FormatException::class);
         $this->expectExceptionMessage('No Formatter defined for mime type: "application/x-httpd-php".');
         $this->format->getFormatter('application/x-httpd-php');
     }
 
-    public function testGetFormatterExpectsExceptionOnUndefinedClass()
+    public function testGetFormatterExpectsExceptionOnUndefinedClass(): void
     {
         $this->format->getConfig()->formatters = array_merge(
             $this->format->getConfig()->formatters,
-            ['text/xml' => 'App\Foo']
+            ['text/xml' => 'App\Foo'],
         );
 
         $this->expectException(FormatException::class);
@@ -62,11 +64,11 @@ final class FormatTest extends CIUnitTestCase
         $this->format->getFormatter('text/xml');
     }
 
-    public function testGetFormatterExpectsExceptionOnClassNotImplementingFormatterInterface()
+    public function testGetFormatterExpectsExceptionOnClassNotImplementingFormatterInterface(): void
     {
         $this->format->getConfig()->formatters = array_merge(
             $this->format->getConfig()->formatters,
-            ['text/xml' => URI::class]
+            ['text/xml' => URI::class],
         );
 
         $this->expectException(FormatException::class);

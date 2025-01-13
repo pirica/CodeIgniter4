@@ -21,22 +21,35 @@ are called if you implement your own methods.
 
 .. literalinclude:: feature/001.php
 
-Requesting A Page
+.. _feature-requesting-a-page:
+
+Requesting a Page
 =================
 
 Essentially, feature tests simply allows you to call an endpoint on your application and get the results back.
-to do this, you use the ``call()`` method. The first parameter is the HTTP method to use (most frequently either GET or POST).
-The second parameter is the path on your site to test. The third parameter accepts an array that is used to populate the
-superglobal variables for the HTTP verb you are using. So, a method of **GET** would have the **$_GET** variable
-populated, while a **post** request would have the **$_POST** array populated.
+To do this, you use the ``call()`` method.
+
+1. The first parameter is the HTTP method to use (most frequently either ``GET`` or ``POST``).
+2. The second parameter is the URI path on your site to test.
+3. The third parameter ``$params`` accepts an array that is used to populate the
+   superglobal variables for the HTTP verb you are using. So, a method of **GET**
+   would have the ``$_GET`` variable populated, while a **POST** request would
+   have the ``$_POST`` array populated. The ``$params`` is also used in
+   :ref:`feature-formatting-the-request`.
+
+   .. note:: The ``$params`` array does not make sense for every HTTP verb, but is
+      included for consistency.
 
 .. literalinclude:: feature/002.php
+   :lines: 2-
+
+Shorthand Methods
+-----------------
 
 Shorthand methods for each of the HTTP verbs exist to ease typing and make things clearer:
 
 .. literalinclude:: feature/003.php
-
-.. note:: The ``$params`` array does not make sense for every HTTP verb, but is included for consistency.
+   :lines: 2-
 
 Setting Different Routes
 ------------------------
@@ -45,6 +58,7 @@ You can use a custom collection of routes by passing an array of "routes" into t
 override any existing routes in the system:
 
 .. literalinclude:: feature/004.php
+   :lines: 2-
 
 Each of the "routes" is a 3 element array containing the HTTP verb (or "add" for all),
 the URI to match, and the routing destination.
@@ -57,6 +71,7 @@ of key/value pairs that should exist within the ``$_SESSION`` variable when this
 that the current values of ``$_SESSION`` should be used. This is handy for testing authentication and more.
 
 .. literalinclude:: feature/005.php
+   :lines: 2-
 
 Setting Headers
 ---------------
@@ -65,6 +80,7 @@ You can set header values with the ``withHeaders()`` method. This takes an array
 passed as a header into the call:
 
 .. literalinclude:: feature/006.php
+   :lines: 2-
 
 Bypassing Events
 ----------------
@@ -73,23 +89,35 @@ Events are handy to use in your application, but can be problematic during testi
 to send out emails. You can tell the system to skip any event handling with the ``skipEvents()`` method:
 
 .. literalinclude:: feature/007.php
+   :lines: 2-
 
-Formatting The Request
+.. _feature-formatting-the-request:
+
+Formatting the Request
 -----------------------
 
 You can set the format of your request's body using the ``withBodyFormat()`` method. Currently this supports either
-`json` or `xml`. This will take the parameters passed into ``call()``, ``post()``, ``get()``... and assign them to the
-body of the request in the given format. This will also set the `Content-Type` header for your request accordingly.
+``json`` or ``xml``.
 This is useful when testing JSON or XML APIs so that you can set the request in the form that the controller will expect.
 
+This will take the parameters passed into ``call()``, ``post()``, ``get()``... and assign them to the
+body of the request in the given format.
+
+This will also set the `Content-Type` header for your request accordingly.
+
 .. literalinclude:: feature/008.php
+   :lines: 2-
+
+.. _feature-setting-the-body:
 
 Setting the Body
 ----------------
 
 You can set the body of your request with the ``withBody()`` method. This allows you to format the body how you want
-to format it. It is recommended that you use this if you have more complicated XMLs to test. This will also not set
-the Content-Type header for you so if you need that, you can set it with the ``withHeaders()`` method.
+to format it. It is recommended that you use this if you have more complicated XMLs to test.
+
+This will not set
+the `Content-Type` header for you. If you need that, you can set it with the ``withHeaders()`` method.
 
 Checking the Response
 =====================

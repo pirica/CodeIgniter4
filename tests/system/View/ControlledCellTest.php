@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -13,7 +15,11 @@ namespace CodeIgniter\View;
 
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\View\Exceptions\ViewException;
+use LogicException;
+use PHPUnit\Framework\Attributes\Group;
 use Tests\Support\View\Cells\AdditionCell;
+use Tests\Support\View\Cells\AwesomeCell;
+use Tests\Support\View\Cells\BadCell;
 use Tests\Support\View\Cells\ColorsCell;
 use Tests\Support\View\Cells\GreetingCell;
 use Tests\Support\View\Cells\ListerCell;
@@ -24,40 +30,54 @@ use Tests\Support\View\Cells\SimpleNotice;
 
 /**
  * @internal
- *
- * @group Others
  */
+#[Group('Others')]
 final class ControlledCellTest extends CIUnitTestCase
 {
-    public function testCellRendersDefaultValues()
+    public function testCellRendersDefaultValues(): void
     {
         $result = view_cell(GreetingCell::class);
 
         $this->assertStringContainsString('Hello World', $result);
     }
 
-    public function testCellWithNamedView()
+    public function testCellRendersViewWithActualClassName(): void
+    {
+        $result = view_cell(AwesomeCell::class);
+
+        $this->assertStringContainsString('Found!', $result);
+    }
+
+    public function testCellWithNamedView(): void
     {
         $result = view_cell(SimpleNotice::class);
 
         $this->assertStringContainsString('4, 8, 15, 16, 23, 42', $result);
     }
 
-    public function testCellThroughRenderMethod()
+    public function testCellThroughRenderMethod(): void
     {
         $result = view_cell(RenderedNotice::class);
 
         $this->assertStringContainsString('4, 8, 15, 16, 23, 42', $result);
     }
 
-    public function testCellThroughRenderMethodWithExtraData()
+    public function testCellThroughRenderMethodWithExtraData(): void
     {
         $result = view_cell(RenderedExtraDataNotice::class);
 
         $this->assertStringContainsString('42, 23, 16, 15, 8, 4', $result);
     }
 
-    public function testCellWithParameters()
+    public function testCellThrowsExceptionWhenCannotFindTheViewFile(): void
+    {
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage('Cannot locate the view file for the "Tests\\Support\\View\\Cells\\BadCell" cell.');
+
+        view_cell(BadCell::class);
+    }
+
+    public function testCellWithParameters(): void
     {
         $result = view_cell(GreetingCell::class, 'greeting=Hi, name=CodeIgniter');
 
@@ -69,14 +89,14 @@ final class ControlledCellTest extends CIUnitTestCase
         $this->assertStringContainsString('Hi CodeIgniter', $result);
     }
 
-    public function testCellWithCustomMethod()
+    public function testCellWithCustomMethod(): void
     {
         $result = view_cell('Tests\Support\View\Cells\GreetingCell::sayHello', 'greeting=Hi, name=CodeIgniter');
 
         $this->assertStringContainsString('Well, Hi CodeIgniter', $result);
     }
 
-    public function testCellWithMissingCustomMethod()
+    public function testCellWithMissingCustomMethod(): void
     {
         $this->expectException(ViewException::class);
         $this->expectExceptionMessage(lang('View.invalidCellMethod', [
@@ -87,14 +107,14 @@ final class ControlledCellTest extends CIUnitTestCase
         view_cell('Tests\Support\View\Cells\GreetingCell::sayGoodbye', 'greeting=Hi, name=CodeIgniter');
     }
 
-    public function testCellWithComputedProperties()
+    public function testCellWithComputedProperties(): void
     {
         $result = view_cell(ListerCell::class, ['items' => ['one', 'two', 'three']]);
 
         $this->assertStringContainsString('-one -two -three', $result);
     }
 
-    public function testCellWithPublicMethods()
+    public function testCellWithPublicMethods(): void
     {
         $result = view_cell(ColorsCell::class, ['color' => 'red']);
 
@@ -105,35 +125,35 @@ final class ControlledCellTest extends CIUnitTestCase
         $this->assertStringContainsString('cool', $result);
     }
 
-    public function testMountingDefaultValues()
+    public function testMountingDefaultValues(): void
     {
         $result = view_cell(MultiplierCell::class);
 
         $this->assertStringContainsString('4', $result);
     }
 
-    public function testMountingCustomValues()
+    public function testMountingCustomValues(): void
     {
         $result = view_cell(MultiplierCell::class, ['value' => 3, 'multiplier' => 3]);
 
         $this->assertStringContainsString('9', $result);
     }
 
-    public function testMountValuesDefault()
+    public function testMountValuesDefault(): void
     {
         $result = view_cell(AdditionCell::class);
 
         $this->assertStringContainsString('2', $result);
     }
 
-    public function testMountValuesWithParams()
+    public function testMountValuesWithParams(): void
     {
         $result = view_cell(AdditionCell::class, ['value' => 3]);
 
         $this->assertStringContainsString('3', $result);
     }
 
-    public function testMountValuesWithParamsAndMountParams()
+    public function testMountValuesWithParamsAndMountParams(): void
     {
         $result = view_cell(AdditionCell::class, ['value' => 3, 'number' => 4, 'skipAddition' => false]);
 
@@ -144,7 +164,7 @@ final class ControlledCellTest extends CIUnitTestCase
         $this->assertStringContainsString('3', $result);
     }
 
-    public function testMountWithMissingParams()
+    public function testMountWithMissingParams(): void
     {
         // Don't provide any params
         $result = view_cell(AdditionCell::class, ['value' => 3]);

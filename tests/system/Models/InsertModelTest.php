@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -16,6 +18,7 @@ use CodeIgniter\Entity\Entity;
 use CodeIgniter\I18n\Time;
 use CodeIgniter\Model;
 use Config\Database;
+use PHPUnit\Framework\Attributes\Group;
 use stdClass;
 use Tests\Support\Entity\User;
 use Tests\Support\Models\JobModel;
@@ -24,10 +27,9 @@ use Tests\Support\Models\UserObjModel;
 use Tests\Support\Models\WithoutAutoIncrementModel;
 
 /**
- * @group DatabaseLive
- *
  * @internal
  */
+#[Group('DatabaseLive')]
 final class InsertModelTest extends LiveModelTestCase
 {
     public function testSetWorksWithInsert(): void
@@ -65,6 +67,26 @@ final class InsertModelTest extends LiveModelTestCase
         $this->seeInDatabase('job', ['name' => 'Cab Driver']);
     }
 
+    public function testInsertBatchUseAutoIncrementSetToFalse(): void
+    {
+        $insertData = [
+            [
+                'key'   => 'key1',
+                'value' => 'value1',
+            ],
+            [
+                'key'   => 'key2',
+                'value' => 'value2',
+            ],
+        ];
+
+        $this->createModel(WithoutAutoIncrementModel::class);
+        $this->model->insertBatch($insertData);
+
+        $this->seeInDatabase('without_auto_increment', ['key' => 'key1']);
+        $this->seeInDatabase('without_auto_increment', ['key' => 'key2']);
+    }
+
     public function testInsertBatchValidationFail(): void
     {
         $jobData = [
@@ -100,7 +122,7 @@ final class InsertModelTest extends LiveModelTestCase
         $this->assertSame(2, $this->model->insertBatch($jobData));
 
         $result = $this->model->where('name', 'Philosopher')->first();
-        $this->assertCloseEnough(time(), $result->created_at);
+        $this->assertCloseEnough(time(), (int) $result->created_at);
     }
 
     public function testInsertBatchSetsDatetimeTimestamps(): void

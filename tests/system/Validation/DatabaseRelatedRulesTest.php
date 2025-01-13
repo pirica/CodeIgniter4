@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -12,13 +14,13 @@
 namespace CodeIgniter\Validation;
 
 use CodeIgniter\Validation\StrictRules\DatabaseRelatedRulesTest as StrictDatabaseRelatedRulesTest;
+use PHPUnit\Framework\Attributes\Group;
 use Tests\Support\Validation\TestRules;
 
 /**
  * @internal
- *
- * @group DatabaseLive
  */
+#[Group('DatabaseLive')]
 final class DatabaseRelatedRulesTest extends StrictDatabaseRelatedRulesTest
 {
     protected array $config = [

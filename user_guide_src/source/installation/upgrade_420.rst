@@ -27,11 +27,13 @@ The following files received significant changes and
 .. important:: If you don't update the above two files, CodeIgniter will not work at all
     after running ``composer update``.
 
-    The upgrade procedure, for example, is as follows::
+    The upgrade procedure, for example, is as follows:
 
-        > composer update
-        > cp vendor/codeigniter4/framework/public/index.php public/index.php
-        > cp vendor/codeigniter4/framework/spark .
+    .. code-block:: console
+
+        composer update
+        cp vendor/codeigniter4/framework/public/index.php public/index.php
+        cp vendor/codeigniter4/framework/spark .
 
 Config/Constants.php
 ====================
@@ -40,6 +42,8 @@ The constants ``EVENT_PRIORITY_LOW``, ``EVENT_PRIORITY_NORMAL`` and ``EVENT_PRIO
 
 composer.json
 =============
+
+.. note:: This procedure is not required in v4.5.0 or later.
 
 If you use Composer, when you installed CodeIgniter v4.1.9 or before, and
 if there are ``App\\`` and ``Config\\`` namespaces in your ``/composer.json``'s ``autoload.psr-4``

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -16,13 +18,13 @@ use CodeIgniter\Database\Forge;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\DatabaseTestTrait;
 use Config\Database;
+use PHPUnit\Framework\Attributes\Group;
 use Tests\Support\Database\Seeds\CITestSeeder;
 
 /**
- * @group DatabaseLive
- *
  * @internal
  */
+#[Group('DatabaseLive')]
 final class DeleteTest extends CIUnitTestCase
 {
     use DatabaseTestTrait;
@@ -35,14 +37,14 @@ final class DeleteTest extends CIUnitTestCase
     protected $refresh = true;
     protected $seed    = CITestSeeder::class;
 
-    public function testDeleteThrowExceptionWithNoCriteria()
+    public function testDeleteThrowExceptionWithNoCriteria(): void
     {
         $this->expectException(DatabaseException::class);
 
         $this->db->table('job')->delete();
     }
 
-    public function testDeleteWithExternalWhere()
+    public function testDeleteWithExternalWhere(): void
     {
         $this->seeInDatabase('job', ['name' => 'Developer']);
 
@@ -51,7 +53,7 @@ final class DeleteTest extends CIUnitTestCase
         $this->dontSeeInDatabase('job', ['name' => 'Developer']);
     }
 
-    public function testDeleteWithInternalWhere()
+    public function testDeleteWithInternalWhere(): void
     {
         $this->seeInDatabase('job', ['name' => 'Developer']);
 
@@ -60,14 +62,14 @@ final class DeleteTest extends CIUnitTestCase
         $this->dontSeeInDatabase('job', ['name' => 'Developer']);
     }
 
-    public function testDeleteWithLimit()
+    public function testDeleteWithLimit(): void
     {
         $this->seeNumRecords(2, 'user', ['country' => 'US']);
 
         try {
             $this->db->table('user')->delete(['country' => 'US'], 1);
         } catch (DatabaseException $e) {
-            if (strpos($e->getMessage(), 'does not allow LIMITs on DELETE queries.') !== false) {
+            if (str_contains($e->getMessage(), 'does not allow LIMITs on DELETE queries.')) {
                 return;
             }
         }
@@ -75,7 +77,7 @@ final class DeleteTest extends CIUnitTestCase
         $this->seeNumRecords(1, 'user', ['country' => 'US']);
     }
 
-    public function testDeleteBatch()
+    public function testDeleteBatch(): void
     {
         $data = [
             ['userid' => 1, 'username' => 'Derek J', 'unused' => 'You can have fields you dont use'],
@@ -98,7 +100,53 @@ final class DeleteTest extends CIUnitTestCase
         $this->dontSeeInDatabase('user', ['email' => 'ahmadinejad@world.com', 'name' => 'Ahmadinejad']);
     }
 
-    public function testDeleteBatchWithQuery()
+    public function testDeleteBatchConstraintsDate(): void
+    {
+        $table = 'type_test';
+
+        // Prepares test data.
+        $builder = $this->db->table($table);
+        $builder->truncate();
+
+        for ($i = 1; $i < 4; $i++) {
+            $builder->insert([
+                'type_varchar'  => 'test' . $i,
+                'type_char'     => 'char',
+                'type_text'     => 'text',
+                'type_smallint' => 32767,
+                'type_integer'  => 2_147_483_647,
+                'type_bigint'   => 9_223_372_036_854_775_807,
+                'type_float'    => 10.1,
+                'type_numeric'  => 123.23,
+                'type_date'     => '2023-12-0' . $i,
+                'type_datetime' => '2023-12-21 12:00:00',
+            ]);
+        }
+
+        $data = [
+            ['date' => '2023-12-01', 'unused' => 'You can have fields you dont use'],
+            ['date' => '2023-12-02', 'unused' => 'You can have fields you dont use'],
+        ];
+        $builder = $this->db->table($table)
+            ->setData($data, null, 'data')
+            ->onConstraint(['type_date' => 'date']);
+        $builder->deleteBatch();
+
+        $this->dontSeeInDatabase(
+            $table,
+            ['type_date' => '2023-12-01', 'type_varchar' => 'test1'],
+        );
+        $this->dontSeeInDatabase(
+            $table,
+            ['type_date' => '2023-12-02', 'type_varchar' => 'test2'],
+        );
+        $this->seeInDatabase(
+            $table,
+            ['type_date' => '2023-12-03', 'type_varchar' => 'test3'],
+        );
+    }
+
+    public function testDeleteBatchWithQuery(): void
     {
         $this->forge = Database::forge($this->DBGroup);
 

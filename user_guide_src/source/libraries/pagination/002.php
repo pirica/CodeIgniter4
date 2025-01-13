@@ -2,13 +2,13 @@
 
 namespace App\Controllers;
 
-use CodeIgniter\Controller;
+use App\Models\UserModel;
 
-class UserController extends Controller
+class UserController extends BaseController
 {
     public function index()
     {
-        $model = new \App\Models\UserModel();
+        $model = model(UserModel::class);
 
         $data = [
             'users' => $model->paginate(10),

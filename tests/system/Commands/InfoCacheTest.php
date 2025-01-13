@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -15,12 +17,12 @@ use CodeIgniter\Cache\CacheFactory;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\StreamFilterTrait;
 use Config\Services;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * @internal
- *
- * @group Others
  */
+#[Group('Others')]
 final class InfoCacheTest extends CIUnitTestCase
 {
     use StreamFilterTrait;
@@ -44,7 +46,7 @@ final class InfoCacheTest extends CIUnitTestCase
         return $this->getStreamFilterBuffer();
     }
 
-    public function testInfoCacheErrorsOnInvalidHandler()
+    public function testInfoCacheErrorsOnInvalidHandler(): void
     {
         config('Cache')->handler = 'redis';
         cache()->save('foo', 'bar');
@@ -53,7 +55,7 @@ final class InfoCacheTest extends CIUnitTestCase
         $this->assertStringContainsString('This command only supports the file cache handler.', $this->getBuffer());
     }
 
-    public function testInfoCacheCanSeeFoo()
+    public function testInfoCacheCanSeeFoo(): void
     {
         cache()->save('foo', 'bar');
         command('cache:info');
@@ -61,7 +63,7 @@ final class InfoCacheTest extends CIUnitTestCase
         $this->assertStringContainsString('foo', $this->getBuffer());
     }
 
-    public function testInfoCacheCanSeeTable()
+    public function testInfoCacheCanSeeTable(): void
     {
         command('cache:info');
 
@@ -71,7 +73,7 @@ final class InfoCacheTest extends CIUnitTestCase
         $this->assertStringContainsString('Date', $this->getBuffer());
     }
 
-    public function testInfoCacheCannotSeeFoo()
+    public function testInfoCacheCannotSeeFoo(): void
     {
         cache()->delete('foo');
         command('cache:info');

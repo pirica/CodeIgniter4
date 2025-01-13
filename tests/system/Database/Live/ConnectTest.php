@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -16,12 +18,12 @@ use CodeIgniter\Database\SQLite3\Connection;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\DatabaseTestTrait;
 use Config\Database;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
- * @group DatabaseLive
- *
  * @internal
  */
+#[Group('DatabaseLive')]
 final class ConnectTest extends CIUnitTestCase
 {
     use DatabaseTestTrait;
@@ -44,7 +46,7 @@ final class ConnectTest extends CIUnitTestCase
         $this->group2['DBDriver'] = 'Postgre';
     }
 
-    public function testConnectWithMultipleCustomGroups()
+    public function testConnectWithMultipleCustomGroups(): void
     {
         // We should have our test database connection already.
         $instances = $this->getPrivateProperty(Database::class, 'instances');
@@ -59,7 +61,7 @@ final class ConnectTest extends CIUnitTestCase
         $this->assertCount(3, $instances);
     }
 
-    public function testConnectReturnsProvidedConnection()
+    public function testConnectReturnsProvidedConnection(): void
     {
         $config = config('Database');
 
@@ -76,7 +78,7 @@ final class ConnectTest extends CIUnitTestCase
         $this->assertSame($db1, $db2);
     }
 
-    public function testConnectWorksWithGroupName()
+    public function testConnectWorksWithGroupName(): void
     {
         $config = config('Database');
 
@@ -92,7 +94,7 @@ final class ConnectTest extends CIUnitTestCase
         $this->assertSame('MySQLi', $this->getPrivateProperty($db1, 'DBDriver'));
     }
 
-    public function testConnectWithFailover()
+    public function testConnectWithFailover(): void
     {
         $this->tests['failover'][] = $this->tests;
         unset($this->tests['failover'][0]['failover']);

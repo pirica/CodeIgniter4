@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -15,12 +17,12 @@ use CodeIgniter\Database\BaseBuilder;
 use CodeIgniter\Database\RawSql;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\Mock\MockConnection;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * @internal
- *
- * @group Others
  */
+#[Group('Others')]
 final class LikeTest extends CIUnitTestCase
 {
     protected $db;
@@ -32,7 +34,7 @@ final class LikeTest extends CIUnitTestCase
         $this->db = new MockConnection([]);
     }
 
-    public function testSimpleLike()
+    public function testSimpleLike(): void
     {
         $builder = new BaseBuilder('job', $this->db);
 
@@ -53,7 +55,7 @@ final class LikeTest extends CIUnitTestCase
     /**
      * @see https://github.com/codeigniter4/CodeIgniter4/issues/3970
      */
-    public function testLikeWithRawSql()
+    public function testLikeWithRawSql(): void
     {
         $builder = new BaseBuilder('users', $this->db);
 
@@ -73,7 +75,7 @@ final class LikeTest extends CIUnitTestCase
         $this->assertSame($expectedBinds, $builder->getBinds());
     }
 
-    public function testLikeNoSide()
+    public function testLikeNoSide(): void
     {
         $builder = new BaseBuilder('job', $this->db);
 
@@ -91,7 +93,7 @@ final class LikeTest extends CIUnitTestCase
         $this->assertSame($expectedBinds, $builder->getBinds());
     }
 
-    public function testLikeBeforeOnly()
+    public function testLikeBeforeOnly(): void
     {
         $builder = new BaseBuilder('job', $this->db);
 
@@ -109,7 +111,7 @@ final class LikeTest extends CIUnitTestCase
         $this->assertSame($expectedBinds, $builder->getBinds());
     }
 
-    public function testLikeAfterOnly()
+    public function testLikeAfterOnly(): void
     {
         $builder = new BaseBuilder('job', $this->db);
 
@@ -127,7 +129,7 @@ final class LikeTest extends CIUnitTestCase
         $this->assertSame($expectedBinds, $builder->getBinds());
     }
 
-    public function testOrLike()
+    public function testOrLike(): void
     {
         $builder = new BaseBuilder('job', $this->db);
 
@@ -149,7 +151,7 @@ final class LikeTest extends CIUnitTestCase
         $this->assertSame($expectedBinds, $builder->getBinds());
     }
 
-    public function testNotLike()
+    public function testNotLike(): void
     {
         $builder = new BaseBuilder('job', $this->db);
 
@@ -167,7 +169,7 @@ final class LikeTest extends CIUnitTestCase
         $this->assertSame($expectedBinds, $builder->getBinds());
     }
 
-    public function testOrNotLike()
+    public function testOrNotLike(): void
     {
         $builder = new BaseBuilder('job', $this->db);
 
@@ -189,7 +191,7 @@ final class LikeTest extends CIUnitTestCase
         $this->assertSame($expectedBinds, $builder->getBinds());
     }
 
-    public function testCaseInsensitiveLike()
+    public function testCaseInsensitiveLike(): void
     {
         $builder = new BaseBuilder('job', $this->db);
 
@@ -210,7 +212,7 @@ final class LikeTest extends CIUnitTestCase
     /**
      * @see https://github.com/codeigniter4/CodeIgniter4/issues/5775
      */
-    public function testDBPrefixAndCoulmnWithTablename()
+    public function testDBPrefixAndCoulmnWithTablename(): void
     {
         $this->db = new MockConnection(['DBPrefix' => 'db_']);
         $builder  = new BaseBuilder('test', $this->db);

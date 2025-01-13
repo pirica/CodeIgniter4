@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -15,13 +17,13 @@ use CodeIgniter\Database\Exceptions\DatabaseException;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\DatabaseTestTrait;
 use Config\Database;
+use PHPUnit\Framework\Attributes\Group;
 use Tests\Support\Database\Seeds\CITestSeeder;
 
 /**
- * @group DatabaseLive
- *
  * @internal
  */
+#[Group('DatabaseLive')]
 final class TransactionTest extends CIUnitTestCase
 {
     use DatabaseTestTrait;
@@ -55,7 +57,7 @@ final class TransactionTest extends CIUnitTestCase
         $this->setPrivateProperty($this->db, 'DBDebug', true);
     }
 
-    public function testTransStartDBDebugTrue()
+    public function testTransStartDBDebugTrue(): void
     {
         $this->enableDBDebug();
 
@@ -105,7 +107,7 @@ final class TransactionTest extends CIUnitTestCase
         $this->dontSeeInDatabase('job', ['name' => 'Grocery Sales']);
     }
 
-    public function testTransStartDBDebugFalse()
+    public function testTransStartDBDebugFalse(): void
     {
         $this->disableDBDebug();
 
@@ -138,7 +140,7 @@ final class TransactionTest extends CIUnitTestCase
         $this->enableDBDebug();
     }
 
-    public function testTransStrictTrueAndDBDebugFalse()
+    public function testTransStrictTrueAndDBDebugFalse(): void
     {
         $this->disableDBDebug();
 
@@ -187,7 +189,7 @@ final class TransactionTest extends CIUnitTestCase
         $this->enableDBDebug();
     }
 
-    public function testTransStrictFalseAndDBDebugFalse()
+    public function testTransStrictFalseAndDBDebugFalse(): void
     {
         $this->disableDBDebug();
 
@@ -236,5 +238,41 @@ final class TransactionTest extends CIUnitTestCase
         $this->seeInDatabase('job', ['name' => 'Comedian']);
 
         $this->enableDBDebug();
+    }
+
+    /**
+     * @see https://github.com/codeigniter4/CodeIgniter4/issues/9362
+     */
+    public function testTransInsertBatchFailed(): void
+    {
+        $data = [
+            [
+                'name' => 'Grocery Sales',
+            ],
+            [
+                'name' => null,
+            ],
+        ];
+
+        $db = $this->db;
+
+        if ($this->db->DBDriver === 'MySQLi') {
+            // strict mode is required for MySQLi to throw an exception here
+            $config                    = config('Database');
+            $config->tests['strictOn'] = true;
+
+            $db = Database::connect($config->tests);
+        }
+
+        $db->transStrict(false)->transBegin();
+        $db->table('job')->insertBatch($data);
+
+        $this->assertFalse($db->transStatus());
+
+        $db->transComplete();
+
+        $db->transStrict();
+
+        $this->dontSeeInDatabase('job', ['name' => 'Grocery Sales']);
     }
 }

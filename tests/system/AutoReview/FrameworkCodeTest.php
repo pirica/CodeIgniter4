@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -12,17 +14,19 @@
 namespace CodeIgniter\AutoReview;
 
 use FilesystemIterator;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
+use ReflectionAttribute;
 use ReflectionClass;
 use SplFileInfo;
 
 /**
  * @internal
- *
- * @group AutoReview
  */
+#[Group('AutoReview')]
 final class FrameworkCodeTest extends TestCase
 {
     /**
@@ -30,7 +34,7 @@ final class FrameworkCodeTest extends TestCase
      */
     private static array $testClasses = [];
 
-    private static array $recognizedGroupAnnotations = [
+    private static array $recognizedGroupAttributeNames = [
         'AutoReview',
         'CacheLive',
         'DatabaseLive',
@@ -39,11 +43,10 @@ final class FrameworkCodeTest extends TestCase
     ];
 
     /**
-     * @dataProvider provideTestClassCases
-     *
-     * @phpstan-param class-string $class
+     * @param class-string $class
      */
-    public function testEachTestClassHasCorrectGroupAnnotation(string $class): void
+    #[DataProvider('provideEachTestClassHasCorrectGroupAttributeName')]
+    public function testEachTestClassHasCorrectGroupAttributeName(string $class): void
     {
         $reflection = new ReflectionClass($class);
 
@@ -53,34 +56,38 @@ final class FrameworkCodeTest extends TestCase
             return;
         }
 
-        $docComment = (string) $reflection->getDocComment();
-        $this->assertNotEmpty($docComment, sprintf('[%s] Test class is missing a class-level PHPDoc.', $class));
+        $attributes = $reflection->getAttributes(Group::class);
+        $this->assertNotEmpty($attributes, sprintf('[%s] Test class is missing a #[Group] attribute.', $class));
 
-        preg_match_all('/@group (\S+)/', $docComment, $matches);
-        array_shift($matches);
-        $this->assertNotEmpty($matches[0], sprintf('[%s] Test class is missing a @group annotation.', $class));
+        $unrecognizedGroups = array_diff(
+            array_map(static function (ReflectionAttribute $attribute): string {
+                $groupAttribute = $attribute->newInstance();
+                assert($groupAttribute instanceof Group);
 
-        $unrecognizedGroups = array_diff($matches[0], self::$recognizedGroupAnnotations);
+                return $groupAttribute->name();
+            }, $attributes),
+            self::$recognizedGroupAttributeNames,
+        );
         $this->assertEmpty($unrecognizedGroups, sprintf(
-            "[%s] Unexpected @group annotation%s:\n%s\nExpected annotations to be in \"%s\".",
+            "[%s] Unexpected #[Group] attribute%s:\n%s\nExpected group names to be in \"%s\".",
             $class,
             count($unrecognizedGroups) > 1 ? 's' : '',
             implode("\n", array_map(
-                static fn (string $group): string => sprintf('  * @group %s', $group),
-                $unrecognizedGroups
+                static fn (string $group): string => sprintf('  * #[Group(\'%s\')]', $group),
+                $unrecognizedGroups,
             )),
-            implode(', ', self::$recognizedGroupAnnotations)
+            implode(', ', self::$recognizedGroupAttributeNames),
         ));
     }
 
-    public function provideTestClassCases(): iterable
+    public static function provideEachTestClassHasCorrectGroupAttributeName(): iterable
     {
-        foreach ($this->getTestClasses() as $class) {
+        foreach (self::getTestClasses() as $class) {
             yield $class => [$class];
         }
     }
 
-    private function getTestClasses(): array
+    private static function getTestClasses(): array
     {
         if (self::$testClasses !== []) {
             return self::$testClasses;
@@ -93,9 +100,9 @@ final class FrameworkCodeTest extends TestCase
         $iterator = new RecursiveIteratorIterator(
             new RecursiveDirectoryIterator(
                 $directory,
-                FilesystemIterator::SKIP_DOTS
+                FilesystemIterator::SKIP_DOTS,
             ),
-            RecursiveIteratorIterator::CHILD_FIRST
+            RecursiveIteratorIterator::CHILD_FIRST,
         );
 
         $testClasses = array_map(
@@ -104,32 +111,32 @@ final class FrameworkCodeTest extends TestCase
                     $file->getPathname(),
                     '',
                     0,
-                    strlen($directory)
+                    strlen($directory),
                 );
                 $relativePath = substr_replace(
                     $relativePath,
                     '',
-                    strlen($relativePath) - strlen(DIRECTORY_SEPARATOR . $file->getBasename())
+                    strlen($relativePath) - strlen(DIRECTORY_SEPARATOR . $file->getBasename()),
                 );
 
                 return sprintf(
                     'CodeIgniter\\%s%s%s',
                     strtr($relativePath, DIRECTORY_SEPARATOR, '\\'),
                     $relativePath === '' ? '' : '\\',
-                    $file->getBasename('.' . $file->getExtension())
+                    $file->getBasename('.' . $file->getExtension()),
                 );
             },
             array_filter(
                 iterator_to_array($iterator, false),
                 static fn (SplFileInfo $file): bool => $file->isFile()
-                    && strpos($file->getPathname(), DIRECTORY_SEPARATOR . 'fixtures' . DIRECTORY_SEPARATOR) === false
-                    && strpos($file->getPathname(), DIRECTORY_SEPARATOR . 'Views' . DIRECTORY_SEPARATOR) === false
-            )
+                    && ! str_contains($file->getPathname(), DIRECTORY_SEPARATOR . 'fixtures' . DIRECTORY_SEPARATOR)
+                    && ! str_contains($file->getPathname(), DIRECTORY_SEPARATOR . 'Views' . DIRECTORY_SEPARATOR),
+            ),
         );
 
         $testClasses = array_filter(
             $testClasses,
-            static fn (string $class) => is_subclass_of($class, TestCase::class)
+            static fn (string $class): bool => is_subclass_of($class, TestCase::class),
         );
 
         sort($testClasses);

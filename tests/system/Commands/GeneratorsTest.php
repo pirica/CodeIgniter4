@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -13,17 +15,17 @@ namespace CodeIgniter\Commands;
 
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\StreamFilterTrait;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * @internal
- *
- * @group Others
  */
+#[Group('Others')]
 final class GeneratorsTest extends CIUnitTestCase
 {
     use StreamFilterTrait;
 
-    public function testGenerateFileCreated()
+    public function testGenerateFileCreated(): void
     {
         command('make:seeder categories');
         $this->assertStringContainsString('File created: ', $this->getStreamFilterBuffer());
@@ -33,7 +35,7 @@ final class GeneratorsTest extends CIUnitTestCase
         }
     }
 
-    public function testGenerateFileExists()
+    public function testGenerateFileExists(): void
     {
         command('make:filter items');
         $this->assertStringContainsString('File created: ', $this->getStreamFilterBuffer());
@@ -46,7 +48,7 @@ final class GeneratorsTest extends CIUnitTestCase
         }
     }
 
-    public function testGenerateFileOverwritten()
+    public function testGenerateFileOverwritten(): void
     {
         command('make:controller products');
         $this->assertStringContainsString('File created: ', $this->getStreamFilterBuffer());
@@ -59,7 +61,7 @@ final class GeneratorsTest extends CIUnitTestCase
         }
     }
 
-    public function testGenerateFileFailsOnUnwritableDirectory()
+    public function testGenerateFileFailsOnUnwritableDirectory(): void
     {
         if (is_windows()) {
             $this->markTestSkipped('chmod does not work as expected on Windows');
@@ -73,13 +75,13 @@ final class GeneratorsTest extends CIUnitTestCase
         chmod(APPPATH . 'Filters', 0755);
     }
 
-    public function testGenerateFailsOnUndefinedNamespace()
+    public function testGenerateFailsOnUndefinedNamespace(): void
     {
         command('make:model cars -namespace CodeIgnite');
         $this->assertStringContainsString('Namespace "CodeIgnite" is not defined.', $this->getStreamFilterBuffer());
     }
 
-    public function testGenerateFileInSubfolders()
+    public function testGenerateFileInSubfolders(): void
     {
         command('make:controller admin/user');
         $file = APPPATH . 'Controllers/Admin/User.php';

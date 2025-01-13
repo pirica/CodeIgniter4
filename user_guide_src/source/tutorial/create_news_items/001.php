@@ -8,8 +8,8 @@ class Filters extends BaseConfig
 {
     // ...
 
-    public $methods = [
-        'post' => ['csrf'],
+    public array $methods = [
+        'POST' => ['csrf'],
     ];
 
     // ...

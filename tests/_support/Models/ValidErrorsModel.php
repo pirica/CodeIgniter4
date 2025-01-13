@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -24,6 +26,7 @@ class ValidErrorsModel extends Model
         'description',
     ];
     protected $validationRules = [
+        'id'   => 'permit_empty|is_natural_no_zero',
         'name' => [
             'required',
             'min_length[10]',

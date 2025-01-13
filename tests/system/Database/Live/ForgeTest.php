@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -16,14 +18,16 @@ use CodeIgniter\Database\Forge;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\DatabaseTestTrait;
 use Config\Database;
+use LogicException;
+use PHPUnit\Framework\Attributes\Group;
 use RuntimeException;
+use stdClass;
 use Tests\Support\Database\Seeds\CITestSeeder;
 
 /**
- * @group DatabaseLive
- *
  * @internal
  */
+#[Group('DatabaseLive')]
 final class ForgeTest extends CIUnitTestCase
 {
     use DatabaseTestTrait;
@@ -45,48 +49,100 @@ final class ForgeTest extends CIUnitTestCase
         parent::setUp();
     }
 
-    public function testCreateDatabase()
+    public function testCreateDatabase(): void
     {
         if ($this->db->DBDriver === 'OCI8') {
             $this->markTestSkipped('OCI8 does not support create database.');
         }
+
         $databaseCreated = $this->forge->createDatabase('test_forge_database');
 
         $this->assertTrue($databaseCreated);
     }
 
-    public function testCreateDatabaseIfNotExists()
+    public function testCreateDatabaseWithDots(): void
     {
         if ($this->db->DBDriver === 'OCI8') {
             $this->markTestSkipped('OCI8 does not support create database.');
         }
+
+        $dbName = 'test_com.sitedb.web';
+
+        $databaseCreated = $this->forge->createDatabase($dbName);
+
+        $this->assertTrue($databaseCreated);
+
+        // Checks if tableExists() works.
+        $config             = config(Database::class)->{$this->DBGroup};
+        $config['database'] = $dbName;
+        $db                 = db_connect($config);
+        $result             = $db->tableExists('not_exist');
+
+        $this->assertFalse($result);
+
+        $db->close();
+
+        if ($this->db->DBDriver !== 'SQLite3') {
+            $this->forge->dropDatabase($dbName);
+        } elseif (is_file($db->database)) {
+            unlink($db->database);
+        }
+    }
+
+    public function testCreateDatabaseIfNotExists(): void
+    {
+        if ($this->db->DBDriver === 'OCI8') {
+            $this->markTestSkipped('OCI8 does not support create database.');
+        }
+
         $dbName = 'test_forge_database_exist';
 
         $databaseCreateIfNotExists = $this->forge->createDatabase($dbName, true);
+
+        $this->assertTrue($databaseCreateIfNotExists);
+
         if ($this->db->DBDriver !== 'SQLite3') {
             $this->forge->dropDatabase($dbName);
         }
-
-        $this->assertTrue($databaseCreateIfNotExists);
     }
 
-    public function testCreateDatabaseIfNotExistsWithDb()
+    public function testCreateDatabaseIfNotExistsWithDb(): void
     {
         if ($this->db->DBDriver === 'OCI8') {
             $this->markTestSkipped('OCI8 does not support create database.');
         }
+
         $dbName = 'test_forge_database_exist';
 
         $this->forge->createDatabase($dbName);
         $databaseExists = $this->forge->createDatabase($dbName, true);
+
+        $this->assertTrue($databaseExists);
+
         if ($this->db->DBDriver !== 'SQLite3') {
             $this->forge->dropDatabase($dbName);
         }
-
-        $this->assertTrue($databaseExists);
     }
 
-    public function testDropDatabase()
+    public function testCreateDatabaseIfNotExistsWithDbWithDots(): void
+    {
+        if ($this->db->DBDriver === 'OCI8') {
+            $this->markTestSkipped('OCI8 does not support create database.');
+        }
+
+        $dbName = 'test_forge.database.exist';
+
+        $this->forge->createDatabase($dbName);
+        $databaseExists = $this->forge->createDatabase($dbName, true);
+
+        $this->assertTrue($databaseExists);
+
+        if ($this->db->DBDriver !== 'SQLite3') {
+            $this->forge->dropDatabase($dbName);
+        }
+    }
+
+    public function testDropDatabase(): void
     {
         if ($this->db->DBDriver === 'OCI8') {
             $this->markTestSkipped('OCI8 does not support drop database.');
@@ -100,22 +156,19 @@ final class ForgeTest extends CIUnitTestCase
         $this->assertTrue($databaseDropped);
     }
 
-    public function testCreateDatabaseExceptionNoCreateStatement()
+    public function testCreateDatabaseExceptionNoCreateStatement(): void
     {
-        $this->setPrivateProperty($this->forge, 'createDatabaseStr', false);
-
-        if ($this->db->DBDriver === 'SQLite3') {
-            $databaseCreated = $this->forge->createDatabase('test_forge_database');
-            $this->assertTrue($databaseCreated);
-        } else {
-            $this->expectException(DatabaseException::class);
-            $this->expectExceptionMessage('This feature is not available for the database you are using.');
-
-            $this->forge->createDatabase('test_forge_database');
+        if ($this->db->DBDriver !== 'OCI8') {
+            $this->markTestSkipped($this->db->DBDriver . ' does support drop database.');
         }
+
+        $this->expectException(DatabaseException::class);
+        $this->expectExceptionMessage('This feature is not available for the database you are using.');
+
+        $this->forge->createDatabase('test_forge_database');
     }
 
-    public function testDropDatabaseExceptionNoDropStatement()
+    public function testDropDatabaseExceptionNoDropStatement(): void
     {
         $this->setPrivateProperty($this->forge, 'dropDatabaseStr', false);
 
@@ -129,7 +182,7 @@ final class ForgeTest extends CIUnitTestCase
         }
     }
 
-    public function testCreateTable()
+    public function testCreateTable(): void
     {
         $this->forge->dropTable('forge_test_table', true);
 
@@ -162,7 +215,7 @@ final class ForgeTest extends CIUnitTestCase
         $this->forge->dropTable('forge_test_table', true);
     }
 
-    public function testCreateTableWithExists()
+    public function testCreateTableWithExists(): void
     {
         // create table so that it exists in database
         $this->forge->addField([
@@ -211,7 +264,7 @@ final class ForgeTest extends CIUnitTestCase
         $this->forge->dropTable('test_exists');
     }
 
-    public function testCreateTableApplyBigInt()
+    public function testCreateTableApplyBigInt(): void
     {
         $this->forge->dropTable('forge_test_table', true);
 
@@ -228,21 +281,21 @@ final class ForgeTest extends CIUnitTestCase
 
         $fieldsData = $this->db->getFieldData('forge_test_table');
         if ($this->db->DBDriver === 'MySQLi') {
-            $this->assertSame(strtolower($fieldsData[0]->type), 'bigint');
+            $this->assertSame('bigint', strtolower($fieldsData[0]->type));
         } elseif ($this->db->DBDriver === 'Postgre') {
-            $this->assertSame(strtolower($fieldsData[0]->type), 'bigint');
+            $this->assertSame('bigint', strtolower($fieldsData[0]->type));
         } elseif ($this->db->DBDriver === 'SQLite3') {
-            $this->assertSame(strtolower($fieldsData[0]->type), 'integer');
+            $this->assertSame('integer', strtolower($fieldsData[0]->type));
         } elseif ($this->db->DBDriver === 'OCI8') {
-            $this->assertSame(strtolower($fieldsData[0]->type), 'number');
+            $this->assertSame('number', strtolower($fieldsData[0]->type));
         } elseif ($this->db->DBDriver === 'SQLSRV') {
-            $this->assertSame(strtolower($fieldsData[0]->type), 'bigint');
+            $this->assertSame('bigint', strtolower($fieldsData[0]->type));
         }
 
         $this->forge->dropTable('forge_test_table', true);
     }
 
-    public function testCreateTableWithAttributes()
+    public function testCreateTableWithAttributes(): void
     {
         if ($this->db->DBDriver === 'OCI8') {
             $this->markTestSkipped('OCI8 does not support comments on tables or columns.');
@@ -267,7 +320,7 @@ final class ForgeTest extends CIUnitTestCase
         $this->assertTrue($exist);
     }
 
-    public function testCreateTableWithArrayFieldConstraints()
+    public function testCreateTableWithArrayFieldConstraints(): void
     {
         if (in_array($this->db->DBDriver, ['MySQLi', 'SQLite3'], true)) {
             $this->forge->dropTable('forge_array_constraint', true);
@@ -331,7 +384,7 @@ final class ForgeTest extends CIUnitTestCase
         }
     }
 
-    public function testCreateTableWithStringField()
+    public function testCreateTableWithStringField(): void
     {
         $this->forge->dropTable('forge_test_table', true);
 
@@ -346,7 +399,7 @@ final class ForgeTest extends CIUnitTestCase
         $this->assertTrue($exist);
     }
 
-    public function testCreateTableWithEmptyName()
+    public function testCreateTableWithEmptyName(): void
     {
         $this->forge->dropTable('forge_test_table', true);
 
@@ -359,7 +412,7 @@ final class ForgeTest extends CIUnitTestCase
         $this->forge->createTable('');
     }
 
-    public function testCreateTableWithNoFields()
+    public function testCreateTableWithNoFields(): void
     {
         $this->forge->dropTable('forge_test_table', true);
 
@@ -369,7 +422,7 @@ final class ForgeTest extends CIUnitTestCase
         $this->forge->createTable('forge_test_table');
     }
 
-    public function testCreateTableWithStringFieldException()
+    public function testCreateTableWithStringFieldException(): void
     {
         $this->expectException('InvalidArgumentException');
         $this->expectExceptionMessage('Field information is required for that operation.');
@@ -382,7 +435,7 @@ final class ForgeTest extends CIUnitTestCase
         $this->forge->createTable('forge_test_table');
     }
 
-    public function testRenameTable()
+    public function testRenameTable(): void
     {
         $this->forge->dropTable('forge_test_table_dummy', true);
 
@@ -398,7 +451,7 @@ final class ForgeTest extends CIUnitTestCase
         $this->assertTrue($exist);
     }
 
-    public function testRenameTableEmptyNameException()
+    public function testRenameTableEmptyNameException(): void
     {
         $this->forge->dropTable('forge_test_table_dummy', true);
 
@@ -413,7 +466,7 @@ final class ForgeTest extends CIUnitTestCase
         $this->forge->renameTable('forge_test_table', '');
     }
 
-    public function testRenameTableNoRenameStatementException()
+    public function testRenameTableNoRenameStatementException(): void
     {
         $this->setPrivateProperty($this->forge, 'renameTableStr', false);
 
@@ -430,7 +483,7 @@ final class ForgeTest extends CIUnitTestCase
         $this->forge->renameTable('forge_test_table', 'forge_test_table_dummy');
     }
 
-    public function testDropTableWithEmptyName()
+    public function testDropTableWithEmptyName(): void
     {
         $this->expectException(DatabaseException::class);
         $this->expectExceptionMessage('A table name is required for that operation.');
@@ -438,7 +491,7 @@ final class ForgeTest extends CIUnitTestCase
         $this->forge->dropTable('', true);
     }
 
-    public function testForeignKey()
+    public function testForeignKey(): void
     {
         $this->forge->dropTable('forge_test_invoices', true);
         $this->forge->dropTable('forge_test_users', true);
@@ -503,7 +556,7 @@ final class ForgeTest extends CIUnitTestCase
     /**
      * @see https://github.com/codeigniter4/CodeIgniter4/issues/4986
      */
-    public function testForeignKeyAddingWithStringFields()
+    public function testForeignKeyAddingWithStringFields(): void
     {
         if ($this->db->DBDriver !== 'MySQLi') {
             $this->markTestSkipped('Testing only on MySQLi but fix expands to all DBs.');
@@ -542,7 +595,7 @@ final class ForgeTest extends CIUnitTestCase
     /**
      * @see https://github.com/codeigniter4/CodeIgniter4/issues/4310
      */
-    public function testCompositeForeignKey()
+    public function testCompositeForeignKey(): void
     {
         $this->forge->dropTable('forge_test_invoices', true);
         $this->forge->dropTable('forge_test_users', true);
@@ -618,7 +671,7 @@ final class ForgeTest extends CIUnitTestCase
     /**
      * @see https://github.com/codeigniter4/CodeIgniter4/issues/4310
      */
-    public function testCompositeForeignKeyFieldNotExistException()
+    public function testCompositeForeignKeyFieldNotExistException(): void
     {
         $this->expectException(DatabaseException::class);
         if ($this->db->DBDriver === 'SQLite3') {
@@ -677,7 +730,7 @@ final class ForgeTest extends CIUnitTestCase
         $this->forge->createTable('forge_test_invoices', true, $attributes);
     }
 
-    public function testForeignKeyFieldNotExistException()
+    public function testForeignKeyFieldNotExistException(): void
     {
         $this->expectException(DatabaseException::class);
         if ($this->db->DBDriver === 'SQLite3') {
@@ -728,7 +781,7 @@ final class ForgeTest extends CIUnitTestCase
         $this->forge->createTable('forge_test_invoices', true, $attributes);
     }
 
-    public function testDropForeignKey()
+    public function testDropForeignKey(): void
     {
         $this->forge->dropTable('forge_test_invoices', true);
         $this->forge->dropTable('forge_test_users', true);
@@ -790,7 +843,7 @@ final class ForgeTest extends CIUnitTestCase
         $this->forge->dropTable('forge_test_users', true);
     }
 
-    public function testAddColumn()
+    public function testAddColumn(): void
     {
         $this->forge->dropTable('forge_test_table', true);
 
@@ -825,7 +878,42 @@ final class ForgeTest extends CIUnitTestCase
         $this->assertSame('username', $fieldNames[1]);
     }
 
-    public function testAddFields()
+    public function testAddColumnNull(): void
+    {
+        $this->forge->dropTable('forge_test_table', true);
+
+        $this->forge->addField([
+            'col1' => ['type' => 'VARCHAR', 'constraint' => 255],
+            'col2' => ['type' => 'VARCHAR', 'constraint' => 255, 'null' => true],
+            'col3' => ['type' => 'VARCHAR', 'constraint' => 255, 'null' => false],
+        ]);
+        $this->forge->createTable('forge_test_table');
+
+        $this->forge->addColumn('forge_test_table', [
+            'col4' => ['type' => 'VARCHAR', 'constraint' => 255],
+            'col5' => ['type' => 'VARCHAR', 'constraint' => 255, 'null' => true],
+            'col6' => ['type' => 'VARCHAR', 'constraint' => 255, 'null' => false],
+        ]);
+
+        $this->db->resetDataCache();
+
+        $col1 = $this->getMetaData('col1', 'forge_test_table');
+        $this->assertFalse($col1->nullable);
+        $col2 = $this->getMetaData('col2', 'forge_test_table');
+        $this->assertTrue($col2->nullable);
+        $col3 = $this->getMetaData('col3', 'forge_test_table');
+        $this->assertFalse($col3->nullable);
+        $col4 = $this->getMetaData('col4', 'forge_test_table');
+        $this->assertTrue($col4->nullable);
+        $col5 = $this->getMetaData('col5', 'forge_test_table');
+        $this->assertTrue($col5->nullable);
+        $col6 = $this->getMetaData('col6', 'forge_test_table');
+        $this->assertFalse($col6->nullable);
+
+        $this->forge->dropTable('forge_test_table', true);
+    }
+
+    public function testAddFields(): void
     {
         $tableName = 'forge_test_fields';
         if ($this->db->DBDriver === 'OCI8') {
@@ -848,6 +936,7 @@ final class ForgeTest extends CIUnitTestCase
             'name' => [
                 'type'       => 'VARCHAR',
                 'constraint' => 255,
+                'null'       => true,
             ],
             'active' => [
                 'type'       => 'INTEGER',
@@ -889,7 +978,7 @@ final class ForgeTest extends CIUnitTestCase
                     'name'        => 'name',
                     'type'        => 'varchar',
                     'max_length'  => 255,
-                    'nullable'    => false,
+                    'nullable'    => true,
                     'default'     => null,
                     'primary_key' => 0,
                 ],
@@ -903,7 +992,7 @@ final class ForgeTest extends CIUnitTestCase
                 ],
             ];
 
-            if (version_compare($this->db->getVersion(), '8.0.17', '>=')) {
+            if (version_compare($this->db->getVersion(), '8.0.17', '>=') && ! str_contains($this->db->getVersion(), 'MariaDB')) {
                 // As of MySQL 8.0.17, the display width attribute for integer data types
                 // is deprecated and is not reported back anymore.
                 // @see https://dev.mysql.com/doc/refman/8.0/en/numeric-type-attributes.html
@@ -915,30 +1004,30 @@ final class ForgeTest extends CIUnitTestCase
                 0 => [
                     'name'       => 'id',
                     'type'       => 'integer',
+                    'max_length' => '32',
                     'nullable'   => false,
                     'default'    => "nextval('db_forge_test_fields_id_seq'::regclass)",
-                    'max_length' => '32',
                 ],
                 1 => [
                     'name'       => 'username',
                     'type'       => 'character varying',
+                    'max_length' => '255',
                     'nullable'   => false,
                     'default'    => null,
-                    'max_length' => '255',
                 ],
                 2 => [
                     'name'       => 'name',
                     'type'       => 'character varying',
-                    'nullable'   => false,
-                    'default'    => null,
                     'max_length' => '255',
+                    'nullable'   => true,
+                    'default'    => null,
                 ],
                 3 => [
                     'name'       => 'active',
                     'type'       => 'integer',
+                    'max_length' => '32',
                     'nullable'   => false,
                     'default'    => '0',
-                    'max_length' => '32',
                 ],
             ];
         } elseif ($this->db->DBDriver === 'SQLite3') {
@@ -947,33 +1036,33 @@ final class ForgeTest extends CIUnitTestCase
                     'name'        => 'id',
                     'type'        => 'INTEGER',
                     'max_length'  => null,
-                    'default'     => null,
-                    'primary_key' => true,
                     'nullable'    => true,
+                    'default'     => null,
+                    'primary_key' => 1,
                 ],
                 1 => [
                     'name'        => 'username',
                     'type'        => 'VARCHAR',
                     'max_length'  => null,
-                    'default'     => null,
-                    'primary_key' => false,
                     'nullable'    => false,
+                    'default'     => null,
+                    'primary_key' => 0,
                 ],
                 2 => [
                     'name'        => 'name',
                     'type'        => 'VARCHAR',
                     'max_length'  => null,
+                    'nullable'    => true,
                     'default'     => null,
-                    'primary_key' => false,
-                    'nullable'    => false,
+                    'primary_key' => 0,
                 ],
                 3 => [
                     'name'        => 'active',
                     'type'        => 'INTEGER',
                     'max_length'  => null,
-                    'default'     => '0',
-                    'primary_key' => false,
                     'nullable'    => false,
+                    'default'     => '0',
+                    'primary_key' => 0,
                 ],
             ];
         } elseif ($this->db->DBDriver === 'SQLSRV') {
@@ -981,26 +1070,30 @@ final class ForgeTest extends CIUnitTestCase
                 0 => [
                     'name'       => 'id',
                     'type'       => 'int',
-                    'default'    => null,
                     'max_length' => 10,
+                    'nullable'   => false,
+                    'default'    => null,
                 ],
                 1 => [
                     'name'       => 'username',
                     'type'       => 'varchar',
-                    'default'    => null,
                     'max_length' => 255,
+                    'nullable'   => false,
+                    'default'    => null,
                 ],
                 2 => [
                     'name'       => 'name',
                     'type'       => 'varchar',
-                    'default'    => null,
                     'max_length' => 255,
+                    'nullable'   => true,
+                    'default'    => null,
                 ],
                 3 => [
                     'name'       => 'active',
                     'type'       => 'int',
-                    'default'    => '((0))', // Why?
                     'max_length' => 10,
+                    'nullable'   => false,
+                    'default'    => '((0))', // Why?
                 ],
             ];
         } elseif ($this->db->DBDriver === 'OCI8') {
@@ -1009,29 +1102,29 @@ final class ForgeTest extends CIUnitTestCase
                     'name'       => 'id',
                     'type'       => 'NUMBER',
                     'max_length' => '11',
-                    'default'    => '"ORACLE"."ISEQ$$_80229".nextval', // Sequence id may change
                     'nullable'   => false,
+                    'default'    => '"ORACLE"."ISEQ$$_80229".nextval', // Sequence id may change
                 ],
                 1 => [
                     'name'       => 'username',
                     'type'       => 'VARCHAR2',
                     'max_length' => '255',
-                    'default'    => '',
                     'nullable'   => false,
+                    'default'    => null,
                 ],
                 2 => [
                     'name'       => 'name',
                     'type'       => 'VARCHAR2',
                     'max_length' => '255',
-                    'default'    => '',
-                    'nullable'   => false,
+                    'nullable'   => true,
+                    'default'    => null,
                 ],
                 3 => [
                     'name'       => 'active',
                     'type'       => 'NUMBER',
                     'max_length' => '11',
-                    'default'    => '0 ', // Why?
                     'nullable'   => false,
+                    'default'    => '0 ', // Why?
                 ],
             ];
 
@@ -1045,7 +1138,7 @@ final class ForgeTest extends CIUnitTestCase
         $this->assertSame($expected, json_decode(json_encode($fieldsData), true));
     }
 
-    public function testCompositeKey()
+    public function testCompositeKey(): void
     {
         $this->forge->dropTable('forge_test_1', true);
 
@@ -1076,71 +1169,71 @@ final class ForgeTest extends CIUnitTestCase
         $keys = $this->db->getIndexData('forge_test_1');
 
         if ($this->db->DBDriver === 'MySQLi') {
-            $this->assertSame($keys['PRIMARY']->name, 'PRIMARY');
+            $this->assertSame('PRIMARY', $keys['PRIMARY']->name);
             $this->assertSame($keys['PRIMARY']->fields, ['id']);
-            $this->assertSame($keys['PRIMARY']->type, 'PRIMARY');
+            $this->assertSame('PRIMARY', $keys['PRIMARY']->type);
 
-            $this->assertSame($keys['code_company']->name, 'code_company');
+            $this->assertSame('code_company', $keys['code_company']->name);
             $this->assertSame($keys['code_company']->fields, ['code', 'company']);
-            $this->assertSame($keys['code_company']->type, 'INDEX');
+            $this->assertSame('INDEX', $keys['code_company']->type);
 
-            $this->assertSame($keys['code_active']->name, 'code_active');
+            $this->assertSame('code_active', $keys['code_active']->name);
             $this->assertSame($keys['code_active']->fields, ['code', 'active']);
-            $this->assertSame($keys['code_active']->type, 'UNIQUE');
+            $this->assertSame('UNIQUE', $keys['code_active']->type);
         } elseif ($this->db->DBDriver === 'Postgre') {
-            $this->assertSame($keys['pk_db_forge_test_1']->name, 'pk_db_forge_test_1');
+            $this->assertSame('pk_db_forge_test_1', $keys['pk_db_forge_test_1']->name);
             $this->assertSame($keys['pk_db_forge_test_1']->fields, ['id']);
-            $this->assertSame($keys['pk_db_forge_test_1']->type, 'PRIMARY');
+            $this->assertSame('PRIMARY', $keys['pk_db_forge_test_1']->type);
 
-            $this->assertSame($keys['db_forge_test_1_code_company']->name, 'db_forge_test_1_code_company');
+            $this->assertSame('db_forge_test_1_code_company', $keys['db_forge_test_1_code_company']->name);
             $this->assertSame($keys['db_forge_test_1_code_company']->fields, ['code', 'company']);
-            $this->assertSame($keys['db_forge_test_1_code_company']->type, 'INDEX');
+            $this->assertSame('INDEX', $keys['db_forge_test_1_code_company']->type);
 
-            $this->assertSame($keys['db_forge_test_1_code_active']->name, 'db_forge_test_1_code_active');
+            $this->assertSame('db_forge_test_1_code_active', $keys['db_forge_test_1_code_active']->name);
             $this->assertSame($keys['db_forge_test_1_code_active']->fields, ['code', 'active']);
-            $this->assertSame($keys['db_forge_test_1_code_active']->type, 'UNIQUE');
+            $this->assertSame('UNIQUE', $keys['db_forge_test_1_code_active']->type);
         } elseif ($this->db->DBDriver === 'SQLite3') {
-            $this->assertSame($keys['PRIMARY']->name, 'PRIMARY');
+            $this->assertSame('PRIMARY', $keys['PRIMARY']->name);
             $this->assertSame($keys['PRIMARY']->fields, ['id']);
-            $this->assertSame($keys['PRIMARY']->type, 'PRIMARY');
+            $this->assertSame('PRIMARY', $keys['PRIMARY']->type);
 
-            $this->assertSame($keys['db_forge_test_1_code_company']->name, 'db_forge_test_1_code_company');
+            $this->assertSame('db_forge_test_1_code_company', $keys['db_forge_test_1_code_company']->name);
             $this->assertSame($keys['db_forge_test_1_code_company']->fields, ['code', 'company']);
-            $this->assertSame($keys['db_forge_test_1_code_company']->type, 'INDEX');
+            $this->assertSame('INDEX', $keys['db_forge_test_1_code_company']->type);
 
-            $this->assertSame($keys['db_forge_test_1_code_active']->name, 'db_forge_test_1_code_active');
+            $this->assertSame('db_forge_test_1_code_active', $keys['db_forge_test_1_code_active']->name);
             $this->assertSame($keys['db_forge_test_1_code_active']->fields, ['code', 'active']);
-            $this->assertSame($keys['db_forge_test_1_code_active']->type, 'UNIQUE');
+            $this->assertSame('UNIQUE', $keys['db_forge_test_1_code_active']->type);
         } elseif ($this->db->DBDriver === 'SQLSRV') {
-            $this->assertSame($keys['pk_db_forge_test_1']->name, 'pk_db_forge_test_1');
+            $this->assertSame('pk_db_forge_test_1', $keys['pk_db_forge_test_1']->name);
             $this->assertSame($keys['pk_db_forge_test_1']->fields, ['id']);
-            $this->assertSame($keys['pk_db_forge_test_1']->type, 'PRIMARY');
+            $this->assertSame('PRIMARY', $keys['pk_db_forge_test_1']->type);
 
-            $this->assertSame($keys['db_forge_test_1_code_company']->name, 'db_forge_test_1_code_company');
+            $this->assertSame('db_forge_test_1_code_company', $keys['db_forge_test_1_code_company']->name);
             $this->assertSame($keys['db_forge_test_1_code_company']->fields, ['code', 'company']);
-            $this->assertSame($keys['db_forge_test_1_code_company']->type, 'INDEX');
+            $this->assertSame('INDEX', $keys['db_forge_test_1_code_company']->type);
 
-            $this->assertSame($keys['db_forge_test_1_code_active']->name, 'db_forge_test_1_code_active');
+            $this->assertSame('db_forge_test_1_code_active', $keys['db_forge_test_1_code_active']->name);
             $this->assertSame($keys['db_forge_test_1_code_active']->fields, ['code', 'active']);
-            $this->assertSame($keys['db_forge_test_1_code_active']->type, 'UNIQUE');
+            $this->assertSame('UNIQUE', $keys['db_forge_test_1_code_active']->type);
         } elseif ($this->db->DBDriver === 'OCI8') {
-            $this->assertSame($keys['pk_db_forge_test_1']->name, 'pk_db_forge_test_1');
+            $this->assertSame('pk_db_forge_test_1', $keys['pk_db_forge_test_1']->name);
             $this->assertSame($keys['pk_db_forge_test_1']->fields, ['id']);
-            $this->assertSame($keys['pk_db_forge_test_1']->type, 'PRIMARY');
+            $this->assertSame('PRIMARY', $keys['pk_db_forge_test_1']->type);
 
-            $this->assertSame($keys['db_forge_test_1_code_company']->name, 'db_forge_test_1_code_company');
+            $this->assertSame('db_forge_test_1_code_company', $keys['db_forge_test_1_code_company']->name);
             $this->assertSame($keys['db_forge_test_1_code_company']->fields, ['code', 'company']);
-            $this->assertSame($keys['db_forge_test_1_code_company']->type, 'INDEX');
+            $this->assertSame('INDEX', $keys['db_forge_test_1_code_company']->type);
 
-            $this->assertSame($keys['db_forge_test_1_code_active']->name, 'db_forge_test_1_code_active');
+            $this->assertSame('db_forge_test_1_code_active', $keys['db_forge_test_1_code_active']->name);
             $this->assertSame($keys['db_forge_test_1_code_active']->fields, ['code', 'active']);
-            $this->assertSame($keys['db_forge_test_1_code_active']->type, 'UNIQUE');
+            $this->assertSame('UNIQUE', $keys['db_forge_test_1_code_active']->type);
         }
 
         $this->forge->dropTable('forge_test_1', true);
     }
 
-    public function testSetKeyNames()
+    public function testSetKeyNames(): void
     {
         $this->forge->dropTable('forge_test_1', true);
 
@@ -1204,7 +1297,7 @@ final class ForgeTest extends CIUnitTestCase
         $this->forge->dropTable('forge_test_1', true);
     }
 
-    public function testDropColumn()
+    public function testDropColumn(): void
     {
         $this->forge->dropTable('forge_test_two', true);
 
@@ -1226,8 +1319,7 @@ final class ForgeTest extends CIUnitTestCase
         $this->forge->createTable('forge_test_two');
 
         $this->assertTrue($this->db->fieldExists('name', 'forge_test_two'));
-
-        $this->forge->dropColumn('forge_test_two', 'name');
+        $this->assertTrue($this->forge->dropColumn('forge_test_two', 'name'));
 
         $this->db->resetDataCache();
 
@@ -1236,7 +1328,7 @@ final class ForgeTest extends CIUnitTestCase
         $this->forge->dropTable('forge_test_two', true);
     }
 
-    public function testModifyColumnRename()
+    public function testModifyColumnRename(): void
     {
         $this->forge->dropTable('forge_test_three', true);
 
@@ -1247,8 +1339,18 @@ final class ForgeTest extends CIUnitTestCase
                 'unsigned'       => false,
                 'auto_increment' => true,
             ],
+            'int' => [
+                'type'       => 'INT',
+                'constraint' => 10,
+                'null'       => false,
+            ],
+            'varchar' => [
+                'type'       => 'VARCHAR',
+                'constraint' => 7,
+                'null'       => false,
+            ],
             'name' => [
-                'type'       => 'varchar',
+                'type'       => 'VARCHAR',
                 'constraint' => 255,
                 'null'       => true,
             ],
@@ -1262,7 +1364,7 @@ final class ForgeTest extends CIUnitTestCase
         $this->forge->modifyColumn('forge_test_three', [
             'name' => [
                 'name'       => 'altered',
-                'type'       => 'varchar',
+                'type'       => 'VARCHAR',
                 'constraint' => 255,
                 'null'       => true,
             ],
@@ -1270,13 +1372,102 @@ final class ForgeTest extends CIUnitTestCase
 
         $this->db->resetDataCache();
 
+        $fieldData = $this->db->getFieldData('forge_test_three');
+        $fields    = [];
+
+        foreach ($fieldData as $obj) {
+            $fields[$obj->name] = $obj;
+        }
+
         $this->assertFalse($this->db->fieldExists('name', 'forge_test_three'));
         $this->assertTrue($this->db->fieldExists('altered', 'forge_test_three'));
+
+        $this->assertTrue($fields['altered']->nullable);
+        $this->assertFalse($fields['int']->nullable);
+        $this->assertFalse($fields['varchar']->nullable);
+        $this->assertNull($fields['altered']->default);
+        $this->assertNull($fields['int']->default);
+        $this->assertNull($fields['varchar']->default);
 
         $this->forge->dropTable('forge_test_three', true);
     }
 
-    public function testConnectWithArrayGroup()
+    public function testModifyColumnNullTrue(): void
+    {
+        $this->forge->dropTable('forge_test_modify', true);
+
+        $this->forge->addField([
+            'col1' => ['type' => 'VARCHAR', 'constraint' => 255, 'null' => true],
+            'col2' => ['type' => 'VARCHAR', 'constraint' => 255, 'null' => true],
+            'col3' => ['type' => 'VARCHAR', 'constraint' => 255, 'null' => true],
+        ]);
+        $this->forge->createTable('forge_test_modify');
+
+        $this->forge->modifyColumn('forge_test_modify', [
+            'col1' => ['type' => 'VARCHAR', 'constraint' => 1],
+            'col2' => ['type' => 'VARCHAR', 'constraint' => 1, 'null' => true],
+            'col3' => ['type' => 'VARCHAR', 'constraint' => 1, 'null' => false],
+        ]);
+
+        $this->db->resetDataCache();
+
+        $col1 = $this->getMetaData('col1', 'forge_test_modify');
+        $this->assertTrue($col1->nullable);
+        $col2 = $this->getMetaData('col2', 'forge_test_modify');
+        $this->assertTrue($col2->nullable);
+        $col3 = $this->getMetaData('col3', 'forge_test_modify');
+        $this->assertFalse($col3->nullable);
+
+        $this->forge->dropTable('forge_test_modify', true);
+    }
+
+    public function testModifyColumnNullFalse(): void
+    {
+        $this->forge->dropTable('forge_test_modify', true);
+
+        $this->forge->addField([
+            'col1' => ['type' => 'VARCHAR', 'constraint' => 255, 'null' => false],
+            'col2' => ['type' => 'VARCHAR', 'constraint' => 255, 'null' => false],
+            'col3' => ['type' => 'VARCHAR', 'constraint' => 255, 'null' => false],
+        ]);
+        $this->forge->createTable('forge_test_modify');
+
+        $this->forge->modifyColumn('forge_test_modify', [
+            'col1' => ['type' => 'VARCHAR', 'constraint' => 1],
+            'col2' => ['type' => 'VARCHAR', 'constraint' => 1, 'null' => true],
+            'col3' => ['type' => 'VARCHAR', 'constraint' => 1, 'null' => false],
+        ]);
+
+        $this->db->resetDataCache();
+
+        $col1 = $this->getMetaData('col1', 'forge_test_modify');
+        $this->assertTrue($col1->nullable); // Nullable by default.
+        $col2 = $this->getMetaData('col2', 'forge_test_modify');
+        $this->assertTrue($col2->nullable);
+        $col3 = $this->getMetaData('col3', 'forge_test_modify');
+        $this->assertFalse($col3->nullable);
+
+        $this->forge->dropTable('forge_test_modify', true);
+    }
+
+    private function getMetaData(string $column, string $table): stdClass
+    {
+        $fields = $this->db->getFieldData($table);
+
+        $name = array_search(
+            $column,
+            array_column($fields, 'name'),
+            true,
+        );
+
+        if ($name === false) {
+            throw new LogicException('Column not found: ' . $column);
+        }
+
+        return $fields[$name];
+    }
+
+    public function testConnectWithArrayGroup(): void
     {
         $group = config('Database');
         $group = $group->tests;
@@ -1289,7 +1480,7 @@ final class ForgeTest extends CIUnitTestCase
     /**
      * @see https://github.com/codeigniter4/CodeIgniter4/issues/1983
      */
-    public function testDropTableSuccess()
+    public function testDropTableSuccess(): void
     {
         // Add an index to user table so we have
         // something to work with
@@ -1313,7 +1504,7 @@ final class ForgeTest extends CIUnitTestCase
         }
     }
 
-    public function testDropMultipleColumnWithArray()
+    public function testDropMultipleColumnWithArray(): void
     {
         $this->forge->dropTable('forge_test_two', true);
 
@@ -1351,7 +1542,7 @@ final class ForgeTest extends CIUnitTestCase
         $this->forge->dropTable('forge_test_two', true);
     }
 
-    public function testDropMultipleColumnWithString()
+    public function testDropMultipleColumnWithString(): void
     {
         $this->forge->dropTable('forge_test_four', true);
 
@@ -1389,7 +1580,7 @@ final class ForgeTest extends CIUnitTestCase
         $this->forge->dropTable('forge_test_four', true);
     }
 
-    public function testDropKey()
+    public function testDropKey(): void
     {
         $this->forge->dropTable('key_test_users', true);
         $keyName = 'key_test_users_id';
@@ -1423,24 +1614,30 @@ final class ForgeTest extends CIUnitTestCase
         $this->forge->dropTable('key_test_users', true);
     }
 
-    public function testAddTextColumnWithConstraint()
+    public function testAddTextColumnWithConstraint(): void
     {
         // some DBMS do not allow a constraint for type TEXT
-        $result = $this->forge->addColumn('user', [
-            'text_with_constraint' => ['type' => 'text', 'constraint' => 255, 'default' => ''],
-        ]);
+        if ($this->db->DBDriver === 'SQLSRV') {
+            $this->forge->addColumn('user', [
+                'text_with_constraint' => ['type' => 'nvarchar(max)', 'default' => ''],
+            ]);
+        } else {
+            $this->forge->addColumn('user', [
+                'text_with_constraint' => ['type' => 'text', 'constraint' => 255, 'default' => ''],
+            ]);
+        }
 
         $this->assertTrue($this->db->fieldExists('text_with_constraint', 'user'));
 
         // SQLSRV requires dropping default constraint before dropping column
-        $result = $this->forge->dropColumn('user', 'text_with_constraint');
+        $this->forge->dropColumn('user', 'text_with_constraint');
 
         $this->db->resetDataCache();
 
         $this->assertFalse($this->db->fieldExists('text_with_constraint', 'user'));
     }
 
-    public function testDropPrimaryKey()
+    public function testDropPrimaryKey(): void
     {
         $this->forge->dropTable('forge_test_users', true);
 
@@ -1476,7 +1673,7 @@ final class ForgeTest extends CIUnitTestCase
         $this->forge->dropTable('forge_test_users', true);
     }
 
-    public function testProcessIndexes()
+    public function testProcessIndexes(): void
     {
         // make sure tables don't exist
         $this->forge->dropTable('actions', true);
@@ -1509,23 +1706,23 @@ final class ForgeTest extends CIUnitTestCase
         // check that db_actions_name key exists
         $indexes = array_filter(
             $allIndexes,
-            static fn ($index) => ($index->name === 'db_actions_name')
-                    && ($index->fields === [0 => 'name'])
+            static fn ($index): bool => ($index->name === 'db_actions_name')
+                    && ($index->fields === [0 => 'name']),
         );
         $this->assertCount(1, $indexes);
 
         // check that db_actions_category_name key exists
         $indexes = array_filter(
             $allIndexes,
-            static fn ($index) => ($index->name === 'db_actions_category_name')
-                    && ($index->fields === [0 => 'category', 1 => 'name'])
+            static fn ($index): bool => ($index->name === 'db_actions_category_name')
+                    && ($index->fields === [0 => 'category', 1 => 'name']),
         );
         $this->assertCount(1, $indexes);
 
         // check that the primary key exists
         $indexes = array_filter(
             $allIndexes,
-            static fn ($index) => $index->type === 'PRIMARY'
+            static fn ($index): bool => $index->type === 'PRIMARY',
         );
         $this->assertCount(1, $indexes);
 
@@ -1540,7 +1737,88 @@ final class ForgeTest extends CIUnitTestCase
         $this->forge->dropTable('user2', true);
     }
 
-    private function createUser2TableWithKeys()
+    public function testProcessIndexesWithKeyOnly(): void
+    {
+        // make sure tables don't exist
+        $this->forge->dropTable('actions', true);
+
+        $this->createActionsTable();
+        $this->forge->addKey('name', false, false, 'db_actions_name');
+
+        // create indexes
+        $this->forge->processIndexes('actions');
+
+        // get a list of all indexes
+        $allIndexes = $this->db->getIndexData('actions');
+
+        // check that db_actions_name key exists
+        $indexes = array_filter(
+            $allIndexes,
+            static fn ($index): bool => ($index->name === 'db_actions_name')
+                && ($index->fields === [0 => 'name']),
+        );
+        $this->assertCount(1, $indexes);
+
+        // drop tables to avoid any future conflicts
+        $this->forge->dropTable('actions', true);
+    }
+
+    public function testProcessIndexesWithPrimaryKeyOnly(): void
+    {
+        // make sure tables don't exist
+        $this->forge->dropTable('actions', true);
+
+        $this->createActionsTable();
+        $this->forge->addPrimaryKey('id');
+
+        // create indexes
+        $this->forge->processIndexes('actions');
+
+        // get a list of all indexes
+        $allIndexes = $this->db->getIndexData('actions');
+
+        // check that the primary key exists
+        $indexes = array_filter(
+            $allIndexes,
+            static fn ($index): bool => $index->type === 'PRIMARY',
+        );
+        $this->assertCount(1, $indexes);
+
+        // drop tables to avoid any future conflicts
+        $this->forge->dropTable('actions', true);
+    }
+
+    public function testProcessIndexesWithForeignKeyOnly(): void
+    {
+        // make sure tables don't exist
+        $this->forge->dropTable('actions', true);
+        $this->forge->dropTable('user2', true);
+
+        $this->createUser2TableWithKeys();
+        $this->populateUser2Table();
+        $this->createActionsTable();
+
+        // SQLite does not support custom foreign key name
+        if ($this->db->DBDriver === 'SQLite3') {
+            $this->forge->addForeignKey('userid', 'user', 'id');
+            $this->forge->addForeignKey('userid2', 'user2', 'id');
+        } else {
+            $this->forge->addForeignKey('userid', 'user', 'id', '', '', 'db_actions_userid_foreign');
+            $this->forge->addForeignKey('userid2', 'user2', 'id', '', '', 'db_actions_userid2_foreign');
+        }
+
+        // create indexes
+        $this->forge->processIndexes('actions');
+
+        // check that the two foreign keys exist
+        $this->assertCount(2, $this->db->getForeignKeyData('actions'));
+
+        // drop tables to avoid any future conflicts
+        $this->forge->dropTable('actions', true);
+        $this->forge->dropTable('user2', true);
+    }
+
+    private function createUser2TableWithKeys(): void
     {
         $fields = [
             'id'         => ['type' => 'INTEGER', 'constraint' => 3, 'auto_increment' => true],
@@ -1558,7 +1836,7 @@ final class ForgeTest extends CIUnitTestCase
             ->createTable('user2', true);
     }
 
-    private function populateUser2Table()
+    private function populateUser2Table(): void
     {
         $data = [
             [
@@ -1585,7 +1863,7 @@ final class ForgeTest extends CIUnitTestCase
         $this->db->table('user2')->insertBatch($data);
     }
 
-    private function createActionsTable()
+    private function createActionsTable(): void
     {
         $fields = [
             'id'       => ['type' => 'int', 'constraint' => 9],
@@ -1598,7 +1876,7 @@ final class ForgeTest extends CIUnitTestCase
         $this->forge->createTable('actions');
     }
 
-    private function insertDataTest()
+    private function insertDataTest(): void
     {
         $data = [
             [

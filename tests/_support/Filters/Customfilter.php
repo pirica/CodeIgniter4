@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -11,10 +13,11 @@
 
 namespace Tests\Support\Filters;
 
+use CodeIgniter\Filters\FilterInterface;
 use CodeIgniter\HTTP\RequestInterface;
 use CodeIgniter\HTTP\ResponseInterface;
 
-class Customfilter implements \CodeIgniter\Filters\FilterInterface
+class Customfilter implements FilterInterface
 {
     public function before(RequestInterface $request, $arguments = null)
     {
@@ -23,7 +26,7 @@ class Customfilter implements \CodeIgniter\Filters\FilterInterface
         return $request;
     }
 
-    public function after(RequestInterface $request, ResponseInterface $response, $arguments = null)
+    public function after(RequestInterface $request, ResponseInterface $response, $arguments = null): void
     {
     }
 }

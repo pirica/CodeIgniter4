@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -13,17 +15,17 @@ namespace CodeIgniter\Commands;
 
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\StreamFilterTrait;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * @internal
- *
- * @group Others
  */
+#[Group('Others')]
 final class ConfigurableSortImportsTest extends CIUnitTestCase
 {
     use StreamFilterTrait;
 
-    public function testPublishLanguageWithoutOptions()
+    public function testPublishLanguageWithoutOptions(): void
     {
         command('publish:language');
 
@@ -36,7 +38,7 @@ final class ConfigurableSortImportsTest extends CIUnitTestCase
         }
     }
 
-    public function testEnabledSortImportsWillDisruptLanguageFilePublish()
+    public function testEnabledSortImportsWillDisruptLanguageFilePublish(): void
     {
         command('publish:language --lang es');
 
@@ -53,7 +55,7 @@ final class ConfigurableSortImportsTest extends CIUnitTestCase
         }
     }
 
-    public function testDisabledSortImportsWillNotAffectLanguageFilesPublish()
+    public function testDisabledSortImportsWillNotAffectLanguageFilesPublish(): void
     {
         command('publish:language --lang ar --sort off');
 

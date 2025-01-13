@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -13,13 +15,13 @@ namespace CodeIgniter\Commands;
 
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\StreamFilterTrait;
+use PHPUnit\Framework\Attributes\Group;
 use Tests\Support\Publishers\TestPublisher;
 
 /**
  * @internal
- *
- * @group Others
  */
+#[Group('Others')]
 final class PublishCommandTest extends CIUnitTestCase
 {
     use StreamFilterTrait;
@@ -31,7 +33,7 @@ final class PublishCommandTest extends CIUnitTestCase
         TestPublisher::setResult(true);
     }
 
-    public function testDefault()
+    public function testDefault(): void
     {
         command('publish');
 
@@ -42,7 +44,7 @@ final class PublishCommandTest extends CIUnitTestCase
         ]), $this->getStreamFilterBuffer());
     }
 
-    public function testFailure()
+    public function testFailure(): void
     {
         TestPublisher::setResult(false);
 

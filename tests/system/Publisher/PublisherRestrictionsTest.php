@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -13,6 +15,8 @@ namespace CodeIgniter\Publisher;
 
 use CodeIgniter\Publisher\Exceptions\PublisherException;
 use CodeIgniter\Test\CIUnitTestCase;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * Publisher Restrictions Test
@@ -21,20 +25,19 @@ use CodeIgniter\Test\CIUnitTestCase;
  * file properly prevent disallowed actions.
  *
  * @internal
- *
- * @group Others
  */
+#[Group('Others')]
 final class PublisherRestrictionsTest extends CIUnitTestCase
 {
     /**
      * @see \Tests\Support\Config\Registrar::Publisher()
      */
-    public function testRegistrarsNotAllowed()
+    public function testRegistrarsNotAllowed(): void
     {
         $this->assertArrayNotHasKey(SUPPORTPATH, config('Publisher')->restrictions);
     }
 
-    public function testImmutableRestrictions()
+    public function testImmutableRestrictions(): void
     {
         $publisher = new Publisher();
 
@@ -46,10 +49,8 @@ final class PublisherRestrictionsTest extends CIUnitTestCase
         $this->assertArrayNotHasKey(SUPPORTPATH, $restrictions);
     }
 
-    /**
-     * @dataProvider fileProvider
-     */
-    public function testDefaultPublicRestrictions(string $path)
+    #[DataProvider('provideDefaultPublicRestrictions')]
+    public function testDefaultPublicRestrictions(string $path): void
     {
         $publisher = new Publisher(ROOTPATH, FCPATH);
         $pattern   = config('Publisher')->restrictions[FCPATH];
@@ -69,7 +70,7 @@ final class PublisherRestrictionsTest extends CIUnitTestCase
         $this->assertSame($expected, $errors[$file]->getMessage());
     }
 
-    public function fileProvider()
+    public static function provideDefaultPublicRestrictions(): iterable
     {
         yield from [
             'php'  => ['index.php'],
@@ -78,10 +79,8 @@ final class PublisherRestrictionsTest extends CIUnitTestCase
         ];
     }
 
-    /**
-     * @dataProvider destinationProvider
-     */
-    public function testDestinations(string $destination, bool $allowed)
+    #[DataProvider('provideDestinations')]
+    public function testDestinations(string $destination, bool $allowed): void
     {
         config('Publisher')->restrictions = [
             APPPATH                   => '',
@@ -99,7 +98,7 @@ final class PublisherRestrictionsTest extends CIUnitTestCase
         $this->assertInstanceOf(Publisher::class, $publisher);
     }
 
-    public function destinationProvider()
+    public static function provideDestinations(): iterable
     {
         return [
             'explicit' => [

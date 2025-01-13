@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -23,12 +25,12 @@ class AppInfo extends BaseCommand
     protected $arguments   = ['draft' => 'unused'];
     protected $description = 'Displays basic application information.';
 
-    public function run(array $params)
+    public function run(array $params): void
     {
         CLI::write('CI Version: ' . CLI::color(CodeIgniter::CI_VERSION, 'red'));
     }
 
-    public function bomb()
+    public function bomb(): void
     {
         try {
             CLI::color('test', 'white', 'Background');
@@ -37,7 +39,7 @@ class AppInfo extends BaseCommand
         }
     }
 
-    public function helpme()
+    public function helpme(): void
     {
         $this->call('help');
     }

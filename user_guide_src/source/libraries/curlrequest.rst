@@ -23,16 +23,24 @@ to change very little to move over to use Guzzle.
 Config for CURLRequest
 **********************
 
+.. _curlrequest-sharing-options:
+
 Sharing Options
 ===============
 
-Due to historical reasons, by default, the CURLRequest shares all the options between requests.
-If you send more than one request with an instance of the class,
-this behavior may cause an error request with unnecessary headers and body.
+.. important:: This setting exists only for backward compatibility. Do not use it
+    in new projects. Even if you are already using it, we recommend that you disable
+    it.
 
-You can change the behavior by editing the following config parameter value in **app/Config/CURLRequest.php** to ``false``:
+.. note:: Since v4.4.0, the default value has been changed to ``false``.
+
+If you want to share all the options between requests, set ``$shareOptions`` to
+``true`` in **app/Config/CURLRequest.php**:
 
 .. literalinclude:: curlrequest/001.php
+
+If you send more than one request with an instance of the class, this behavior
+may cause an error request with unnecessary headers and body.
 
 .. note:: Before v4.2.0, the request body is not reset even if ``$shareOptions`` is false due to a bug.
 
@@ -42,7 +50,7 @@ Loading the Library
 
 The library can be loaded either manually or through the :doc:`Services class </concepts/services>`.
 
-To load with the Services class call the ``curlrequest()`` method:
+To load with the Services class call the ``curlrequest()`` method or global function ``service()``:
 
 .. literalinclude:: curlrequest/002.php
 
@@ -75,6 +83,10 @@ a Response instance to you. This takes the HTTP method, the url and an array of 
 
 .. literalinclude:: curlrequest/005.php
 
+.. important:: By default, CURLRequest will throw ``HTTPException`` if the HTTP
+    code returned is greater than or equal to 400. If you want to get the response,
+    see the `http_errors`_ option.
+
 .. note:: When ``$shareOptions`` is false, the options passed to the method will be used for the request. After sending the request, they will be cleared. If you want to use the options to all requests, pass the options in the constructor.
 
 Since the response is an instance of ``CodeIgniter\HTTP\Response`` you have all of the normal information
@@ -104,12 +116,12 @@ examples of how the combinations are resolved.
     =====================   ================   ========================
     baseURI                 URI                Result
     =====================   ================   ========================
-    `http://foo.com`        /bar               `http://foo.com/bar`
-    `http://foo.com/foo`    /bar               `http://foo.com/bar`
-    `http://foo.com/foo`    bar                `http://foo.com/bar`
-    `http://foo.com/foo/`   bar                `http://foo.com/foo/bar`
-    `http://foo.com`        `http://baz.com`   `http://baz.com`
-    `http://foo.com/?bar`   bar                `http://foo.com/bar`
+    \http://foo.com         /bar               \http://foo.com/bar
+    \http://foo.com/foo     /bar               \http://foo.com/bar
+    \http://foo.com/foo     bar                \http://foo.com/bar
+    \http://foo.com/foo/    bar                \http://foo.com/foo/bar
+    \http://foo.com         \http://baz.com    \http://baz.com
+    \http://foo.com/?bar    bar                \http://foo.com/bar
     =====================   ================   ========================
 
 Using Responses
@@ -145,16 +157,19 @@ or any of the shortcut methods.
 allow_redirects
 ===============
 
-By default, cURL will follow all "Location:" headers the remote servers send back. The ``allow_redirects`` option
-allows you to modify how that works.
+By default, cURL will not follow any "Location:" headers the remote servers send
+back. The ``allow_redirects`` option allows you to modify how that works.
 
-If you set the value to ``false``, then it will not follow any redirects at all:
-
-.. literalinclude:: curlrequest/013.php
-
-Setting it to ``true`` will apply the default settings to the request:
+If you set the value to ``true``, then it will follow redirects:
 
 .. literalinclude:: curlrequest/014.php
+
+.. warning:: Please note that enabling redirects may redirect to a URL that you
+    do not expect and may enable SSRF attacks.
+
+Setting it to ``false`` will apply the default settings to the request:
+
+.. literalinclude:: curlrequest/013.php
 
 You can pass in array as the value of the ``allow_redirects`` option to specify new settings in place of the defaults:
 
@@ -208,7 +223,7 @@ cookie
 ======
 
 This specifies the filename that CURL should use to read cookie values from, and
-to save cookie values to. This is done using the CURL_COOKIEJAR and CURL_COOKIEFILE options.
+to save cookie values to. This is done using the ``CURL_COOKIEJAR`` and ``CURL_COOKIEFILE`` options.
 An example:
 
 .. literalinclude:: curlrequest/021.php
@@ -217,8 +232,10 @@ debug
 =====
 
 When ``debug`` is passed and set to ``true``, this will enable additional debugging to echo to STDERR during the
-script execution. This is done by passing CURLOPT_VERBOSE and echoing the output. So, when you're running a built-in
-server via ``spark serve`` you will see the output in the console. Otherwise, the output will be written to
+script execution.
+
+This is done by passing ``CURLOPT_VERBOSE`` and echoing the output. So, when you're running a built-in
+server via ``spark serve``, you will see the output in the console. Otherwise, the output will be written to
 the server's error log.
 
 .. literalinclude:: curlrequest/034.php
@@ -243,7 +260,7 @@ if it's not already set:
 
 .. literalinclude:: curlrequest/024.php
 
-.. note:: ``form_params`` cannot be used with the ``multipart`` option. You will need to use one or the other.
+.. note:: ``form_params`` cannot be used with the `multipart`_ option. You will need to use one or the other.
         Use ``form_params`` for ``application/x-www-form-urlencoded`` request, and ``multipart`` for ``multipart/form-data``
         requests.
 
@@ -264,8 +281,11 @@ further headers arrays or calls to ``setHeader()``.
 http_errors
 ===========
 
-By default, CURLRequest will fail if the HTTP code returned is greater than or equal to 400. You can set
-``http_errors`` to ``false`` to return the content instead:
+By default, CURLRequest will throw ``HTTPException`` if the HTTP code returned is
+greater than or equal to 400.
+
+If you want to see the response body, you can set ``http_errors`` to ``false`` to
+return the content instead:
 
 .. literalinclude:: curlrequest/026.php
 
@@ -286,15 +306,28 @@ multipart
 =========
 
 When you need to send files and other data via a POST request, you can use the ``multipart`` option, along with
-the `CURLFile Class <https://www.php.net/manual/en/class.curlfile.php>`_. The values should be an associative array
-of POST data to send. For safer usage, the legacy method of uploading files by prefixing their name with an `@`
+the `CURLFile Class <https://www.php.net/manual/en/class.curlfile.php>`_.
+
+The values should be an associative array
+of POST data to send. For safer usage, the legacy method of uploading files by prefixing their name with an ``@``
 has been disabled. Any files that you want to send must be passed as instances of CURLFile:
 
 .. literalinclude:: curlrequest/028.php
 
-.. note:: ``multipart`` cannot be used with the ``form_params`` option. You can only use one or the other. Use
+.. note:: ``multipart`` cannot be used with the `form_params`_ option. You can only use one or the other. Use
         ``form_params`` for ``application/x-www-form-urlencoded`` requests, and ``multipart`` for ``multipart/form-data``
         requests.
+
+.. _curlrequest-request-options-proxy:
+
+proxy
+=====
+
+.. versionadded:: 4.4.0
+
+You can set a proxy by passing an associative array as the ``proxy`` option:
+
+.. literalinclude:: curlrequest/035.php
 
 query
 =====

@@ -81,7 +81,7 @@ need to be unique, or a later parameter setting will over-ride an earlier one.
 This also impacts escaping parameter values for different contexts inside your
 script. You will have to give each escaped value a unique parameter name.
 
-Parser templates
+Parser Templates
 ================
 
 You can use the ``render()`` method to parse (or render) simple templates,
@@ -90,10 +90,12 @@ like this:
 .. literalinclude:: view_parser/003.php
 
 View parameters are passed to ``setData()`` as an associative
-array of data to be replaced in the template. In the above example, the
-template would contain two variables: ``{blog_title}`` and ``{blog_heading}``
-The first parameter to ``render()`` contains the name of the :doc:`view
-file </outgoing/views>`, Where *blog_template* is the name of your view file.
+array of data to be replaced in the template.
+
+In the above example, the template would contain two variables: ``{blog_title}`` and ``{blog_heading}``
+
+The first parameter to ``render()`` contains the name of the template, where
+``blog_template`` is the name of your view template file.
 
 .. important:: If the file extension is omitted, then the views are expected to end with the .php extension.
 
@@ -102,7 +104,7 @@ Parser Configuration Options
 
 Several options can be passed to the ``render()`` or ``renderString()`` methods.
 
--   ``cache`` - the time in seconds, to save a view's results; ignored for renderString()
+-   ``cache`` - the time in seconds, to save a view's results; ignored for ``renderString()``
 -   ``cache_name`` - the ID used to save/retrieve a cached view result; defaults to the viewpath;
     ignored for renderString()
 -   ``saveData`` - true if the view data parameters should be retained for subsequent calls;
@@ -371,8 +373,7 @@ date              format (Y-m-d)   A PHP **date**-compatible formatting string. 
 date_modify       value to add     A **strtotime** compatible string to modify the date,       { v|date_modify(+1 day) }
                   / subtract       like ``+5 day`` or ``-1 week``.
 
-default           default value    Displays the default value if the variable is empty or      { v|default(just in case) }
-                                   undefined.
+default           default value    Displays the default value if the variable is `empty()`_.   { v|default(just in case) }
 
 esc               html, attr,      Specifies the context to escape the data.                   { v|esc(attr) }
                   css, js
@@ -419,6 +420,8 @@ title                              Displays a "title case" version of the string
 upper                              Displays the string in all uppercase.                       { v|upper }
 ================ ================= =========================================================== ======================================
 
+.. _empty(): https://www.php.net/manual/en/function.empty.php
+
 See `PHP's NumberFormatter <https://www.php.net/manual/en/numberformatter.create.php>`_ for details relevant to the
 "local_number" filter.
 
@@ -426,19 +429,10 @@ Custom Filters
 --------------
 
 You can easily create your own filters by editing **app/Config/View.php** and adding new entries to the
-``$filters`` array. Each key is the name of the filter is called by in the view, and its value is any valid PHP
+``$filters`` array. Each key is the name which the filter is called by in the view, and its value is any valid PHP
 callable:
 
 .. literalinclude:: view_parser/012.php
-
-PHP Native functions as Filters
--------------------------------
-
-You can use native php function as filters by editing **app/Config/View.php** and adding new entries to the
-``$filters`` array.Each key is the name of the native PHP function is called by in the view, and its value is any valid native PHP
-function prefixed with:
-
-.. literalinclude:: view_parser/013.php
 
 Parser Plugins
 ==============
@@ -501,7 +495,7 @@ You can also use closures, but these can only be defined in the config file's co
 
 .. literalinclude:: view_parser/015.php
 
-If the callable is on its own, it is treated as a single tag, not a open/close one. It will be replaced by
+If the callable is on its own, it is treated as a single tag, not an open/close one. It will be replaced by
 the return value from the plugin:
 
 .. literalinclude:: view_parser/016.php

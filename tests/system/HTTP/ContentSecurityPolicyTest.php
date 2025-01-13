@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -15,6 +17,10 @@ use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\TestResponse;
 use Config\App;
 use Config\ContentSecurityPolicy as CSPConfig;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\PreserveGlobalState;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
+use PHPUnit\Framework\Attributes\WithoutErrorHandler;
 
 /**
  * Test the CSP policy directive creation.
@@ -23,16 +29,21 @@ use Config\ContentSecurityPolicy as CSPConfig;
  * See https://cspvalidator.org/
  *
  * @internal
- *
- * @group SeparateProcess
  */
+#[Group('SeparateProcess')]
 final class ContentSecurityPolicyTest extends CIUnitTestCase
 {
     private ?Response $response         = null;
     private ?ContentSecurityPolicy $csp = null;
 
+    #[WithoutErrorHandler]
+    protected function setUp(): void
+    {
+        parent::setUp();
+    }
+
     // Having this method as setUp() doesn't work - can't find Config\App !?
-    protected function prepare(bool $CSPEnabled = true)
+    protected function prepare(bool $CSPEnabled = true): void
     {
         $this->resetServices();
 
@@ -59,11 +70,9 @@ final class ContentSecurityPolicyTest extends CIUnitTestCase
         return $buffer;
     }
 
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState disabled
-     */
-    public function testExistence()
+    #[PreserveGlobalState(false)]
+    #[RunInSeparateProcess]
+    public function testExistence(): void
     {
         $this->prepare();
         $this->work();
@@ -71,11 +80,9 @@ final class ContentSecurityPolicyTest extends CIUnitTestCase
         $this->assertHeaderEmitted('Content-Security-Policy:');
     }
 
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState disabled
-     */
-    public function testReportOnly()
+    #[PreserveGlobalState(false)]
+    #[RunInSeparateProcess]
+    public function testReportOnly(): void
     {
         $this->prepare();
         $this->csp->reportOnly(false);
@@ -84,11 +91,9 @@ final class ContentSecurityPolicyTest extends CIUnitTestCase
         $this->assertHeaderEmitted('Content-Security-Policy:');
     }
 
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState disabled
-     */
-    public function testDefaults()
+    #[PreserveGlobalState(false)]
+    #[RunInSeparateProcess]
+    public function testDefaults(): void
     {
         $this->prepare();
 
@@ -103,11 +108,9 @@ final class ContentSecurityPolicyTest extends CIUnitTestCase
         $this->assertStringContainsString("style-src 'self';", $result);
     }
 
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState disabled
-     */
-    public function testChildSrc()
+    #[PreserveGlobalState(false)]
+    #[RunInSeparateProcess]
+    public function testChildSrc(): void
     {
         $this->prepare();
         $this->csp->addChildSrc('evil.com', true);
@@ -120,11 +123,9 @@ final class ContentSecurityPolicyTest extends CIUnitTestCase
         $this->assertStringContainsString("child-src 'self' good.com;", $result);
     }
 
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState disabled
-     */
-    public function testConnectSrc()
+    #[PreserveGlobalState(false)]
+    #[RunInSeparateProcess]
+    public function testConnectSrc(): void
     {
         $this->prepare();
         $this->csp->reportOnly(true);
@@ -136,11 +137,9 @@ final class ContentSecurityPolicyTest extends CIUnitTestCase
         $this->assertStringContainsString("connect-src 'self' iffy.com maybe.com;", $result);
     }
 
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState disabled
-     */
-    public function testFontSrc()
+    #[PreserveGlobalState(false)]
+    #[RunInSeparateProcess]
+    public function testFontSrc(): void
     {
         $this->prepare();
         $this->csp->reportOnly(true);
@@ -154,11 +153,9 @@ final class ContentSecurityPolicyTest extends CIUnitTestCase
         $this->assertStringContainsString('font-src fontsrus.com;', $result);
     }
 
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState disabled
-     */
-    public function testFormAction()
+    #[PreserveGlobalState(false)]
+    #[RunInSeparateProcess]
+    public function testFormAction(): void
     {
         $this->prepare();
         $this->csp->reportOnly(true);
@@ -172,11 +169,9 @@ final class ContentSecurityPolicyTest extends CIUnitTestCase
         $this->assertStringNotContainsString("form-action 'self';", $result);
     }
 
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState disabled
-     */
-    public function testFrameAncestor()
+    #[PreserveGlobalState(false)]
+    #[RunInSeparateProcess]
+    public function testFrameAncestor(): void
     {
         $this->prepare();
         $this->csp->addFrameAncestor('self');
@@ -189,11 +184,9 @@ final class ContentSecurityPolicyTest extends CIUnitTestCase
         $this->assertStringContainsString("frame-ancestors 'self';", $result);
     }
 
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState disabled
-     */
-    public function testFrameSrc()
+    #[PreserveGlobalState(false)]
+    #[RunInSeparateProcess]
+    public function testFrameSrc(): void
     {
         $this->prepare();
         $this->csp->addFrameSrc('self');
@@ -206,11 +199,9 @@ final class ContentSecurityPolicyTest extends CIUnitTestCase
         $this->assertStringContainsString("frame-src 'self';", $result);
     }
 
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState disabled
-     */
-    public function testImageSrc()
+    #[PreserveGlobalState(false)]
+    #[RunInSeparateProcess]
+    public function testImageSrc(): void
     {
         $this->prepare();
         $this->csp->addImageSrc('cdn.cloudy.com');
@@ -223,11 +214,9 @@ final class ContentSecurityPolicyTest extends CIUnitTestCase
         $this->assertStringContainsString("img-src 'self' cdn.cloudy.com;", $result);
     }
 
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState disabled
-     */
-    public function testMediaSrc()
+    #[PreserveGlobalState(false)]
+    #[RunInSeparateProcess]
+    public function testMediaSrc(): void
     {
         $this->prepare();
         $this->csp->addMediaSrc('self');
@@ -240,11 +229,9 @@ final class ContentSecurityPolicyTest extends CIUnitTestCase
         $this->assertStringContainsString("media-src 'self';", $result);
     }
 
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState disabled
-     */
-    public function testManifestSrc()
+    #[PreserveGlobalState(false)]
+    #[RunInSeparateProcess]
+    public function testManifestSrc(): void
     {
         $this->prepare();
         $this->csp->addManifestSrc('cdn.cloudy.com');
@@ -257,11 +244,9 @@ final class ContentSecurityPolicyTest extends CIUnitTestCase
         $this->assertStringContainsString('manifest-src cdn.cloudy.com;', $result);
     }
 
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState disabled
-     */
-    public function testPluginType()
+    #[PreserveGlobalState(false)]
+    #[RunInSeparateProcess]
+    public function testPluginType(): void
     {
         $this->prepare();
         $this->csp->addPluginType('self');
@@ -274,11 +259,9 @@ final class ContentSecurityPolicyTest extends CIUnitTestCase
         $this->assertStringContainsString("plugin-types 'self';", $result);
     }
 
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState disabled
-     */
-    public function testPluginArray()
+    #[PreserveGlobalState(false)]
+    #[RunInSeparateProcess]
+    public function testPluginArray(): void
     {
         $this->prepare();
         $this->csp->addPluginType('application/x-shockwave-flash');
@@ -289,11 +272,9 @@ final class ContentSecurityPolicyTest extends CIUnitTestCase
         $this->assertStringContainsString('plugin-types application/x-shockwave-flash application/wacky-hacky;', $result);
     }
 
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState disabled
-     */
-    public function testObjectSrc()
+    #[PreserveGlobalState(false)]
+    #[RunInSeparateProcess]
+    public function testObjectSrc(): void
     {
         $this->prepare();
         $this->csp->addObjectSrc('cdn.cloudy.com');
@@ -306,11 +287,9 @@ final class ContentSecurityPolicyTest extends CIUnitTestCase
         $this->assertStringContainsString("object-src 'self' cdn.cloudy.com;", $result);
     }
 
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState disabled
-     */
-    public function testScriptSrc()
+    #[PreserveGlobalState(false)]
+    #[RunInSeparateProcess]
+    public function testScriptSrc(): void
     {
         $this->prepare();
         $this->csp->addScriptSrc('cdn.cloudy.com');
@@ -323,11 +302,9 @@ final class ContentSecurityPolicyTest extends CIUnitTestCase
         $this->assertStringContainsString("script-src 'self' cdn.cloudy.com;", $result);
     }
 
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState disabled
-     */
-    public function testStyleSrc()
+    #[PreserveGlobalState(false)]
+    #[RunInSeparateProcess]
+    public function testStyleSrc(): void
     {
         $this->prepare();
         $this->csp->addStyleSrc('cdn.cloudy.com');
@@ -340,11 +317,9 @@ final class ContentSecurityPolicyTest extends CIUnitTestCase
         $this->assertStringContainsString("style-src 'self' cdn.cloudy.com;", $result);
     }
 
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState disabled
-     */
-    public function testBaseURIDefault()
+    #[PreserveGlobalState(false)]
+    #[RunInSeparateProcess]
+    public function testBaseURIDefault(): void
     {
         $this->prepare();
         $result = $this->work();
@@ -353,11 +328,9 @@ final class ContentSecurityPolicyTest extends CIUnitTestCase
         $this->assertStringContainsString("base-uri 'self';", $result);
     }
 
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState disabled
-     */
-    public function testBaseURI()
+    #[PreserveGlobalState(false)]
+    #[RunInSeparateProcess]
+    public function testBaseURI(): void
     {
         $this->prepare();
         $this->csp->addBaseURI('example.com');
@@ -367,11 +340,9 @@ final class ContentSecurityPolicyTest extends CIUnitTestCase
         $this->assertStringContainsString('base-uri example.com;', $result);
     }
 
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState disabled
-     */
-    public function testBaseURIRich()
+    #[PreserveGlobalState(false)]
+    #[RunInSeparateProcess]
+    public function testBaseURIRich(): void
     {
         $this->prepare();
         $this->csp->addBaseURI(['self', 'example.com']);
@@ -381,11 +352,9 @@ final class ContentSecurityPolicyTest extends CIUnitTestCase
         $this->assertStringContainsString("base-uri 'self' example.com;", $result);
     }
 
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState disabled
-     */
-    public function testDefaultSrc()
+    #[PreserveGlobalState(false)]
+    #[RunInSeparateProcess]
+    public function testDefaultSrc(): void
     {
         $this->prepare();
         $this->csp->reportOnly(false);
@@ -397,11 +366,9 @@ final class ContentSecurityPolicyTest extends CIUnitTestCase
         $this->assertStringContainsString('default-src iffy.com;', $result);
     }
 
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState disabled
-     */
-    public function testReportURI()
+    #[PreserveGlobalState(false)]
+    #[RunInSeparateProcess]
+    public function testReportURI(): void
     {
         $this->prepare();
         $this->csp->reportOnly(false);
@@ -412,11 +379,22 @@ final class ContentSecurityPolicyTest extends CIUnitTestCase
         $this->assertStringContainsString('report-uri http://example.com/csptracker;', $result);
     }
 
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState disabled
-     */
-    public function testSandboxFlags()
+    #[PreserveGlobalState(false)]
+    #[RunInSeparateProcess]
+    public function testRemoveReportURI(): void
+    {
+        $this->prepare();
+        $this->csp->reportOnly(false);
+        $this->csp->setReportURI('');
+        $this->work();
+
+        $result = $this->getHeaderEmitted('Content-Security-Policy');
+        $this->assertStringNotContainsString('report-uri ', $result);
+    }
+
+    #[PreserveGlobalState(false)]
+    #[RunInSeparateProcess]
+    public function testSandboxFlags(): void
     {
         $this->prepare();
         $this->csp->reportOnly(false);
@@ -428,11 +406,9 @@ final class ContentSecurityPolicyTest extends CIUnitTestCase
         $this->assertStringContainsString('sandbox allow-popups allow-top-navigation;', $result);
     }
 
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState disabled
-     */
-    public function testUpgradeInsecureRequests()
+    #[PreserveGlobalState(false)]
+    #[RunInSeparateProcess]
+    public function testUpgradeInsecureRequests(): void
     {
         $this->prepare();
         $this->csp->upgradeInsecureRequests();
@@ -442,11 +418,9 @@ final class ContentSecurityPolicyTest extends CIUnitTestCase
         $this->assertStringContainsString('upgrade-insecure-requests;', $result);
     }
 
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState disabled
-     */
-    public function testBodyEmpty()
+    #[PreserveGlobalState(false)]
+    #[RunInSeparateProcess]
+    public function testBodyEmpty(): void
     {
         $this->prepare();
         $body = '';
@@ -455,11 +429,9 @@ final class ContentSecurityPolicyTest extends CIUnitTestCase
         $this->assertSame($body, $this->response->getBody());
     }
 
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState disabled
-     */
-    public function testBodyScriptNonce()
+    #[PreserveGlobalState(false)]
+    #[RunInSeparateProcess]
+    public function testBodyScriptNonce(): void
     {
         $this->prepare();
         $body = 'Blah blah {csp-script-nonce} blah blah';
@@ -469,7 +441,7 @@ final class ContentSecurityPolicyTest extends CIUnitTestCase
         $result     = $this->work($body);
         $nonceStyle = array_filter(
             $this->getPrivateProperty($this->csp, 'styleSrc'),
-            static fn ($value) => strpos($value, 'nonce-') === 0
+            static fn ($value): bool => str_starts_with($value, 'nonce-'),
         );
 
         $this->assertStringContainsString('nonce=', $this->response->getBody());
@@ -478,7 +450,7 @@ final class ContentSecurityPolicyTest extends CIUnitTestCase
         $this->assertSame([], $nonceStyle);
     }
 
-    public function testBodyScriptNonceCustomScriptTag()
+    public function testBodyScriptNonceCustomScriptTag(): void
     {
         $config                 = new CSPConfig();
         $config->scriptNonceTag = '{custom-script-nonce-tag}';
@@ -494,7 +466,7 @@ final class ContentSecurityPolicyTest extends CIUnitTestCase
         $this->assertStringContainsString('nonce=', $response->getBody());
     }
 
-    public function testBodyScriptNonceDisableAutoNonce()
+    public function testBodyScriptNonceDisableAutoNonce(): void
     {
         $config            = new CSPConfig();
         $config->autoNonce = false;
@@ -513,7 +485,7 @@ final class ContentSecurityPolicyTest extends CIUnitTestCase
         $result->assertHeader('Content-Security-Policy');
     }
 
-    public function testBodyStyleNonceDisableAutoNonce()
+    public function testBodyStyleNonceDisableAutoNonce(): void
     {
         $config            = new CSPConfig();
         $config->autoNonce = false;
@@ -532,11 +504,9 @@ final class ContentSecurityPolicyTest extends CIUnitTestCase
         $result->assertHeader('Content-Security-Policy');
     }
 
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState disabled
-     */
-    public function testBodyStyleNonce()
+    #[PreserveGlobalState(false)]
+    #[RunInSeparateProcess]
+    public function testBodyStyleNonce(): void
     {
         $this->prepare();
         $body = 'Blah blah {csp-style-nonce} blah blah';
@@ -546,7 +516,7 @@ final class ContentSecurityPolicyTest extends CIUnitTestCase
         $result      = $this->work($body);
         $nonceScript = array_filter(
             $this->getPrivateProperty($this->csp, 'scriptSrc'),
-            static fn ($value) => strpos($value, 'nonce-') === 0
+            static fn ($value): bool => str_starts_with($value, 'nonce-'),
         );
 
         $this->assertStringContainsString('nonce=', $this->response->getBody());
@@ -555,7 +525,7 @@ final class ContentSecurityPolicyTest extends CIUnitTestCase
         $this->assertSame([], $nonceScript);
     }
 
-    public function testBodyStyleNonceCustomStyleTag()
+    public function testBodyStyleNonceCustomStyleTag(): void
     {
         $config                = new CSPConfig();
         $config->styleNonceTag = '{custom-style-nonce-tag}';
@@ -571,11 +541,9 @@ final class ContentSecurityPolicyTest extends CIUnitTestCase
         $this->assertStringContainsString('nonce=', $response->getBody());
     }
 
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState disabled
-     */
-    public function testHeaderWrongCaseNotFound()
+    #[PreserveGlobalState(false)]
+    #[RunInSeparateProcess]
+    public function testHeaderWrongCaseNotFound(): void
     {
         $this->prepare();
         $result = $this->work();
@@ -584,11 +552,9 @@ final class ContentSecurityPolicyTest extends CIUnitTestCase
         $this->assertNull($result);
     }
 
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState disabled
-     */
-    public function testHeaderIgnoreCase()
+    #[PreserveGlobalState(false)]
+    #[RunInSeparateProcess]
+    public function testHeaderIgnoreCase(): void
     {
         $this->prepare();
         $result = $this->work();
@@ -597,11 +563,9 @@ final class ContentSecurityPolicyTest extends CIUnitTestCase
         $this->assertStringContainsString("base-uri 'self';", $result);
     }
 
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState disabled
-     */
-    public function testCSPDisabled()
+    #[PreserveGlobalState(false)]
+    #[RunInSeparateProcess]
+    public function testCSPDisabled(): void
     {
         $this->prepare(false);
         $this->work();
@@ -610,7 +574,7 @@ final class ContentSecurityPolicyTest extends CIUnitTestCase
         $this->assertHeaderNotEmitted('content-security-policy', true);
     }
 
-    public function testGetScriptNonce()
+    public function testGetScriptNonce(): void
     {
         $this->prepare();
 
@@ -619,7 +583,7 @@ final class ContentSecurityPolicyTest extends CIUnitTestCase
         $this->assertMatchesRegularExpression('/\A[0-9a-z]{24}\z/', $nonce);
     }
 
-    public function testGetStyleNonce()
+    public function testGetStyleNonce(): void
     {
         $this->prepare();
 
@@ -628,11 +592,9 @@ final class ContentSecurityPolicyTest extends CIUnitTestCase
         $this->assertMatchesRegularExpression('/\A[0-9a-z]{24}\z/', $nonce);
     }
 
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState disabled
-     */
-    public function testHeaderScriptNonceEmittedOnceGetScriptNonceCalled()
+    #[PreserveGlobalState(false)]
+    #[RunInSeparateProcess]
+    public function testHeaderScriptNonceEmittedOnceGetScriptNonceCalled(): void
     {
         $this->prepare();
 
@@ -641,5 +603,23 @@ final class ContentSecurityPolicyTest extends CIUnitTestCase
 
         $result = $this->getHeaderEmitted('Content-Security-Policy');
         $this->assertStringContainsString("script-src 'self' 'nonce-", $result);
+    }
+
+    public function testClearDirective(): void
+    {
+        $this->prepare();
+
+        $this->csp->addStyleSrc('css.example.com');
+        $this->csp->clearDirective('style-src');
+
+        $this->csp->setReportURI('http://example.com/csp/reports');
+        $this->csp->clearDirective('report-uri');
+        $this->csp->finalize($this->response);
+
+        $header = $this->response->getHeaderLine('Content-Security-Policy');
+
+        $this->assertStringNotContainsString('style-src ', $header);
+        $this->assertStringNotContainsString('css.example.com', $header);
+        $this->assertStringNotContainsString('report-uri', $header);
     }
 }

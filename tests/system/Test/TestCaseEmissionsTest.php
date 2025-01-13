@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -13,6 +15,10 @@ namespace CodeIgniter\Test;
 
 use CodeIgniter\HTTP\Response;
 use Config\App;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\PreserveGlobalState;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
+use PHPUnit\Framework\Attributes\WithoutErrorHandler;
 
 /**
  * This test suite has been created separately from
@@ -21,9 +27,8 @@ use Config\App;
  * test cases need to be run as separate processes.
  *
  * @internal
- *
- * @group SeparateProcess
  */
+#[Group('SeparateProcess')]
 final class TestCaseEmissionsTest extends CIUnitTestCase
 {
     /**
@@ -39,12 +44,10 @@ final class TestCaseEmissionsTest extends CIUnitTestCase
      * The tests includes a basic sanity check, to make sure that
      * the body we thought would be sent actually was.
      */
-
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState disabled
-     */
-    public function testHeadersEmitted()
+    #[PreserveGlobalState(false)]
+    #[RunInSeparateProcess]
+    #[WithoutErrorHandler]
+    public function testHeadersEmitted(): void
     {
         $response = new Response(new App());
         $response->pretend(false);
@@ -68,11 +71,10 @@ final class TestCaseEmissionsTest extends CIUnitTestCase
         $this->assertHeaderEmitted('set-cookie: FOO=bar', true);
     }
 
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState disabled
-     */
-    public function testHeadersNotEmitted()
+    #[PreserveGlobalState(false)]
+    #[RunInSeparateProcess]
+    #[WithoutErrorHandler]
+    public function testHeadersNotEmitted(): void
     {
         $response = new Response(new App());
         $response->pretend(false);

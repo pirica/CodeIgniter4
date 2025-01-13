@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -15,13 +17,12 @@ use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\StreamFilterTrait;
 use Config\Autoload;
 use Config\Modules;
-use Config\Services;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * @internal
- *
- * @group Others
  */
+#[Group('Others')]
 final class ScaffoldGeneratorTest extends CIUnitTestCase
 {
     use StreamFilterTrait;
@@ -29,7 +30,7 @@ final class ScaffoldGeneratorTest extends CIUnitTestCase
     protected function setUp(): void
     {
         $this->resetServices();
-        Services::autoloader()->initialize(new Autoload(), new Modules());
+        service('autoloader')->initialize(new Autoload(), new Modules());
 
         parent::setUp();
     }
@@ -43,7 +44,7 @@ final class ScaffoldGeneratorTest extends CIUnitTestCase
         return file_get_contents($filepath) ?: '';
     }
 
-    public function testCreateComponentProducesManyFiles()
+    public function testCreateComponentProducesManyFiles(): void
     {
         command('make:scaffold people');
 
@@ -66,7 +67,7 @@ final class ScaffoldGeneratorTest extends CIUnitTestCase
         unlink(APPPATH . 'Database/Seeds/People.php');
     }
 
-    public function testCreateComponentWithManyOptions()
+    public function testCreateComponentWithManyOptions(): void
     {
         command('make:scaffold user -restful -return entity');
 
@@ -95,7 +96,7 @@ final class ScaffoldGeneratorTest extends CIUnitTestCase
         unlink(APPPATH . 'Models/User.php');
     }
 
-    public function testCreateComponentWithOptionSuffix()
+    public function testCreateComponentWithOptionSuffix(): void
     {
         command('make:scaffold order -suffix');
 
@@ -118,7 +119,7 @@ final class ScaffoldGeneratorTest extends CIUnitTestCase
         unlink(APPPATH . 'Models/OrderModel.php');
     }
 
-    public function testCreateComponentWithOptionForce()
+    public function testCreateComponentWithOptionForce(): void
     {
         command('make:controller fixer');
         $this->assertStringContainsString('File created: ', $this->getStreamFilterBuffer());
@@ -151,7 +152,7 @@ final class ScaffoldGeneratorTest extends CIUnitTestCase
         unlink(APPPATH . 'Models/Fixer.php');
     }
 
-    public function testCreateComponentWithOptionNamespace()
+    public function testCreateComponentWithOptionNamespace(): void
     {
         command('make:scaffold product -namespace App');
 

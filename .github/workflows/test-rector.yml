@@ -15,6 +15,7 @@ on:
       - '.github/workflows/test-rector.yml'
       - composer.json
       - rector.php
+      - '**.neon.dist'
 
   push:
     branches:
@@ -28,6 +29,7 @@ on:
       - '.github/workflows/test-rector.yml'
       - composer.json
       - rector.php
+      - '**.neon.dist'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -38,20 +40,21 @@ permissions:
 
 jobs:
   build:
-    name: PHP ${{ matrix.php-versions }} Analyze code (Rector) on ${{ matrix.paths }}
+    name: PHP ${{ matrix.php-versions }} Analyze code (Rector)
     runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:
-        php-versions: ['7.4', '8.0']
-        paths:
-          - app
-          - system
-          - tests
-          - utils
+        php-versions: ['8.1', '8.3']
     steps:
+      - name: Checkout base branch for PR
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.base_ref }}
+
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -69,7 +72,7 @@ jobs:
         run: echo "COMPOSER_CACHE_FILES_DIR=$(composer config cache-files-dir)" >> $GITHUB_ENV
 
       - name: Cache dependencies
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ${{ env.COMPOSER_CACHE_FILES_DIR }}
           key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.json') }}
@@ -78,5 +81,14 @@ jobs:
       - name: Install dependencies
         run: composer update --ansi --no-interaction
 
+      - name: Rector Cache
+        uses: actions/cache@v4
+        with:
+          path: /tmp/rector
+          key: ${{ runner.os }}-rector-${{ github.run_id }}
+          restore-keys: ${{ runner.os }}-rector-
+
+      - run: mkdir -p /tmp/rector
+
       - name: Run static analysis
-        run: vendor/bin/rector process ${{ matrix.paths }} --dry-run --no-progress-bar
+        run: vendor/bin/rector process --dry-run --no-progress-bar

@@ -13,6 +13,7 @@ on:
       - composer.json
       - phpunit.xml.dist
       - .github/workflows/test-phpunit.yml
+      - .github/workflows/reusable-phpunit-test.yml
 
   pull_request:
     branches:
@@ -26,6 +27,7 @@ on:
       - composer.json
       - phpunit.xml.dist
       - .github/workflows/test-phpunit.yml
+      - .github/workflows/reusable-phpunit-test.yml
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -45,20 +47,20 @@ jobs:
     steps:
       - id: coverage-php-version
         run: |
-          echo "version=8.1" >> $GITHUB_OUTPUT
+          echo "version=8.2" >> $GITHUB_OUTPUT
 
   sanity-tests:
+    name: Others
     needs: coverage-php-version
 
     strategy:
       matrix:
         php-version:
-          - '7.4'
-          - '8.0'
           - '8.1'
           - '8.2'
+          - '8.3'
         include:
-          - php-version: '8.2'
+          - php-version: '8.3'
             composer-option: '--ignore-platform-req=php'
 
     uses: ./.github/workflows/reusable-phpunit-test.yml # @TODO Extract to codeigniter4/.github repo
@@ -74,6 +76,7 @@ jobs:
       extra-composer-options: ${{ matrix.composer-option }}
 
   database-live-tests:
+    name: DatabaseLive
     needs:
       - coverage-php-version
       - sanity-tests
@@ -82,10 +85,9 @@ jobs:
       fail-fast: false
       matrix:
         php-version:
-          - '7.4'
-          - '8.0'
           - '8.1'
           - '8.2'
+          - '8.3'
         db-platform:
           - MySQLi
           - OCI8
@@ -93,17 +95,17 @@ jobs:
           - SQLSRV
           - SQLite3
         mysql-version:
-          - '5.7'
+          - '8.0'
         include:
-          - php-version: '7.4'
+          - php-version: '8.1'
             db-platform: MySQLi
-            mysql-version: '8.0'
-          - php-version: '8.2'
+            mysql-version: '5.7'
+          - php-version: '8.3'
             composer-option: '--ignore-platform-req=php'
 
     uses: ./.github/workflows/reusable-phpunit-test.yml # @TODO Extract to codeigniter4/.github repo
     with:
-      job-name: Database Live Tests
+      job-name: ''
       php-version: ${{ matrix.php-version }}
       job-id: database-live-tests
       db-platform: ${{ matrix.db-platform }}
@@ -112,10 +114,11 @@ jobs:
       enable-artifact-upload: ${{ matrix.php-version == needs.coverage-php-version.outputs.version }}
       enable-coverage: ${{ matrix.php-version == needs.coverage-php-version.outputs.version }}
       enable-profiling: ${{ matrix.php-version == needs.coverage-php-version.outputs.version }}
-      extra-extensions: mysqli, oci8, pgsql, sqlsrv-5.10.1, sqlite3
+      extra-extensions: mysqli, oci8, pgsql, sqlsrv, sqlite3
       extra-composer-options: ${{ matrix.composer-option }}
 
   separate-process-tests:
+    name: SeparateProcess
     needs:
       - coverage-php-version
       - sanity-tests
@@ -123,17 +126,16 @@ jobs:
     strategy:
       matrix:
         php-version:
-          - '7.4'
-          - '8.0'
           - '8.1'
           - '8.2'
+          - '8.3'
         include:
-          - php-version: '8.2'
+          - php-version: '8.3'
             composer-option: '--ignore-platform-req=php'
 
     uses: ./.github/workflows/reusable-phpunit-test.yml # @TODO Extract to codeigniter4/.github repo
     with:
-      job-name: Separate Process Tests
+      job-name: ''
       php-version: ${{ matrix.php-version }}
       job-id: separate-process-tests
       group-name: SeparateProcess
@@ -144,6 +146,7 @@ jobs:
       extra-composer-options: ${{ matrix.composer-option }}
 
   cache-live-tests:
+    name: CacheLive
     needs:
       - coverage-php-version
       - sanity-tests
@@ -151,12 +154,11 @@ jobs:
     strategy:
       matrix:
         php-version:
-          - '7.4'
-          - '8.0'
           - '8.1'
           - '8.2'
+          - '8.3'
         include:
-          - php-version: '8.2'
+          - php-version: '8.3'
             composer-option: '--ignore-platform-req=php'
 
     uses: ./.github/workflows/reusable-phpunit-test.yml # @TODO Extract to codeigniter4/.github repo

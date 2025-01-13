@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -12,16 +14,16 @@
 namespace CodeIgniter\Validation\StrictRules;
 
 use CodeIgniter\Validation\ValidationTest as TraditionalValidationTest;
+use PHPUnit\Framework\Attributes\Group;
 use Tests\Support\Validation\TestRules;
 
 /**
  * @internal
- *
- * @group Others
  */
+#[Group('Others')]
 final class ValidationTest extends TraditionalValidationTest
 {
-    protected array $config = [
+    protected static array $config = [
         'ruleSets' => [
             Rules::class,
             FormatRules::class,

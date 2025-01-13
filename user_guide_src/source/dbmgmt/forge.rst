@@ -41,7 +41,7 @@ Returns true/false based on success or failure:
 .. literalinclude:: forge/003.php
 
 An optional second parameter set to true will add ``IF EXISTS`` statement
-or will check if a database exists before create it (depending on DBMS).
+or will check if a database exists before creating it (depending on DBMS).
 
 .. literalinclude:: forge/004.php
 
@@ -60,19 +60,24 @@ CodeIgniter supports creating databases straight from your favorite terminal usi
 command. By using this command it is assumed that the database is not yet existing. Otherwise, CodeIgniter
 will complain that the database creation has failed.
 
-To start, just type the command and the name of the database (e.g., ``foo``)::
+To start, just type the command and the name of the database (e.g., ``foo``):
 
-    > php spark db:create foo
+.. code-block:: console
+
+    php spark db:create foo
 
 If everything went fine, you should expect the ``Database "foo" successfully created.`` message displayed.
 
 If you are on a testing environment or you are using the SQLite3 driver, you may pass in the file extension
 for the file where the database will be created using the ``--ext`` option. Valid values are ``db`` and
 ``sqlite`` and defaults to ``db``. Remember that these should not be preceded by a period.
-::
+:
 
-    > php spark db:create foo --ext sqlite
-    // will create the db file in WRITEPATH/foo.sqlite
+.. code-block:: console
+
+    php spark db:create foo --ext sqlite
+
+The above command will create the db file in **WRITEPATH/foo.sqlite**.
 
 .. note:: When using the special SQLite3 database name ``:memory:``, expect that the command will still
     produce a success message but no database file is created. This is because SQLite3 will just use
@@ -91,34 +96,75 @@ mechanism for this.
 Adding Fields
 =============
 
+$forge->addField()
+------------------
+
 Fields are normally created via an associative array. Within the array, you must
-include a ``type`` key that relates to the datatype of the field. For
-example, INT, VARCHAR, TEXT, etc. Many datatypes (for example VARCHAR)
-also require a ``constraint`` key.
+include a ``type`` key that relates to the datatype of the field.
+
+For example, ``INT``, ``VARCHAR``, ``TEXT``, etc.
+Many datatypes (for example ``VARCHAR``) also require a ``constraint`` key.
 
 .. literalinclude:: forge/006.php
 
 Additionally, the following key/values can be used:
 
--  ``unsigned``/true : to generate "UNSIGNED" in the field definition.
--  ``default``/value : to generate a default value in the field definition.
--  ``null``/true : to generate "null" in the field definition. Without this,
-   the field will default to "NOT null".
+-  ``unsigned``/true : to generate ``UNSIGNED`` in the field definition.
+-  ``default``/value : to generate ``DEFAULT`` constraint in the field definition.
+-  ``null``/true : to generate ``NULL`` in the field definition. Without this,
+   the field will default to ``NOT NULL``.
 -  ``auto_increment``/true : generates an auto_increment flag on the
    field. Note that the field type must be a type that supports this,
-   such as integer.
+   such as ``INTEGER``.
 -  ``unique``/true : to generate a unique key for the field definition.
 
 .. literalinclude:: forge/007.php
 
 After the fields have been defined, they can be added using
 ``$forge->addField($fields)`` followed by a call to the
-``createTable()`` method.
+:ref:`createTable() <creating-a-table>`  method.
 
-$forge->addField()
-------------------
+Notes on Data Types
+-------------------
 
-The ``addField()`` method will accept the above array.
+Floating-Point Types
+^^^^^^^^^^^^^^^^^^^^
+
+Floating-Point types such as ``FLOAT`` and ``DOUBLE`` represent approximate values.
+Therefore, they should not be used when exact values are needed.
+
+::
+
+    mysql> CREATE TABLE t (f FLOAT, d DOUBLE);
+    mysql> INSERT INTO t VALUES(99.9, 99.9);
+
+    mysql> SELECT * FROM t WHERE f=99.9;
+    Empty set (0.00 sec)
+
+    mysql> SELECT * FROM t WHERE f > 99.89 AND f < 99.91;
+    +------+------+
+    | f    | d    |
+    +------+------+
+    | 99.9 | 99.9 |
+    +------+------+
+    1 row in set (0.01 sec)
+
+When it is important to preserve exact precision, for example with monetary data,
+``DECIMAL`` or ``NUMERIC`` should be used.
+
+TEXT
+^^^^
+
+``TEXT`` should not be used on SQLSRV. It is deprecated.
+See `ntext, text, and image (Transact-SQL) - SQL Server | Microsoft Learn <https://learn.microsoft.com/en-us/sql/t-sql/data-types/ntext-text-and-image-transact-sql?view=sql-server-ver16>`_.
+
+ENUM
+^^^^
+
+Not all databases support ``ENUM``.
+
+Starting with v4.5.0, ``SQLSRV`` Forge converts ``ENUM`` data types to ``VARCHAR(n)``.
+Previous versions converted to ``TEXT``.
 
 .. _forge-addfield-default-value-rawsql:
 
@@ -204,6 +250,8 @@ You can specify the desired action for the "on update" and "on delete" propertie
 
 .. note:: SQLite3 does not support the naming of foreign keys. CodeIgniter will refer to them by ``prefix_table_column_foreign``.
 
+.. _creating-a-table:
+
 Creating a Table
 ================
 
@@ -254,6 +302,9 @@ The ``addColumn()`` method is used to modify an existing table. It
 accepts the same field array as :ref:`Creating Tables <adding-fields>`, and can
 be used to add additional fields.
 
+.. note:: Unlike when creating a table, if ``null`` is not specified, the column
+    will be ``NULL``, not ``NOT NULL``.
+
 .. literalinclude:: forge/022.php
 
 If you are using MySQL or CUBIRD, then you can take advantage of their
@@ -282,6 +333,8 @@ Used to remove multiple columns from a table.
 Modifying a Field in a Table
 ============================
 
+.. _db-forge-modifyColumn:
+
 $forge->modifyColumn()
 ----------------------
 
@@ -290,6 +343,17 @@ alters an existing column rather than adding a new one. In order to
 change the name, you can add a "name" key into the field defining array.
 
 .. literalinclude:: forge/026.php
+
+.. note:: The ``modifyColumn()`` may unexpectedly change ``NULL``/``NOT NULL``.
+    So it is recommended to always specify the value for ``null`` key. Unlike when creating
+    a table, if ``null`` is not specified, the column will be ``NULL``, not
+    ``NOT NULL``.
+
+.. note:: Due to a bug, prior v4.3.4, SQLite3 may not set ``NOT NULL`` even if you
+    specify ``'null' => false``.
+
+.. note:: Due to a bug, prior v4.3.4, Postgres and SQLSRV set ``NOT NULL`` even
+    if you specify ``'null' => true``.
 
 .. _db-forge-adding-keys-to-a-table:
 

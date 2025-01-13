@@ -1,6 +1,6 @@
 # CodeIgniter 4 Development
 
-[![PHPUnit](https://github.com/codeigniter4/CodeIgniter4/workflows/PHPUnit/badge.svg)](https://github.com/codeigniter4/CodeIgniter4/actions/workflows/test-phpunit.yml)
+[![PHPUnit](https://github.com/codeigniter4/CodeIgniter4/actions/workflows/test-phpunit.yml/badge.svg)](https://github.com/codeigniter4/CodeIgniter4/actions/workflows/test-phpunit.yml)
 [![PHPStan](https://github.com/codeigniter4/CodeIgniter4/actions/workflows/test-phpstan.yml/badge.svg)](https://github.com/codeigniter4/CodeIgniter4/actions/workflows/test-phpstan.yml)
 [![Psalm](https://github.com/codeigniter4/CodeIgniter4/actions/workflows/test-psalm.yml/badge.svg)](https://github.com/codeigniter4/CodeIgniter4/actions/workflows/test-psalm.yml)
 [![Coverage Status](https://coveralls.io/repos/github/codeigniter4/CodeIgniter4/badge.svg?branch=develop)](https://coveralls.io/github/codeigniter4/CodeIgniter4?branch=develop)
@@ -24,16 +24,16 @@ More information about the plans for version 4 can be found in [CodeIgniter 4](h
 
 ### Documentation
 
-The [User Guide](https://codeigniter4.github.io/userguide/) is the primary documentation for CodeIgniter 4.
+The [User Guide](https://codeigniter.com/user_guide/) is the primary documentation for CodeIgniter 4.
 
-The current **in-progress** User Guide can be found [here](https://codeigniter4.github.io/CodeIgniter4/).
+You will also find the [current **in-progress** User Guide](https://codeigniter4.github.io/CodeIgniter4/).
 As with the rest of the framework, it is a work in progress, and will see changes over time to structure, explanations, etc.
 
 You might also be interested in the [API documentation](https://codeigniter4.github.io/api/) for the framework components.
 
 ## Important Change with index.php
 
-index.php is no longer in the root of the project! It has been moved inside the *public* folder,
+`index.php` is no longer in the root of the project! It has been moved inside the *public* folder,
 for better security and separation of components.
 
 This means that you should configure your web server to "point" to your project's *public* folder, and
@@ -48,9 +48,10 @@ CodeIgniter is developed completely on a volunteer basis. As such, please give u
 for your issues to be reviewed. If you haven't heard from one of the team in that time period,
 feel free to leave a comment on the issue so that it gets brought back to our attention.
 
-We use GitHub issues to track **BUGS** and to track approved **DEVELOPMENT** work packages.
-We use our [forum](http://forum.codeigniter.com) to provide SUPPORT and to discuss
-FEATURE REQUESTS.
+> [!IMPORTANT]
+> We use GitHub issues to track **BUGS** and to track approved **DEVELOPMENT** work packages.
+> We use our [forum](http://forum.codeigniter.com) to provide SUPPORT and to discuss
+> FEATURE REQUESTS.
 
 If you raise an issue here that pertains to support or a feature request, it will
 be closed! If you are not sure if you have found a bug, raise a thread on the forum first -
@@ -86,10 +87,16 @@ Made with [contrib.rocks](https://contrib.rocks).
 
 ## Server Requirements
 
-PHP version 7.4 or higher is required, with the following extensions installed:
+PHP version 8.1 or higher is required, with the following extensions installed:
 
 - [intl](http://php.net/manual/en/intl.requirements.php)
 - [mbstring](http://php.net/manual/en/mbstring.installation.php)
+
+> [!WARNING]
+> - The end of life date for PHP 7.4 was November 28, 2022.
+> - The end of life date for PHP 8.0 was November 26, 2023.
+> - If you are still using PHP 7.4 or 8.0, you should upgrade immediately.
+> - The end of life date for PHP 8.1 will be December 31, 2025.
 
 Additionally, make sure that the following extensions are enabled in your PHP:
 

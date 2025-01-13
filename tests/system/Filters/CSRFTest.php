@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -16,14 +18,14 @@ use CodeIgniter\HTTP\CLIRequest;
 use CodeIgniter\HTTP\IncomingRequest;
 use CodeIgniter\HTTP\Response;
 use CodeIgniter\Test\CIUnitTestCase;
+use PHPUnit\Framework\Attributes\BackupGlobals;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
- * @backupGlobals enabled
- *
  * @internal
- *
- * @group Others
  */
+#[BackupGlobals(true)]
+#[Group('Others')]
 final class CSRFTest extends CIUnitTestCase
 {
     private \Config\Filters $config;
@@ -41,7 +43,7 @@ final class CSRFTest extends CIUnitTestCase
         $this->config = new \Config\Filters();
     }
 
-    public function testDoNotCheckCliRequest()
+    public function testDoNotCheckCliRequest(): void
     {
         $this->config->globals = [
             'before' => ['csrf'],
@@ -49,7 +51,7 @@ final class CSRFTest extends CIUnitTestCase
         ];
 
         $this->request  = Services::clirequest(null, false);
-        $this->response = Services::response();
+        $this->response = service('response');
 
         $filters = new Filters($this->config, $this->request, $this->response);
         $uri     = 'admin/foo/bar';
@@ -59,15 +61,15 @@ final class CSRFTest extends CIUnitTestCase
         $this->assertSame($this->request, $request);
     }
 
-    public function testPassGetRequest()
+    public function testPassGetRequest(): void
     {
         $this->config->globals = [
             'before' => ['csrf'],
             'after'  => [],
         ];
 
-        $this->request  = Services::incomingrequest(null, false);
-        $this->response = Services::response();
+        $this->request  = service('incomingrequest', null, false);
+        $this->response = service('response');
 
         $filters = new Filters($this->config, $this->request, $this->response);
         $uri     = 'admin/foo/bar';

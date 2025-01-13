@@ -18,7 +18,7 @@ Fetch API
 .. code-block:: javascript
 
     fetch(url, {
-        method: "get",
+        method: "POST",
         headers: {
           "Content-Type": "application/json",
           "X-Requested-With": "XMLHttpRequest"
@@ -56,7 +56,7 @@ React
 htmx
 ====
 
-You can use `ajax-header <https://htmx.org/extensions/ajax-header/>`_ extension.
+You can use `ajax-header <https://github.com/bigskysoftware/htmx-extensions/blob/main/src/ajax-header/README.md>`_ extension.
 
 .. code-block:: html
 

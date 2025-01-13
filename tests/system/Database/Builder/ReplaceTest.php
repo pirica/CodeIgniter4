@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -14,12 +16,12 @@ namespace CodeIgniter\Database\Builder;
 use CodeIgniter\Database\Exceptions\DatabaseException;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\Mock\MockConnection;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * @internal
- *
- * @group Others
  */
+#[Group('Others')]
 final class ReplaceTest extends CIUnitTestCase
 {
     protected $db;
@@ -31,7 +33,7 @@ final class ReplaceTest extends CIUnitTestCase
         $this->db = new MockConnection([]);
     }
 
-    public function testSimpleReplace()
+    public function testSimpleReplace(): void
     {
         $builder = $this->db->table('jobs');
 
@@ -46,7 +48,7 @@ final class ReplaceTest extends CIUnitTestCase
         $this->assertSame($expected, $builder->testMode()->replace($data));
     }
 
-    public function testReplaceThrowsExceptionWithNoData()
+    public function testReplaceThrowsExceptionWithNoData(): void
     {
         $builder = $this->db->table('jobs');
 

@@ -42,7 +42,6 @@ $db->countAll()
 
 Permits you to determine the number of rows in a particular table.
 Submit the table name in the first parameter. This is part of Query Builder.
-Example:
 
 .. literalinclude:: helpers/001.php
 
@@ -51,14 +50,13 @@ $db->countAllResults()
 
 Permits you to determine the number of rows in a particular result set.
 Submit the table name in the first parameter. This is part of Query Builder.
-Example:
 
 .. literalinclude:: helpers/002.php
 
 $db->getPlatform()
 ==================
 
-Outputs the database platform you are running (MySQL, MS SQL, Postgres,
+Outputs the database platform (DBDriver) you are running (MySQLi, SQLSRV, Postgre,
 etc...):
 
 .. literalinclude:: helpers/003.php

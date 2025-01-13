@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -12,17 +14,16 @@
 namespace CodeIgniter\Test;
 
 use Config\Logger;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * @internal
- *
- * @group Others
  */
+#[Group('Others')]
 final class TestLoggerTest extends CIUnitTestCase
 {
-    /**
-     * @dataProvider provideDidLogCases
-     */
+    #[DataProvider('provideDidLogMethod')]
     public function testDidLogMethod(bool $expected, string $level, string $message, bool $exact): void
     {
         (new TestLogger(new Logger()))->log('error', 'Some variable did not contain a value.');
@@ -33,7 +34,7 @@ final class TestLoggerTest extends CIUnitTestCase
         );
     }
 
-    public function provideDidLogCases(): iterable
+    public static function provideDidLogMethod(): iterable
     {
         yield 'exact' => [
             true,

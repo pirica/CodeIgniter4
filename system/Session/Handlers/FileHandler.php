@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -13,7 +15,7 @@ namespace CodeIgniter\Session\Handlers;
 
 use CodeIgniter\I18n\Time;
 use CodeIgniter\Session\Exceptions\SessionException;
-use Config\App as AppConfig;
+use Config\Session as SessionConfig;
 use ReturnTypeWillChange;
 
 /**
@@ -63,7 +65,7 @@ class FileHandler extends BaseHandler
      */
     protected $sessionIDRegex = '';
 
-    public function __construct(AppConfig $config, string $ipAddress)
+    public function __construct(SessionConfig $config, string $ipAddress)
     {
         parent::__construct($config, $ipAddress);
 
@@ -73,7 +75,7 @@ class FileHandler extends BaseHandler
         } else {
             $sessionPath = rtrim(ini_get('session.save_path'), '/\\');
 
-            if (! $sessionPath) {
+            if ($sessionPath === '') {
                 $sessionPath = WRITEPATH . 'session';
             }
 
@@ -281,14 +283,14 @@ class FileHandler extends BaseHandler
 
         $pattern = sprintf(
             '#\A%s' . $pattern . $this->sessionIDRegex . '\z#',
-            preg_quote($this->cookieName, '#')
+            preg_quote($this->cookieName, '#'),
         );
 
         $collected = 0;
 
         while (($file = readdir($directory)) !== false) {
             // If the filename doesn't match this pattern, it's either not a session file or is not ours
-            if (! preg_match($pattern, $file)
+            if (preg_match($pattern, $file) !== 1
                 || ! is_file($this->savePath . DIRECTORY_SEPARATOR . $file)
                 || ($mtime = filemtime($this->savePath . DIRECTORY_SEPARATOR . $file)) === false
                 || $mtime > $ts

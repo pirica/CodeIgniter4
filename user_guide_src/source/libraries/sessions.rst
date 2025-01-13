@@ -39,11 +39,11 @@ but does not take any configuration options.
 
 .. literalinclude:: sessions/002.php
 
-How do Sessions work?
+How Do Sessions Work?
 =====================
 
 When a page is loaded, the session class will check to see if a valid
-session cookie is sent by the user's browser. If a sessions cookie does
+session cookie is sent by the user's browser. If a session cookie does
 **not** exist (or if it doesn't match one stored on the server or has
 expired) a new session will be created and saved.
 
@@ -59,7 +59,7 @@ automatic.
 .. note:: Under CLI, the Session library will automatically halt itself,
     as this is a concept based entirely on the HTTP protocol.
 
-A note about concurrency
+A Note about Concurrency
 ------------------------
 
 Unless you're developing a website with heavy AJAX usage, you can skip this
@@ -214,6 +214,8 @@ This method also accepts an array of item keys to unset:
 
 .. literalinclude:: sessions/018.php
 
+.. _sessions-flashdata:
+
 Flashdata
 =========
 
@@ -342,26 +344,66 @@ intend to reuse that same key in the same request, you'd want to use
 
 .. literalinclude:: sessions/036.php
 
+Closing a Session
+=================
+
+.. _session-close:
+
+close()
+-------
+
+.. versionadded:: 4.4.0
+
+To close the current session manually after you no longer need it, use the
+``close()`` method:
+
+.. literalinclude:: sessions/044.php
+
+You do not have to close the session manually, PHP will close it automatically
+after your script terminated. But as session data is locked to prevent concurrent
+writes only one request may operate on a session at any time. You may improve
+your site performance by closing the session as soon as all changes to session
+data are done.
+
+This method will work in exactly the same way as PHP's
+`session_write_close() <https://www.php.net/session_write_close>`_ function.
+
 Destroying a Session
 ====================
 
+.. _session-destroy:
+
+destroy()
+---------
+
 To clear the current session (for example, during a logout), you may
-simply use either PHP's `session_destroy() <https://www.php.net/session_destroy>`_
-function, or the library's ``destroy()`` method. Both will work in exactly the
-same way:
+simply use the library's ``destroy()`` method:
 
 .. literalinclude:: sessions/037.php
 
-.. note:: This must be the last session-related operation that you do
-    during the same request. All session data (including flashdata and
-    tempdata) will be destroyed permanently and functions will be
-    unusable during the same request after you destroy the session.
+This method will work in exactly the same way as PHP's
+`session_destroy() <https://www.php.net/session_destroy>`_ function.
 
-You may also use the ``stop()`` method to completely kill the session
-by removing the old session ID, destroying all data, and destroying
-the cookie that contained the session ID:
+This must be the last session-related operation that you do during the same request.
+All session data (including flashdata and tempdata) will be destroyed permanently.
 
-.. literalinclude:: sessions/038.php
+.. note:: You do not have to call this method from usual code. Cleanup session
+    data rather than destroying the session.
+
+.. _session-stop:
+
+stop()
+------
+
+.. deprecated:: 4.3.5
+
+The session class also has the ``stop()`` method.
+
+.. warning:: Prior to v4.3.5, this method did not destroy the session due to a bug.
+
+Starting with v4.3.5, this method has been modified to destroy the session.
+However, it is deprecated because it is exactly the same as the ``destroy()``
+method. Use the ``destroy()`` method instead.
 
 Accessing Session Metadata
 ==========================
@@ -374,7 +416,7 @@ necessary with our new implementation. However, it may happen that your
 application relied on these values, so here are alternative methods of
 accessing them:
 
-  - session_id: ``$session->session_id`` or ``session_id()`` (PHP’s built-in function)
+  - session_id: ``$session->session_id`` or ``session_id()`` (PHP's built-in function)
   - ip_address: ``$_SERVER['REMOTE_ADDR']``
   - user_agent: ``$_SERVER['HTTP_USER_AGENT']`` (unused by sessions)
   - last_activity: Depends on the storage, no straightforward way. Sorry!
@@ -421,7 +463,7 @@ Preference                     Default                                      Opti
     unexpected results or be changed in the future. Please configure
     everything properly.
 
-.. note:: If ``sessionExpiration`` is set to ``0``, the ``session.gc_maxlifetime``
+.. note:: If ``expiration`` is set to ``0``, the ``session.gc_maxlifetime``
     setting set by PHP in session management will be used as-is
     (often the default value of ``1440``). This needs to be changed in
     ``php.ini`` or via ``ini_set()`` as needed.
@@ -438,7 +480,7 @@ Preference           Default         Description
 **sameSite**   Lax             The SameSite setting for the session cookie
 ============== =============== ===========================================================================
 
-.. note:: The ``httponly`` setting doesn't have an effect on sessions.
+.. note:: The ``httponly`` setting (in **app/Config/Cookie.php**) doesn't have an effect on sessions.
     Instead the HttpOnly parameter is always enabled, for security
     reasons. Additionally, the ``Config\Cookie::$prefix`` setting is completely
     ignored.
@@ -446,7 +488,7 @@ Preference           Default         Description
 Session Drivers
 ***************
 
-As already mentioned, the Session library comes with 4 handlers, or storage
+As already mentioned, the Session library comes with five handlers, or storage
 engines, that you can use:
 
   - CodeIgniter\\Session\\Handlers\\FileHandler
@@ -455,12 +497,12 @@ engines, that you can use:
   - CodeIgniter\\Session\\Handlers\\RedisHandler
   - CodeIgniter\\Session\\Handlers\\ArrayHandler
 
-By default, the ``FileHandler`` Driver will be used when a session is initialized,
+By default, the ``FileHandler`` will be used when a session is initialized,
 because it is the safest choice and is expected to work everywhere
 (virtually every environment has a file system).
 
-However, any other driver may be selected via the ``public $driver``
-line in your **app/Config/Session.php** file, if you chose to do so.
+However, any other driver may be selected via the ``$driver``
+setting in your **app/Config/Session.php** file, if you chose to do so.
 Have it in mind though, every driver has different caveats, so be sure to
 get yourself familiar with them (below) before you make that choice.
 
@@ -473,22 +515,20 @@ FileHandler Driver (the default)
 The 'FileHandler' driver uses your file system for storing session data.
 
 It can safely be said that it works exactly like PHP's own default session
-implementation, but in case this is an important detail for you, have it
-mind that it is in fact not the same code and it has some limitations
-(and advantages).
+implementation, but in case this is an important detail for you, in fact it is not the same code
+and it has some limitations (and advantages).
 
 To be more specific, it doesn't support PHP's `directory level and mode
 formats used in session.save_path
 <https://www.php.net/manual/en/session.configuration.php#ini.session.save-path>`_,
 and it has most of the options hard-coded for safety. Instead, only
-absolute paths are supported for ``public string $savePath``.
+absolute paths are supported with ``$savePath`` setting.
 
 Another important thing that you should know, is to make sure that you
 don't use a publicly-readable or shared directory for storing your session
-files. Make sure that *only you* have access to see the contents of your
-chosen *savePath* directory. Otherwise, anybody who can do that, can
-also steal any of the current sessions (also known as "session fixation"
-attack).
+files. *Only you* should have access to the contents of your
+chosen *savePath* directory. Otherwise, anybody can see and
+steal session data (also known as "session fixation" attack).
 
 On UNIX-like operating systems, this is usually achieved by setting the
 0700 mode permissions on that directory via the `chmod` command, which
@@ -497,12 +537,13 @@ it. But be careful because the system user *running* the script is usually
 not your own, but something like 'www-data' instead, so only setting those
 permissions will probably break your application.
 
-Instead, you should do something like this, depending on your environment
-::
+Instead, you should do something like this, depending on your environment:
 
-    > mkdir /<path to your application directory>/writable/sessions/
-    > chmod 0700 /<path to your application directory>/writable/sessions/
-    > chown www-data /<path to your application directory>/writable/sessions/
+.. code-block:: console
+
+    mkdir /<path to your application directory>/writable/sessions/
+    chmod 0700 /<path to your application directory>/writable/sessions/
+    chown www-data /<path to your application directory>/writable/sessions/
 
 Bonus Tip
 ---------
@@ -511,14 +552,14 @@ Some of you will probably opt to choose another session driver because
 file storage is usually slower. This is only half true.
 
 A very basic test will probably trick you into believing that an SQL
-database is faster, but in 99% of the cases, this is only true while you
-only have a few current sessions. As the sessions count and server loads
+database is faster, but in 99% of the cases, this is true only if you
+have a few current sessions. As the sessions count and server loads
 increase - which is the time when it matters - the file system will
 consistently outperform almost all relational database setups.
 
 In addition, if performance is your only concern, you may want to look
 into using `tmpfs <https://eddmann.com/posts/storing-php-sessions-file-caches-in-memory-using-tmpfs/>`_,
-(warning: external resource), which can make your sessions blazing fast.
+which can make your sessions blazing fast.
 
 .. _sessions-databasehandler-driver:
 
@@ -528,22 +569,21 @@ DatabaseHandler Driver
 .. important:: Only MySQL and PostgreSQL databases are officially
     supported, due to lack of advisory locking mechanisms on other
     platforms. Using sessions without locks can cause all sorts of
-    problems, especially with heavy usage of AJAX, and we will not
-    support such cases. Use ``session_write_close()`` after you've
-    done processing session data if you're having performance
-    issues.
+    problems, especially with heavy usage of AJAX. Use the :ref:`session-close` method
+    after you've done processing session data if you're having performance issues.
 
 The 'DatabaseHandler' driver uses a relational database such as MySQL or
 PostgreSQL to store sessions. This is a popular choice among many users,
 because it allows the developer easy access to the session data within
 an application - it is just another table in your database.
 
-However, there are some conditions that must be met:
-
-  - You can NOT use a persistent connection.
+However, there is a restriction: You can NOT use a persistent connection.
 
 Configure DatabaseHandler
 -------------------------
+
+Setting Table Name
+^^^^^^^^^^^^^^^^^^
 
 In order to use the 'DatabaseHandler' session driver, you must also create this
 table that we already mentioned and then set it as your
@@ -553,7 +593,10 @@ you would do this:
 
 .. literalinclude:: sessions/039.php
 
-And then of course, create the database table ...
+Creating Database Table
+^^^^^^^^^^^^^^^^^^^^^^^
+
+And then of course, create the database table.
 
 For MySQL::
 
@@ -580,28 +623,45 @@ For PostgreSQL::
     and the session ID and a delimiter. It should be increased as needed, for example,
     when using long session IDs.
 
+Adding Primary Key
+^^^^^^^^^^^^^^^^^^
+
 You will also need to add a PRIMARY KEY **depending on your $matchIP
 setting**. The examples below work both on MySQL and PostgreSQL::
 
-    // When sessionMatchIP = true
+    // When $matchIP = true
     ALTER TABLE ci_sessions ADD PRIMARY KEY (id, ip_address);
 
-    // When sessionMatchIP = false
+    // When $matchIP = false
     ALTER TABLE ci_sessions ADD PRIMARY KEY (id);
 
     // To drop a previously created primary key (use when changing the setting)
     ALTER TABLE ci_sessions DROP PRIMARY KEY;
 
-You can choose the Database group to use by adding a new line to the
-**app/Config/Session.php** file with the name of the group to use:
+.. important:: If you don't add the correct primary key, the following error
+    may occur::
+
+        Uncaught mysqli_sql_exception: Duplicate entry 'ci_session:***' for key 'ci_sessions.PRIMARY'
+
+Changing Database Group
+^^^^^^^^^^^^^^^^^^^^^^^
+
+The default database group is used by default.
+You can change the database group to use by changing the ``$DBGroup`` property
+in the **app/Config/Session.php** file to the name of the group to use:
 
 .. literalinclude:: sessions/040.php
 
-If you'd rather not do all of this by hand, you can use the ``make:migration --session`` command
-from the cli to generate a migration file for you::
+Setting Up Database Table with Command
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-  > php spark make:migration --session
-  > php spark migrate
+If you'd rather not do all of this by hand, you can use the ``make:migration --session`` command
+from the cli to generate a migration file for you:
+
+.. code-block:: console
+
+  php spark make:migration --session
+  php spark migrate
 
 This command will take the ``$savePath`` and ``$matchIP`` settings into account
 when it generates the code.
@@ -613,7 +673,9 @@ RedisHandler Driver
 
 .. note:: Since Redis doesn't have a locking mechanism exposed, locks for
     this driver are emulated by a separate value that is kept for up
-    to 300 seconds. With ``v4.3.2`` or above, You can connect ``Redis`` with **TLS** protocol.
+    to 300 seconds.
+
+.. note:: Starting with v4.3.2, you can connect Redis with **TLS** protocol.
 
 Redis is a storage engine typically used for caching and popular because
 of its high performance, which is also probably your reason to use the
@@ -623,7 +685,7 @@ The downside is that it is not as ubiquitous as relational databases and
 requires the `phpredis <https://github.com/phpredis/phpredis>`_ PHP
 extension to be installed on your system, and that one doesn't come
 bundled with PHP.
-Chances are, you're only be using the RedisHandler driver only if you're already
+Chances are, you're using the RedisHandler driver only if you're already
 both familiar with Redis and using it for other purposes.
 
 Configure RedisHandler
@@ -632,9 +694,9 @@ Configure RedisHandler
 Just as with the 'FileHandler' and 'DatabaseHandler' drivers, you must also configure
 the storage location for your sessions via the
 ``$savePath`` setting.
-The format here is a bit different and complicated at the same time. It is
+The format here is a bit different and complicated. It is
 best explained by the *phpredis* extension's README file, so we'll simply
-link you to it:
+give a link to it:
 
     https://github.com/phpredis/phpredis
 
@@ -646,6 +708,14 @@ For the most common case however, a simple ``host:port`` pair should be
 sufficient:
 
 .. literalinclude:: sessions/041.php
+
+Starting with v4.5.0, you can use Redis ACL (username and password)::
+
+    public string $savePath = 'tcp://localhost:6379?auth[user]=username&auth[pass]=password';
+
+.. note:: Starting with v4.5.0, the interval time for acquiring locks
+    (``$lockRetryInterval``) and the number of retries (``$lockMaxRetries``) are
+    configurable.
 
 .. _sessions-memcachedhandler-driver:
 

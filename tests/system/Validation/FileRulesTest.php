@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -12,15 +14,14 @@
 namespace CodeIgniter\Validation;
 
 use CodeIgniter\Test\CIUnitTestCase;
-use Config\Services;
 use InvalidArgumentException;
+use PHPUnit\Framework\Attributes\Group;
 use Tests\Support\Validation\TestRules;
 
 /**
  * @internal
- *
- * @group Others
  */
+#[Group('Others')]
 final class FileRulesTest extends CIUnitTestCase
 {
     private Validation $validation;
@@ -47,7 +48,7 @@ final class FileRulesTest extends CIUnitTestCase
         $this->resetServices();
         parent::setUp();
 
-        $this->validation = new Validation((object) $this->config, Services::renderer());
+        $this->validation = new Validation((object) $this->config, service('renderer'));
         $this->validation->reset();
 
         $_FILES = [

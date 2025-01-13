@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -17,12 +19,12 @@ use CodeIgniter\Database\RawSql;
 use CodeIgniter\Database\SQLSRV\Builder as SQLSRVBuilder;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\Mock\MockConnection;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * @internal
- *
- * @group Others
  */
+#[Group('Others')]
 final class JoinTest extends CIUnitTestCase
 {
     protected $db;
@@ -34,7 +36,7 @@ final class JoinTest extends CIUnitTestCase
         $this->db = new MockConnection([]);
     }
 
-    public function testJoinSimple()
+    public function testJoinSimple(): void
     {
         $builder = new BaseBuilder('user', $this->db);
 
@@ -45,7 +47,7 @@ final class JoinTest extends CIUnitTestCase
         $this->assertSame($expectedSQL, str_replace("\n", ' ', $builder->getCompiledSelect()));
     }
 
-    public function testJoinIsNull()
+    public function testJoinIsNull(): void
     {
         $builder = new BaseBuilder('table1', $this->db);
 
@@ -56,7 +58,7 @@ final class JoinTest extends CIUnitTestCase
         $this->assertSame($expectedSQL, str_replace("\n", ' ', $builder->getCompiledSelect()));
     }
 
-    public function testJoinIsNotNull()
+    public function testJoinIsNotNull(): void
     {
         $builder = new BaseBuilder('table1', $this->db);
 
@@ -67,7 +69,7 @@ final class JoinTest extends CIUnitTestCase
         $this->assertSame($expectedSQL, str_replace("\n", ' ', $builder->getCompiledSelect()));
     }
 
-    public function testJoinMultipleConditions()
+    public function testJoinMultipleConditions(): void
     {
         $builder = new BaseBuilder('table1', $this->db);
 
@@ -79,9 +81,28 @@ final class JoinTest extends CIUnitTestCase
     }
 
     /**
+     * @see https://github.com/codeigniter4/CodeIgniter4/issues/8791
+     */
+    public function testJoinMultipleConditionsBetween(): void
+    {
+        $builder = new BaseBuilder('table1', $this->db);
+
+        $builder->join(
+            'leases',
+            'units.unit_id = leases.unit_id AND CURDATE() BETWEEN lease_start_date AND lease_exp_date',
+            'LEFT',
+        );
+
+        // @TODO Should be `... CURDATE() BETWEEN "lease_start_date" AND "lease_exp_date"`
+        $expectedSQL = 'SELECT * FROM "table1" LEFT JOIN "leases" ON "units"."unit_id" = "leases"."unit_id" AND CURDATE() BETWEEN lease_start_date AND lease_exp_date';
+
+        $this->assertSame($expectedSQL, str_replace("\n", ' ', $builder->getCompiledSelect()));
+    }
+
+    /**
      * @see https://github.com/codeigniter4/CodeIgniter4/issues/3832
      */
-    public function testJoinRawSql()
+    public function testJoinRawSql(): void
     {
         $builder = new BaseBuilder('device', $this->db);
 
@@ -100,7 +121,7 @@ final class JoinTest extends CIUnitTestCase
         $this->assertSame($expectedSQL, $output);
     }
 
-    public function testFullOuterJoin()
+    public function testFullOuterJoin(): void
     {
         $builder = new PostgreBuilder('jobs', $this->db);
         $builder->testMode();
@@ -111,7 +132,7 @@ final class JoinTest extends CIUnitTestCase
         $this->assertSame($expectedSQL, str_replace("\n", ' ', $builder->getCompiledSelect()));
     }
 
-    public function testJoinWithAlias()
+    public function testJoinWithAlias(): void
     {
         $this->db = new MockConnection(['DBDriver' => 'SQLSRV', 'database' => 'test', 'schema' => 'dbo']);
 

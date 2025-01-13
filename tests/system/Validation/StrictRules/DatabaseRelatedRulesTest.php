@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -15,16 +17,17 @@ use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\DatabaseTestTrait;
 use CodeIgniter\Validation\Validation;
 use Config\Database;
-use Config\Services;
+use InvalidArgumentException;
+use LogicException;
+use PHPUnit\Framework\Attributes\Group;
 use Tests\Support\Validation\TestRules;
 
 /**
  * @internal
  *
  * @no-final
- *
- * @group DatabaseLive
  */
+#[Group('DatabaseLive')]
 class DatabaseRelatedRulesTest extends CIUnitTestCase
 {
     use DatabaseTestTrait;
@@ -51,7 +54,7 @@ class DatabaseRelatedRulesTest extends CIUnitTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->validation = new Validation((object) $this->config, Services::renderer());
+        $this->validation = new Validation((object) $this->config, service('renderer'));
         $this->validation->reset();
     }
 
@@ -82,7 +85,28 @@ class DatabaseRelatedRulesTest extends CIUnitTestCase
         $this->assertTrue($this->validation->run($data));
     }
 
-    public function testIsUniqueIgnoresParams(): void
+    public function testIsUniqueWithDBConnection(): void
+    {
+        $db = db_connect();
+        $this->validation->setRules(['email' => 'is_unique[user.email]']);
+
+        $data   = ['email' => 'derek@world.co.uk'];
+        $result = $this->validation->run($data, null, $db);
+
+        $this->assertTrue($result);
+    }
+
+    public function testIsUniqueWithInvalidDBGroup(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('"invalidGroup" is not a valid database connection group');
+
+        $this->validation->setRules(['email' => 'is_unique[user.email]']);
+        $data = ['email' => 'derek@world.co.uk'];
+        $this->assertTrue($this->validation->run($data, null, 'invalidGroup'));
+    }
+
+    public function testIsUniqueWithIgnoreValue(): void
     {
         $db = Database::connect();
         $db
@@ -102,7 +126,7 @@ class DatabaseRelatedRulesTest extends CIUnitTestCase
         $this->assertTrue($this->validation->run($data));
     }
 
-    public function testIsUniqueIgnoresParamsPlaceholders(): void
+    public function testIsUniqueWithIgnoreValuePlaceholder(): void
     {
         $this->hasInDatabase('user', [
             'name'    => 'Derek',
@@ -121,8 +145,39 @@ class DatabaseRelatedRulesTest extends CIUnitTestCase
             'email' => 'derek@world.co.uk',
         ];
 
-        $this->validation->setRules(['email' => 'is_unique[user.email,id,{id}]']);
+        $this->validation->setRules([
+            'id'    => 'is_natural_no_zero',
+            'email' => 'is_unique[user.email,id,{id}]',
+        ]);
         $this->assertTrue($this->validation->run($data));
+    }
+
+    public function testIsUniqueWithPlaceholderAndNoValidationRulesForIt(): void
+    {
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage('No validation rules for the placeholder: "id". You must set the validation rules for the field.');
+
+        $this->hasInDatabase('user', [
+            'name'    => 'Derek',
+            'email'   => 'derek@world.co.uk',
+            'country' => 'GB',
+        ]);
+
+        $row = Database::connect()
+            ->table('user')
+            ->limit(1)
+            ->get()
+            ->getRow();
+
+        $data = [
+            'id'    => $row->id,
+            'email' => 'derek@world.co.uk',
+        ];
+
+        $this->validation->setRules([
+            'email' => 'is_unique[user.email,id,{id}]',
+        ]);
+        $this->validation->run($data);
     }
 
     public function testIsUniqueByManualRun(): void
@@ -221,7 +276,10 @@ class DatabaseRelatedRulesTest extends CIUnitTestCase
             'id'    => $row->id,
             'email' => 'derek@world.co.uk',
         ];
-        $this->validation->setRules(['email' => 'is_not_unique[user.email,id,{id}]']);
+        $this->validation->setRules([
+            'id'    => 'is_natural_no_zero',
+            'email' => 'is_not_unique[user.email,id,{id}]',
+        ]);
         $this->assertTrue($this->validation->run($data));
     }
 

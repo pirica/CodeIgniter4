@@ -10,9 +10,10 @@ This class
 provides the common functionality they both need, but both cases have custom classes that extend
 from the Request class to add specific functionality. In practice, you will need to use these classes.
 
-See the documentation for the :doc:`IncomingRequest Class </incoming/incomingrequest>` and
-:doc:`CURLRequest Class </libraries/curlrequest>` for more usage details.
+See the documentation for the :doc:`IncomingRequest Class <./incomingrequest>` and
+:doc:`CURLRequest Class <../libraries/curlrequest>` for more usage details.
 
+***************
 Class Reference
 ***************
 
@@ -23,11 +24,11 @@ Class Reference
     .. php:method:: getIPAddress()
 
         :returns: The user's IP Address, if it can be detected. If the IP address
-                    is not a valid IP address, then will return 0.0.0.0.
+                    is not a valid IP address, then will return ``0.0.0.0``.
         :rtype:   string
 
         Returns the IP address for the current user. If the IP address is not valid, the method
-        will return '0.0.0.0':
+        will return ``0.0.0.0``:
 
         .. literalinclude:: request/001.php
 
@@ -42,7 +43,7 @@ Class Reference
         .. important:: This method is deprecated. It will be removed in future releases.
 
         :param    string $ip: IP address
-        :param    string $which: IP protocol ('ipv4' or 'ipv6')
+        :param    string $which: IP protocol (``ipv4`` or ``ipv6``)
         :returns: true if the address is valid, false if not
         :rtype:   bool
 
@@ -53,19 +54,15 @@ Class Reference
 
             .. literalinclude:: request/002.php
 
-        Accepts an optional second string parameter of 'ipv4' or 'ipv6' to specify
+        Accepts an optional second string parameter of ``ipv4`` or ``ipv6`` to specify
         an IP format. The default checks for both formats.
 
-    .. php:method:: getMethod([$upper = false])
+    .. php:method:: getMethod()
 
-        .. important:: Use of the ``$upper`` parameter is deprecated. It will be removed in future releases.
-
-        :param bool $upper: Whether to return the request method name in upper or lower case
         :returns: HTTP request method
         :rtype: string
 
-        Returns the ``$_SERVER['REQUEST_METHOD']``, with the option to set it
-        in uppercase or lowercase.
+        Returns the ``$_SERVER['REQUEST_METHOD']``.
 
         .. literalinclude:: request/003.php
 
@@ -95,7 +92,7 @@ Class Reference
         :rtype:   mixed
 
         This method is identical to the ``getPost()``, ``getGet()`` and ``getCookie()`` methods from the
-        :doc:`IncomingRequest Class </incoming/incomingrequest>`, only it fetches server data (``$_SERVER``):
+        :doc:`IncomingRequest Class <./incomingrequest>`, only it fetches server data (``$_SERVER``):
 
         .. literalinclude:: request/004.php
 
@@ -106,6 +103,9 @@ Class Reference
 
     .. php:method:: getEnv([$index = null[, $filter = null[, $flags = null]]])
 
+        .. deprecated:: 4.4.4 This method does not work from the beginning. Use
+            :php:func:`env()` instead.
+
         :param    mixed     $index: Value name
         :param    int       $filter: The type of filter to apply. A list of filters can be found in `PHP manual <https://www.php.net/manual/en/filter.filters.php>`__.
         :param    int|array $flags: Flags to apply. A list of flags can be found in `PHP manual <https://www.php.net/manual/en/filter.filters.flags.php>`__.
@@ -113,7 +113,7 @@ Class Reference
         :rtype:   mixed
 
         This method is identical to the ``getPost()``, ``getGet()`` and ``getCookie()`` methods from the
-        :doc:`IncomingRequest Class </incoming/incomingrequest>`, only it fetches env data (``$_ENV``):
+        :doc:`IncomingRequest Class <./incomingrequest>`, only it fetches env data (``$_ENV``):
 
         .. literalinclude:: request/006.php
 

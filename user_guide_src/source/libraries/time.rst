@@ -2,16 +2,18 @@
 Times and Dates
 ###############
 
-CodeIgniter provides a fully-localized, immutable, date/time class that is built on PHP's DateTimeImmutable object, but uses the Intl
+CodeIgniter provides a fully-localized, immutable, date/time class that is built on PHP's DateTimeImmutable class, but uses the Intl
 extension's features to convert times across timezones and display the output correctly for different locales. This class
 is the ``Time`` class and lives in the ``CodeIgniter\I18n`` namespace.
 
 .. note:: Since the Time class extends ``DateTimeImmutable``, if there are features that you need that this class doesn't provide,
-    you can likely find them within the `DateTimeImmutable <https://www.php.net/manual/en/class.datetimeimmutable.php>`_  class itself.
+    you can likely find them within the `DateTimeImmutable`_  class itself.
+
+.. _DateTimeImmutable: https://www.php.net/manual/en/class.datetimeimmutable.php
 
 .. note:: Prior to v4.3.0, the Time class extended ``DateTime`` and some inherited methods changed
     the current object state. The bug was fixed in v4.3.0. If you need the old Time class for backward
-    compatibility, you can use deprecated ``TimeLegay`` class for the time being.
+    compatibility, you can use deprecated ``TimeLegacy`` class for the time being.
 
 .. contents::
     :local:
@@ -22,14 +24,19 @@ Instantiating
 *************
 
 There are several ways that a new Time instance can be created. The first is simply to create a new instance
-like any other class. When you do it this way, you can pass in a string representing the desired time. This can
-be any string that PHP's strtotime function can parse:
+like any other class.
+
+When you do it this way, you can pass in a string representing the desired time.
+This can be any string that PHP's `DateTimeImmutable`_ constructor can parse. See
+`Supported Date and Time Formats`_ for details.
+
+.. _Supported Date and Time Formats: https://www.php.net/manual/en/datetime.formats.php
 
 .. literalinclude:: time/001.php
 
-You can pass in strings representing the timezone and the locale in the second and parameters, respectively. Timezones
-can be any supported by PHP's `DateTimeZone <https://www.php.net/manual/en/timezones.php>`__ class. The locale can be
-any supported by PHP's `Locale <https://www.php.net/manual/en/class.locale.php>`__ class. If no locale or timezone is
+You can pass in strings representing the timezone and the locale in the second and the third parameters, respectively. The timezone
+can be any one supported by PHP's `DateTimeZone <https://www.php.net/manual/en/timezones.php>`__ class. The locale can be
+any one supported by PHP's `Locale <https://www.php.net/manual/en/class.locale.php>`__ class. If no locale or timezone is
 provided, the application defaults will be used.
 
 .. literalinclude:: time/002.php
@@ -38,8 +45,8 @@ now()
 =====
 
 The Time class has several helper methods to instantiate the class. The first of these is the ``now()`` method
-that returns a new instance set to the current time. You can pass in strings representing the timezone and the locale
-in the second and parameters, respectively. If no locale or timezone is provided, the application defaults will be used.
+that returns a new instance set to the current time. You can pass in strings representing the timezone and locale
+in the second and third parameters, respectively. If no locale or timezone is provided, the application defaults will be used.
 
 .. literalinclude:: time/003.php
 
@@ -79,7 +86,7 @@ createFromDate()
 ================
 
 Given separate inputs for **year**, **month**, and **day**, will return a new instance. If any of these parameters
-are not provided, it will use the current value to fill it in. Accepts strings for the timezone and locale in the
+are not provided, it will use the current year, month and day. Accepts strings for the timezone and locale in the
 fourth and fifth parameters:
 
 .. literalinclude:: time/008.php
@@ -87,7 +94,7 @@ fourth and fifth parameters:
 createFromTime()
 ================
 
-Like ``createFromDate()`` except it is only concerned with the **hours**, **minutes**, and **seconds**. Uses the
+Like ``createFromDate()``, except it is only concerned with the **hours**, **minutes**, and **seconds**. Uses the
 current day for the date portion of the Time instance. Accepts strings for the timezone and locale in the
 fourth and fifth parameters:
 
@@ -97,7 +104,7 @@ create()
 ========
 
 A combination of the previous two methods, takes **year**, **month**, **day**, **hour**, **minutes**, and **seconds**
-as separate parameters. Any value not provided will use the current date and time to determine. Accepts strings for the
+as separate parameters. Any value not provided will use the current date and time. Accepts strings for the
 timezone and locale in the fourth and fifth parameters:
 
 .. literalinclude:: time/010.php
@@ -110,12 +117,17 @@ and returns a ``Time`` instance, instead of DateTimeImmutable:
 
 .. literalinclude:: time/011.php
 
+.. _time-createfromtimestamp:
+
 createFromTimestamp()
 =====================
 
 This method takes a UNIX timestamp and, optionally, the timezone and locale, to create a new Time instance:
 
 .. literalinclude:: time/012.php
+
+.. note:: Due to a bug, prior to v4.4.6, this method returned a Time instance
+    in timezone UTC when you do not specify a timezone.
 
 createFromInstance()
 ====================
@@ -159,28 +171,28 @@ toDateTimeString()
 ==================
 
 This is the first of three helper methods to work with the `IntlDateFormatter <https://www.php.net/manual/en/class.intldateformatter.php>`_ without having to remember their values.
-This will return a localized version of string formatted as (Y-m-d H:i:s):
+This will return a localized version of string formatted as (``Y-m-d H:i:s``):
 
 .. literalinclude:: time/016.php
 
 toDateString()
 ==============
 
-Displays just the localized version of date portion of the Time:
+Displays just the localized date portion of the Time:
 
 .. literalinclude:: time/017.php
 
 toTimeString()
 ==============
 
-Displays just the localized version of time portion of the value:
+Displays just the localized time portion of the value:
 
 .. literalinclude:: time/018.php
 
 humanize()
 ==========
 
-This methods returns a string that displays the difference between the current date/time and the instance in a
+This method returns a string that displays the difference between the current date/time and the instance in a
 human readable format that is geared towards being easily understood. It can create strings like '3 hours ago',
 'in 1 month', etc:
 
@@ -191,17 +203,18 @@ The exact time displayed is determined in the following manner:
 =============================== =================================
 Time difference                  Result
 =============================== =================================
-$time > 1 year && < 2 years      in 1 year / 1 year ago
-$time > 1 month && < 1 year      in 6 months / 6 months ago
-$time > 7 days && < 1 month      in 3 weeks / 3 weeks ago
-$time > today && < 7 days        in 4 days / 4 days ago
-$time == tomorrow / yesterday    Tomorrow / Yesterday
-$time > 59 minutes && < 1 day    in 2 hours / 2 hours ago
-$time > now && < 1 hour          in 35 minutes / 35 minutes ago
+1 year < $time < 2 years         in 1 year / 1 year ago
+1 month < $time < 1 year         in 6 months / 6 months ago
+7 days < $time < 1 month         in 3 weeks / 3 weeks ago
+today < $time < 7 days           in 4 days / 4 days ago
+$time == yesterday / tomorrow    Yesterday / Tomorrow
+59 minutes < $time < 1 day       in 2 hours / 2 hours ago
+now < $time < 1 hour             in 35 minutes / 35 minutes ago
 $time == now                     Now
 =============================== =================================
 
-The exact language used is controlled through the language file, **Time.php**.
+The result strings are coming from the language file, **system/Language/en/Time.php**.
+If you want to overwrite them, create **app/Language/{locale}/Time.php**.
 
 ******************************
 Working with Individual Values
@@ -228,7 +241,7 @@ In addition to these, a number of methods exist to provide additional informatio
 getAge()
 --------
 
-Returns the age, in years, of between the Time's instance and the current time. Perfect for checking
+Returns the age, in years, between the Time instance and the current time. Perfect for checking
 the age of someone based on their birthday:
 
 .. literalinclude:: time/022.php
@@ -353,11 +366,15 @@ Works exactly the same as ``isBefore()`` except checks if the time is after the 
 
 .. literalinclude:: time/037.php
 
+.. _time-viewing-differences:
+
 Viewing Differences
 ===================
 
 To compare two Times directly, you would use the ``difference()`` method, which returns a ``CodeIgniter\I18n\TimeDifference``
-instance. The first parameter is either a Time instance, a DateTime instance, or a string with the date/time. If
+instance.
+
+The first parameter is either a Time instance, a DateTime instance, or a string with the date/time. If
 a string is passed in the first parameter, the second parameter can be a timezone string:
 
 .. literalinclude:: time/038.php
@@ -368,6 +385,15 @@ the original time:
 
 .. literalinclude:: time/039.php
 
+.. note:: Prior to v4.4.7, Time always converted the time zones to UTC before
+    comparison. This could lead to unexpected results when containing a day
+    differed from 24 hours due to Daylight Saving Time (DST).
+
+    Starting with v4.4.7, when comparing date/times that are in the same
+    time zone, the comparison is performed as is, without conversion to UTC.
+
+        .. literalinclude:: time/042.php
+
 You can use either ``getX()`` methods, or access the calculate values as if they were properties:
 
 .. literalinclude:: time/040.php
@@ -377,7 +403,7 @@ humanize()
 
 Much like Time's ``humanize()`` method, this returns a string that displays the difference between the times in a
 human readable format that is geared towards being easily understood. It can create strings like '3 hours ago',
-'in 1 month', etc. The biggest differences are in how very recent dates are handled:
+'in 1 month', etc. The biggest difference is in how very recent dates are handled:
 
 .. literalinclude:: time/041.php
 
@@ -386,13 +412,14 @@ The exact time displayed is determined in the following manner:
 =============================== =================================
 Time difference                  Result
 =============================== =================================
-$time > 1 year && < 2 years      in 1 year / 1 year ago
-$time > 1 month && < 1 year      in 6 months / 6 months ago
-$time > 7 days && < 1 month      in 3 weeks / 3 weeks ago
-$time > today && < 7 days        in 4 days / 4 days ago
-$time > 1 hour && < 1 day        in 8 hours / 8 hours ago
-$time > 1 minute && < 1 hour     in 35 minutes / 35 minutes ago
+1 year < $time < 2 years         in 1 year / 1 year ago
+1 month < $time < 1 year         in 6 months / 6 months ago
+7 days < $time < 1 month         in 3 weeks / 3 weeks ago
+today < $time < 7 days           in 4 days / 4 days ago
+1 hour < $time < 1 day           in 8 hours / 8 hours ago
+1 minute < $time < 1 hour        in 35 minutes / 35 minutes ago
 $time < 1 minute                 Now
 =============================== =================================
 
-The exact language used is controlled through the language file, **Time.php**.
+The result strings are coming from the language file, **system/Language/en/Time.php**.
+If you want to overwrite them, create **app/Language/{locale}/Time.php**.

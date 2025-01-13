@@ -1,34 +1,13 @@
-=============
+#############
 HTTP Messages
-=============
+#############
 
 The Message class provides an interface to the portions of an HTTP message that are common to both
 requests and responses, including the message body, protocol version, utilities for working with
 the headers, and methods for handling content negotiation.
 
-This class is the parent class that both the :doc:`Request Class </incoming/request>` and the
-:doc:`Response Class </outgoing/response>` extend from. As such, some methods, such as the content
-negotiation methods, may apply only to a request or response, and not the other one, but they have
-been included here to keep the header methods together.
-
-What is Content Negotiation?
-============================
-
-At it's heart Content Negotiation is simply a part of the HTTP specification that allows a single
-resource to serve more than one type of content, allowing the clients to request the type of
-data that works best for them.
-
-A classic example of this is a browser that cannot display PNG files can request only GIF or
-JPEG images. When the server receives the request, it looks at the available file types the client
-is requesting and selects the best match from the image formats that it supports, in this case
-likely choosing a JPEG image to return.
-
-This same negotiation can happen with four types of data:
-
-* **Media/Document Type** - this could be image format, or HTML vs. XML or JSON.
-* **Character Set** - The character set the returned document should be set in. Typically is UTF-8.
-* **Document Encoding** - Typically the type of compression used on the results.
-* **Document Language** - For sites that support multiple languages, this helps determine which to return.
+This class is the parent class that both the :doc:`Request Class <../incoming/request>` and the
+:doc:`Response Class <../outgoing/response>` extend from, and it is not used directly.
 
 ***************
 Class Reference
@@ -68,7 +47,7 @@ Class Reference
         :returns: void
 
         Scans and parses the headers found in the SERVER data and stores it for later access.
-        This is used by the :doc:`IncomingRequest Class </incoming/incomingrequest>` to make
+        This is used by the :doc:`IncomingRequest Class <../incoming/incomingrequest>` to make
         the current request's headers available.
 
         The headers are any SERVER data that starts with ``HTTP_``, like ``HTTP_HOST``. Each message
@@ -167,13 +146,27 @@ Class Reference
 
         .. literalinclude:: message/009.php
 
+    .. php:method:: addHeader($name, $value)
+
+        .. versionadded:: 4.5.0
+
+        :param string $name: The name of the header to add.
+        :param string  $value: The value of the header.
+        :returns: The current message instance
+        :rtype: CodeIgniter\\HTTP\\Message
+
+        Adds a header (not a header value) with the same name.
+        Use this only when you set multiple headers with the same name,
+
+        .. literalinclude:: message/011.php
+
     .. php:method:: getProtocolVersion()
 
         :returns: The current HTTP protocol version
         :rtype: string
 
-        Returns the message's current HTTP protocol. If none has been set, will return ``null``.
-        Acceptable values are ``1.0``, ``1.1`` and ``2.0``.
+        Returns the message's current HTTP protocol. If none has been set, will
+        return ``1.1``.
 
     .. php:method:: setProtocolVersion($version)
 
@@ -181,6 +174,7 @@ Class Reference
         :returns: The current message instance
         :rtype: CodeIgniter\\HTTP\\Message
 
-        Sets the HTTP protocol version this Message uses. Valid values are ``1.0``, ``1.1`` and ``2.0``:
+        Sets the HTTP protocol version this Message uses. Valid values are
+        ``1.0``, ``1.1``, ``2.0`` and ``3.0``:
 
         .. literalinclude:: message/010.php

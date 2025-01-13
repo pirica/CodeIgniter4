@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -13,13 +15,13 @@ namespace CodeIgniter\Database\Live;
 
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\DatabaseTestTrait;
+use PHPUnit\Framework\Attributes\Group;
 use Tests\Support\Database\Seeds\CITestSeeder;
 
 /**
- * @group DatabaseLive
- *
  * @internal
  */
+#[Group('DatabaseLive')]
 final class GetNumRowsTest extends CIUnitTestCase
 {
     use DatabaseTestTrait;
@@ -52,7 +54,7 @@ final class GetNumRowsTest extends CIUnitTestCase
     /**
      * tests newly added ResultInterface::getNumRows with a live db
      */
-    public function testGetRowNum()
+    public function testGetRowNum(): void
     {
         $query = $this->db->table('job')->get();
         $this->assertSame(4, $query->getNumRows());

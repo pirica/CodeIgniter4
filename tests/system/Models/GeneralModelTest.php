@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -15,6 +17,7 @@ use BadMethodCallException;
 use CodeIgniter\Database\BaseConnection;
 use CodeIgniter\Model;
 use CodeIgniter\Test\CIUnitTestCase;
+use PHPUnit\Framework\Attributes\Group;
 use Tests\Support\Models\JobModel;
 use Tests\Support\Models\UserModel;
 
@@ -23,9 +26,8 @@ use Tests\Support\Models\UserModel;
  * features without requiring a database connection.
  *
  * @internal
- *
- * @group Others
  */
+#[Group('Others')]
 final class GeneralModelTest extends CIUnitTestCase
 {
     /**

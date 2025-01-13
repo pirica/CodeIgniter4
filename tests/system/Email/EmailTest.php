@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -15,15 +17,16 @@ use CodeIgniter\Events\Events;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\Mock\MockEmail;
 use ErrorException;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * @internal
- *
- * @group Others
  */
+#[Group('Others')]
 final class EmailTest extends CIUnitTestCase
 {
-    public function testEmailValidation()
+    public function testEmailValidation(): void
     {
         $config           = config('Email');
         $config->validate = true;
@@ -32,7 +35,7 @@ final class EmailTest extends CIUnitTestCase
         $this->assertStringContainsString('Invalid email address: "invalid"', $email->printDebugger());
     }
 
-    public function autoClearProvider()
+    public static function provideEmailSendWithClearance(): iterable
     {
         return [
             'autoclear'     => [true],
@@ -41,11 +44,10 @@ final class EmailTest extends CIUnitTestCase
     }
 
     /**
-     * @dataProvider autoClearProvider
-     *
-     * @param mixed $autoClear
+     * @param bool $autoClear
      */
-    public function testEmailSendWithClearance($autoClear)
+    #[DataProvider('provideEmailSendWithClearance')]
+    public function testEmailSendWithClearance($autoClear): void
     {
         $email = $this->createMockEmail();
 
@@ -58,7 +60,7 @@ final class EmailTest extends CIUnitTestCase
         }
     }
 
-    public function testEmailSendStoresArchive()
+    public function testEmailSendStoresArchive(): void
     {
         $email = $this->createMockEmail();
 
@@ -74,7 +76,7 @@ final class EmailTest extends CIUnitTestCase
         $this->assertSame('Archive Test', $email->archive['subject']);
     }
 
-    public function testAutoClearLeavesArchive()
+    public function testAutoClearLeavesArchive(): void
     {
         $email = $this->createMockEmail();
 
@@ -85,7 +87,7 @@ final class EmailTest extends CIUnitTestCase
         $this->assertNotEmpty($email->archive);
     }
 
-    public function testEmailSendRepeatUpdatesArchive()
+    public function testEmailSendRepeatUpdatesArchive(): void
     {
         $config = config('Email');
         $email  = new MockEmail($config);
@@ -103,7 +105,7 @@ final class EmailTest extends CIUnitTestCase
         $this->assertSame('Archive Test', $email->archive['subject']);
     }
 
-    public function testSuccessDoesTriggerEvent()
+    public function testSuccessDoesTriggerEvent(): void
     {
         $email = $this->createMockEmail();
 
@@ -111,7 +113,7 @@ final class EmailTest extends CIUnitTestCase
 
         $result = null;
 
-        Events::on('email', static function ($arg) use (&$result) {
+        Events::on('email', static function ($arg) use (&$result): void {
             $result = $arg;
         });
 
@@ -121,7 +123,7 @@ final class EmailTest extends CIUnitTestCase
         $this->assertSame(['foo@foo.com'], $result['recipients']);
     }
 
-    public function testFailureDoesNotTriggerEvent()
+    public function testFailureDoesNotTriggerEvent(): void
     {
         $email = $this->createMockEmail();
 
@@ -130,7 +132,7 @@ final class EmailTest extends CIUnitTestCase
 
         $result = null;
 
-        Events::on('email', static function ($arg) use (&$result) {
+        Events::on('email', static function ($arg) use (&$result): void {
             $result = $arg;
         });
 
@@ -139,7 +141,7 @@ final class EmailTest extends CIUnitTestCase
         $this->assertNull($result);
     }
 
-    public function testDestructDoesNotThrowException()
+    public function testDestructDoesNotThrowException(): void
     {
         $email = $this->getMockBuilder(Email::class)
             ->disableOriginalConstructor()
@@ -161,5 +163,56 @@ final class EmailTest extends CIUnitTestCase
         $config->validate = true;
 
         return new MockEmail($config);
+    }
+
+    public function testSetAttachmentCIDFile(): void
+    {
+        $email = $this->createMockEmail();
+
+        $email->setFrom('your@example.com', 'Your Name');
+        $email->setTo('foo@example.jp');
+
+        $filename = SUPPORTPATH . 'Images/ci-logo.png';
+        $email->attach($filename);
+        $cid = $email->setAttachmentCID($filename);
+        $email->setMessage('<img src="cid:' . $cid . '" alt="CI Logo">');
+
+        $this->assertTrue($email->send());
+
+        $this->assertStringStartsWith('ci-logo.png@', $cid);
+        $this->assertStringStartsWith(
+            'ci-logo.png@',
+            $email->archive['attachments'][0]['cid'],
+        );
+        $this->assertMatchesRegularExpression(
+            '/<img src="cid:ci-logo.png@(.+?)" alt="CI Logo">/u',
+            $email->archive['body'],
+        );
+    }
+
+    public function testSetAttachmentCIDBufferString(): void
+    {
+        $email = $this->createMockEmail();
+
+        $email->setFrom('your@example.com', 'Your Name');
+        $email->setTo('foo@example.jp');
+
+        $filename  = SUPPORTPATH . 'Images/ci-logo.png';
+        $imageData = file_get_contents($filename);
+        $email->attach($imageData, 'inline', 'image001.png', 'image/png');
+        $cid = $email->setAttachmentCID('image001.png');
+        $email->setMessage('<img src="cid:' . $cid . '" alt="CI Logo">');
+
+        $this->assertTrue($email->send());
+
+        $this->assertStringStartsWith('image001.png@', $cid);
+        $this->assertStringStartsWith(
+            'image001.png@',
+            $email->archive['attachments'][0]['cid'],
+        );
+        $this->assertMatchesRegularExpression(
+            '/<img src="cid:image001.png@(.+?)" alt="CI Logo">/u',
+            $email->archive['body'],
+        );
     }
 }

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -13,15 +15,15 @@ namespace CodeIgniter\Database;
 
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\DatabaseTestTrait;
-use Config\Services;
+use Config\Database;
+use PHPUnit\Framework\Attributes\Group;
 use Tests\Support\Database\Seeds\AnotherSeeder;
 use Tests\Support\Database\Seeds\CITestSeeder;
 
 /**
- * @group DatabaseLive
- *
  * @internal
  */
+#[Group('DatabaseLive')]
 final class DatabaseTestCaseTest extends CIUnitTestCase
 {
     use DatabaseTestTrait;
@@ -60,16 +62,19 @@ final class DatabaseTestCaseTest extends CIUnitTestCase
 
     protected function setUp(): void
     {
+        $forge = Database::forge();
+        $forge->dropTable('foo', true);
+
         $this->setUpMethods[] = 'setUpAddNamespace';
 
         parent::setUp();
     }
 
-    protected function setUpAddNamespace()
+    protected function setUpAddNamespace(): void
     {
-        Services::autoloader()->addNamespace(
+        service('autoloader')->addNamespace(
             'Tests\Support\MigrationTestMigrations',
-            SUPPORTPATH . 'MigrationTestMigrations'
+            SUPPORTPATH . 'MigrationTestMigrations',
         );
     }
 
@@ -80,12 +85,12 @@ final class DatabaseTestCaseTest extends CIUnitTestCase
         $this->regressDatabase();
     }
 
-    public function testMultipleSeeders()
+    public function testMultipleSeeders(): void
     {
         $this->seeInDatabase('user', ['name' => 'Jerome Lohan']);
     }
 
-    public function testMultipleMigrationNamespaces()
+    public function testMultipleMigrationNamespaces(): void
     {
         $this->seeInDatabase('foo', ['key' => 'foobar']);
     }

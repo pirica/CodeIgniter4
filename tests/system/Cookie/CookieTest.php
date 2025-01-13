@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -16,14 +18,14 @@ use CodeIgniter\Test\CIUnitTestCase;
 use Config\Cookie as CookieConfig;
 use DateTimeImmutable;
 use DateTimeZone;
-use Generator;
 use LogicException;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * @internal
- *
- * @group Others
  */
+#[Group('Others')]
 final class CookieTest extends CIUnitTestCase
 {
     private array $defaults;
@@ -79,9 +81,7 @@ final class CookieTest extends CIUnitTestCase
         Cookie::setDefaults($old);
     }
 
-    /**
-     * @dataProvider prefixProvider
-     */
+    #[DataProvider('provideConfigPrefix')]
     public function testConfigPrefix(string $configPrefix, string $optionPrefix, string $expected): void
     {
         $config         = new CookieConfig();
@@ -93,13 +93,13 @@ final class CookieTest extends CIUnitTestCase
             'value',
             [
                 'prefix' => $optionPrefix,
-            ]
+            ],
         );
 
         $this->assertSame($expected, $cookie->getPrefixedName());
     }
 
-    public function prefixProvider(): Generator
+    public static function provideConfigPrefix(): iterable
     {
         yield from [
             ['prefix_', '', 'prefix_test'],
@@ -166,17 +166,16 @@ final class CookieTest extends CIUnitTestCase
     }
 
     /**
-     * @dataProvider invalidExpiresProvider
-     *
-     * @param mixed $expires
+     * @param bool|float|string $expires
      */
+    #[DataProvider('provideInvalidExpires')]
     public function testInvalidExpires($expires): void
     {
         $this->expectException(CookieException::class);
         new Cookie('test', 'value', ['expires' => $expires]);
     }
 
-    public static function invalidExpiresProvider(): iterable
+    public static function provideInvalidExpires(): iterable
     {
         $cases = [
             'non-numeric-string' => ['yes'],
@@ -189,9 +188,7 @@ final class CookieTest extends CIUnitTestCase
         }
     }
 
-    /**
-     * @dataProvider setCookieHeaderProvider
-     */
+    #[DataProvider('provideSetCookieHeaderCreation')]
     public function testSetCookieHeaderCreation(string $header, array $changed): void
     {
         $cookie = Cookie::fromHeaderString($header);
@@ -199,7 +196,7 @@ final class CookieTest extends CIUnitTestCase
         $this->assertSame(array_merge($cookie, $changed), $cookie);
     }
 
-    public static function setCookieHeaderProvider(): iterable
+    public static function provideSetCookieHeaderCreation(): iterable
     {
         yield 'basic' => [
             'test=value',
@@ -274,19 +271,19 @@ final class CookieTest extends CIUnitTestCase
 
         $this->assertSame(
             'cookie=lover; Path=/; HttpOnly; SameSite=Lax',
-            $a->toHeaderString()
+            $a->toHeaderString(),
         );
         $this->assertSame(
             "cookie=monster; Expires=Sun, 14-Feb-2021 00:00:00 GMT; Max-Age={$max}; Path=/web; Domain=localhost; HttpOnly; SameSite=Lax",
-            (string) $b
+            (string) $b,
         );
         $this->assertSame(
             'cookie=lover; Path=/; Secure; SameSite=Strict',
-            (string) $c
+            (string) $c,
         );
         $this->assertSame(
             'cookie=deleted; Expires=Thu, 01-Jan-1970 00:00:00 GMT; Max-Age=0; Path=/; HttpOnly; SameSite=Lax',
-            (string) $d
+            (string) $d,
         );
 
         Cookie::setDefaults($old);
@@ -306,7 +303,7 @@ final class CookieTest extends CIUnitTestCase
         $this->assertSame($cookie['path'], $cookie->getPath());
 
         $this->expectException('InvalidArgumentException');
-        $cookie['expiry'];
+        $cookie['expiry']; // @phpstan-ignore expr.resultUnused
     }
 
     public function testCannotSetPropertyViaArrayAccess(): void

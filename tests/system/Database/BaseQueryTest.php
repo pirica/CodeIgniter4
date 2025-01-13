@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -13,12 +15,13 @@ namespace CodeIgniter\Database;
 
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\Mock\MockConnection;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * @internal
- *
- * @group Others
  */
+#[Group('Others')]
 final class BaseQueryTest extends CIUnitTestCase
 {
     protected $db;
@@ -29,7 +32,7 @@ final class BaseQueryTest extends CIUnitTestCase
         $this->db = new MockConnection([]);
     }
 
-    public function testQueryStoresSQL()
+    public function testQueryStoresSQL(): void
     {
         $query = new Query($this->db);
 
@@ -40,7 +43,7 @@ final class BaseQueryTest extends CIUnitTestCase
         $this->assertSame($sql, $query->getQuery());
     }
 
-    public function testStoresDuration()
+    public function testStoresDuration(): void
     {
         $query = new Query($this->db);
 
@@ -51,7 +54,7 @@ final class BaseQueryTest extends CIUnitTestCase
         $this->assertSame(5, (int) $query->getDuration());
     }
 
-    public function testGetStartTime()
+    public function testGetStartTime(): void
     {
         $query = new Query($this->db);
 
@@ -62,7 +65,7 @@ final class BaseQueryTest extends CIUnitTestCase
         $this->assertSame($start, $query->getStartTime(true));
     }
 
-    public function testGetStartTimeNumberFormat()
+    public function testGetStartTimeNumberFormat(): void
     {
         $query = new Query($this->db);
 
@@ -73,7 +76,7 @@ final class BaseQueryTest extends CIUnitTestCase
         $this->assertSame(number_format($start, 6), $query->getStartTime());
     }
 
-    public function testsStoresErrorInformation()
+    public function testsStoresErrorInformation(): void
     {
         $query = new Query($this->db);
 
@@ -88,7 +91,7 @@ final class BaseQueryTest extends CIUnitTestCase
         $this->assertSame($msg, $query->getErrorMessage());
     }
 
-    public function testSwapPrefix()
+    public function testSwapPrefix(): void
     {
         $query = new Query($this->db);
 
@@ -104,7 +107,7 @@ final class BaseQueryTest extends CIUnitTestCase
         $this->assertSame($newSQL, $query->getQuery());
     }
 
-    public function queryTypes()
+    public static function provideIsWriteType(): iterable
     {
         return [
             'select' => [
@@ -183,12 +186,11 @@ final class BaseQueryTest extends CIUnitTestCase
     }
 
     /**
-     * @dataProvider queryTypes
-     *
      * @param mixed $expected
      * @param mixed $sql
      */
-    public function testIsWriteType($expected, $sql)
+    #[DataProvider('provideIsWriteType')]
+    public function testIsWriteType($expected, $sql): void
     {
         $query = new Query($this->db);
 
@@ -196,7 +198,7 @@ final class BaseQueryTest extends CIUnitTestCase
         $this->assertSame($expected, $query->isWriteType());
     }
 
-    public function testSingleBindingOutsideOfArray()
+    public function testSingleBindingOutsideOfArray(): void
     {
         $query = new Query($this->db);
 
@@ -207,7 +209,7 @@ final class BaseQueryTest extends CIUnitTestCase
         $this->assertSame($expected, $query->getQuery());
     }
 
-    public function testBindingSingleElementInArray()
+    public function testBindingSingleElementInArray(): void
     {
         $query = new Query($this->db);
 
@@ -218,7 +220,7 @@ final class BaseQueryTest extends CIUnitTestCase
         $this->assertSame($expected, $query->getQuery());
     }
 
-    public function testBindingMultipleItems()
+    public function testBindingMultipleItems(): void
     {
         $query = new Query($this->db);
 
@@ -229,7 +231,7 @@ final class BaseQueryTest extends CIUnitTestCase
         $this->assertSame($expected, $query->getQuery());
     }
 
-    public function testBindingAutoEscapesParameters()
+    public function testBindingAutoEscapesParameters(): void
     {
         $query = new Query($this->db);
 
@@ -243,13 +245,13 @@ final class BaseQueryTest extends CIUnitTestCase
     /**
      * @see https://github.com/codeigniter4/CodeIgniter4/issues/5114
      */
-    public function testBindingWithTwoColons()
+    public function testBindingWithTwoColons(): void
     {
         $query = new Query($this->db);
 
         $query->setQuery(
             "SELECT mytable.id, DATE_FORMAT(mytable.created_at,'%d/%m/%Y %H:%i:%s') AS created_at_uk FROM mytable WHERE mytable.id = ?",
-            [1]
+            [1],
         );
 
         $expected = "SELECT mytable.id, DATE_FORMAT(mytable.created_at,'%d/%m/%Y %H:%i:%s') AS created_at_uk FROM mytable WHERE mytable.id = 1";
@@ -257,7 +259,7 @@ final class BaseQueryTest extends CIUnitTestCase
         $this->assertSame($expected, $query->getQuery());
     }
 
-    public function testNamedBinds()
+    public function testNamedBinds(): void
     {
         $query = new Query($this->db);
 
@@ -271,7 +273,7 @@ final class BaseQueryTest extends CIUnitTestCase
     /**
      * @see https://github.com/codeigniter4/CodeIgniter4/issues/3566
      */
-    public function testNamedBindsWithColonElsewhere()
+    public function testNamedBindsWithColonElsewhere(): void
     {
         $query = new Query($this->db);
         $query->setQuery('SELECT `email`, @total:=(total+1) FROM `users` WHERE `id` = :id:', ['id' => 10]);
@@ -283,7 +285,7 @@ final class BaseQueryTest extends CIUnitTestCase
     /**
      * @see https://github.com/codeigniter4/CodeIgniter4/pull/5138
      */
-    public function testNamedBindsWithBindMarkerElsewhere()
+    public function testNamedBindsWithBindMarkerElsewhere(): void
     {
         $query = new Query($this->db);
         $query->setQuery('SELECT * FROM posts WHERE id = :id: AND title = \'The default bind marker is "?"\'', ['id' => 10]);
@@ -295,7 +297,7 @@ final class BaseQueryTest extends CIUnitTestCase
     /**
      * @see https://github.com/codeigniter4/CodeIgniter4/pull/5138
      */
-    public function testSimpleBindsWithNamedBindPlaceholderElsewhere()
+    public function testSimpleBindsWithNamedBindPlaceholderElsewhere(): void
     {
         $query = new Query($this->db);
         $query->setQuery('SELECT * FROM posts WHERE id = ? AND title = \'A named bind placeholder looks like ":foobar:"\'', 10);
@@ -307,7 +309,7 @@ final class BaseQueryTest extends CIUnitTestCase
     /**
      * @see https://github.com/codeigniter4/CodeIgniter4/issues/201
      */
-    public function testSimilarNamedBinds()
+    public function testSimilarNamedBinds(): void
     {
         $query = new Query($this->db);
 
@@ -318,13 +320,13 @@ final class BaseQueryTest extends CIUnitTestCase
         $this->assertSame($expected, $query->getQuery());
     }
 
-    public function testNamedBindsDontGetReplacedAgain()
+    public function testNamedBindsDontGetReplacedAgain(): void
     {
         $query = new Query($this->db);
 
         $query->setQuery(
             'SELECT * FROM posts WHERE content = :content: OR foobar = :foobar:',
-            ['content' => 'a placeholder looks like :foobar:', 'foobar' => 'bazqux']
+            ['content' => 'a placeholder looks like :foobar:', 'foobar' => 'bazqux'],
         );
 
         $expected = "SELECT * FROM posts WHERE content = 'a placeholder looks like :foobar:' OR foobar = 'bazqux'";
@@ -335,7 +337,7 @@ final class BaseQueryTest extends CIUnitTestCase
     /**
      * @see https://github.com/codeigniter4/CodeIgniter4/issues/1705
      */
-    public function testSetQueryBindsWithSetEscapeTrue()
+    public function testSetQueryBindsWithSetEscapeTrue(): void
     {
         $query = new Query($this->db);
 
@@ -349,7 +351,7 @@ final class BaseQueryTest extends CIUnitTestCase
     /**
      * @see https://github.com/codeigniter4/CodeIgniter4/issues/1705
      */
-    public function testSetQueryBindsWithSetEscapeFalse()
+    public function testSetQueryBindsWithSetEscapeFalse(): void
     {
         $query = new Query($this->db);
 
@@ -372,14 +374,14 @@ final class BaseQueryTest extends CIUnitTestCase
     /**
      * @see https://github.com/codeigniter4/CodeIgniter4/issues/4973
      */
-    public function testSetQueryBindsWithSetEscapeNegativeIntegers()
+    public function testSetQueryBindsWithSetEscapeNegativeIntegers(): void
     {
         $query = new Query($this->db);
 
         $query->setQuery(
             'SELECT * FROM product WHERE date_pickup < DateAdd(month, ?, Convert(date, GetDate())',
             [-6],
-            true
+            true,
         );
 
         $expected = 'SELECT * FROM product WHERE date_pickup < DateAdd(month, -6, Convert(date, GetDate())';
@@ -387,13 +389,13 @@ final class BaseQueryTest extends CIUnitTestCase
         $this->assertSame($expected, $query->getQuery());
     }
 
-    public function testSetQueryNamedBindsWithNegativeIntegers()
+    public function testSetQueryNamedBindsWithNegativeIntegers(): void
     {
         $query = new Query($this->db);
 
         $query->setQuery(
             'SELECT * FROM product WHERE date_pickup < DateAdd(month, :num:, Convert(date, GetDate())',
-            ['num' => -6]
+            ['num' => -6],
         );
 
         $expected = 'SELECT * FROM product WHERE date_pickup < DateAdd(month, -6, Convert(date, GetDate())';
@@ -404,7 +406,7 @@ final class BaseQueryTest extends CIUnitTestCase
     /**
      * @see https://github.com/codeigniter4/CodeIgniter4/issues/2762
      */
-    public function testSetQueryBinds()
+    public function testSetQueryBinds(): void
     {
         $query = new Query($this->db);
 
@@ -420,7 +422,7 @@ final class BaseQueryTest extends CIUnitTestCase
         $this->assertSame($expected, $query->getQuery());
     }
 
-    public function testGetQueryMultipleTimes()
+    public function testGetQueryMultipleTimes(): void
     {
         $query = new Query($this->db);
 
@@ -434,7 +436,7 @@ final class BaseQueryTest extends CIUnitTestCase
         $this->assertSame($expected, $query->getQuery());
     }
 
-    public function testSetBindsMultipleTimes()
+    public function testSetBindsMultipleTimes(): void
     {
         $query = new Query($this->db);
 
@@ -450,7 +452,7 @@ final class BaseQueryTest extends CIUnitTestCase
         $this->assertSame($expected, $query->getQuery());
     }
 
-    public function testSetQueryMultipleTimesKeepingBinds()
+    public function testSetQueryMultipleTimesKeepingBinds(): void
     {
         $query = new Query($this->db);
 
@@ -466,7 +468,7 @@ final class BaseQueryTest extends CIUnitTestCase
         $this->assertSame($expected, $query->getQuery());
     }
 
-    public function testSetQueryMultipleTimesReplacingBinds()
+    public function testSetQueryMultipleTimesReplacingBinds(): void
     {
         $query = new Query($this->db);
 
@@ -482,7 +484,7 @@ final class BaseQueryTest extends CIUnitTestCase
         $this->assertSame($expected, $query->getQuery());
     }
 
-    public function testSetQueryMultipleTimesRemovingBinds()
+    public function testSetQueryMultipleTimesRemovingBinds(): void
     {
         $query = new Query($this->db);
 
@@ -498,7 +500,7 @@ final class BaseQueryTest extends CIUnitTestCase
         $this->assertSame($expected, $query->getQuery());
     }
 
-    public function testSwapPrefixMultipleTimes()
+    public function testSwapPrefixMultipleTimes(): void
     {
         $query = new Query($this->db);
 
@@ -516,7 +518,7 @@ final class BaseQueryTest extends CIUnitTestCase
         $this->assertSame($newSQL, $query->getQuery());
     }
 
-    public function testSwapPrefixBeforeSetBinds()
+    public function testSwapPrefixBeforeSetBinds(): void
     {
         $query = new Query($this->db);
 
@@ -531,7 +533,7 @@ final class BaseQueryTest extends CIUnitTestCase
         $this->assertSame($newSQL, $query->getQuery());
     }
 
-    public function testSwapPrefixAfterSetBinds()
+    public function testSwapPrefixAfterSetBinds(): void
     {
         $query = new Query($this->db);
 
@@ -546,7 +548,7 @@ final class BaseQueryTest extends CIUnitTestCase
         $this->assertSame($newSQL, $query->getQuery());
     }
 
-    public function testSwapPrefixIsAppliedBeforeBinds()
+    public function testSwapPrefixIsAppliedBeforeBinds(): void
     {
         $query = new Query($this->db);
 
@@ -561,7 +563,7 @@ final class BaseQueryTest extends CIUnitTestCase
         $this->assertSame($newSQL, $query->getQuery());
     }
 
-    public function testSwapPrefixAfterGetQuery()
+    public function testSwapPrefixAfterGetQuery(): void
     {
         $query = new Query($this->db);
 
@@ -577,7 +579,7 @@ final class BaseQueryTest extends CIUnitTestCase
         $this->assertSame($expected, $query->getQuery());
     }
 
-    public function queryKeywords()
+    public static function provideHighlightQueryKeywords(): iterable
     {
         return [
             'highlightKeyWords' => [
@@ -596,12 +598,11 @@ final class BaseQueryTest extends CIUnitTestCase
     }
 
     /**
-     * @dataProvider queryKeywords
-     *
      * @param mixed $expected
      * @param mixed $sql
      */
-    public function testHighlightQueryKeywords($expected, $sql)
+    #[DataProvider('provideHighlightQueryKeywords')]
+    public function testHighlightQueryKeywords($expected, $sql): void
     {
         $query = new Query($this->db);
         $query->setQuery($sql);

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -14,6 +16,7 @@ namespace CodeIgniter\Models;
 use CodeIgniter\Config\Factories;
 use CodeIgniter\Model;
 use Config\Validation;
+use PHPUnit\Framework\Attributes\Group;
 use stdClass;
 use Tests\Support\Models\JobModel;
 use Tests\Support\Models\SimpleEntity;
@@ -21,10 +24,9 @@ use Tests\Support\Models\ValidErrorsModel;
 use Tests\Support\Models\ValidModel;
 
 /**
- * @group DatabaseLive
- *
  * @internal
  */
+#[Group('DatabaseLive')]
 final class ValidationModelTest extends LiveModelTestCase
 {
     protected function setUp(): void
@@ -242,6 +244,7 @@ final class ValidationModelTest extends LiveModelTestCase
     {
         $config = new class () extends Validation {
             public $grouptest = [
+                'id'   => 'is_natural_no_zero',
                 'name' => [
                     'required',
                     'min_length[3]',
@@ -374,7 +377,7 @@ final class ValidationModelTest extends LiveModelTestCase
     /**
      * @see https://github.com/codeigniter4/CodeIgniter4/issues/6577
      */
-    public function testUpdateEntityWithPropertyCleanValidationRulesTrueAndCallingCleanRulesFalse()
+    public function testUpdateEntityWithPropertyCleanValidationRulesTrueAndCallingCleanRulesFalse(): void
     {
         $model = new class () extends Model {
             protected $table           = 'test';
@@ -407,12 +410,12 @@ final class ValidationModelTest extends LiveModelTestCase
         $errors = $model->errors();
         $this->assertCount(1, $errors);
         $this->assertSame(
+            'The field1 field is required when field2,field3,field4 is present.',
             $errors['field1'],
-            'The field1 field is required when field2,field3,field4 is present.'
         );
     }
 
-    public function testUpdateEntityWithPropertyCleanValidationRulesFalse()
+    public function testUpdateEntityWithPropertyCleanValidationRulesFalse(): void
     {
         $model = new class () extends Model {
             protected $table           = 'test';
@@ -447,12 +450,12 @@ final class ValidationModelTest extends LiveModelTestCase
         $errors = $model->errors();
         $this->assertCount(1, $errors);
         $this->assertSame(
+            'The field1 field is required when field2,field3,field4 is present.',
             $errors['field1'],
-            'The field1 field is required when field2,field3,field4 is present.'
         );
     }
 
-    public function testInsertEntityValidateEntireRules()
+    public function testInsertEntityValidateEntireRules(): void
     {
         $model = new class () extends Model {
             protected $table           = 'test';
@@ -480,8 +483,8 @@ final class ValidationModelTest extends LiveModelTestCase
         $errors = $model->errors();
         $this->assertCount(1, $errors);
         $this->assertSame(
+            'The field2 field is required.',
             $errors['field2'],
-            'The field2 field is required.'
         );
     }
 }

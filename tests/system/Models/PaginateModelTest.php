@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -11,14 +13,14 @@
 
 namespace CodeIgniter\Models;
 
+use PHPUnit\Framework\Attributes\Group;
 use Tests\Support\Models\UserModel;
 use Tests\Support\Models\ValidModel;
 
 /**
- * @group DatabaseLive
- *
  * @internal
  */
+#[Group('DatabaseLive')]
 final class PaginateModelTest extends LiveModelTestCase
 {
     public function testPaginate(): void

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -11,16 +13,14 @@
 
 namespace CodeIgniter\Session\Handlers\Database;
 
-use CodeIgniter\Config\Factories;
-use Config\App as AppConfig;
 use Config\Database as DatabaseConfig;
 use Config\Session as SessionConfig;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
- * @group DatabaseLive
- *
  * @internal
  */
+#[Group('DatabaseLive')]
 final class PostgreHandlerTest extends AbstractHandlerTestCase
 {
     protected function setUp(): void
@@ -49,8 +49,7 @@ final class PostgreHandlerTest extends AbstractHandlerTestCase
         foreach ($config as $key => $value) {
             $sessionConfig->{$key} = $value;
         }
-        Factories::injectMock('config', 'Session', $sessionConfig);
 
-        return new PostgreHandler(new AppConfig(), $this->userIpAddress);
+        return new PostgreHandler($sessionConfig, $this->userIpAddress);
     }
 }

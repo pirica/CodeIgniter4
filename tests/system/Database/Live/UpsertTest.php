@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -17,14 +19,14 @@ use CodeIgniter\Database\RawSql;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\DatabaseTestTrait;
 use Config\Database;
-use stdclass;
+use PHPUnit\Framework\Attributes\Group;
+use stdClass;
 use Tests\Support\Database\Seeds\CITestSeeder;
 
 /**
- * @group DatabaseLive
- *
  * @internal
  */
+#[Group('DatabaseLive')]
 final class UpsertTest extends CIUnitTestCase
 {
     use DatabaseTestTrait;
@@ -37,7 +39,7 @@ final class UpsertTest extends CIUnitTestCase
     protected $refresh = true;
     protected $seed    = CITestSeeder::class;
 
-    public function testUpsertOnUniqueIndex()
+    public function testUpsertOnUniqueIndex(): void
     {
         $userData = [
             'email'   => 'upsertone@test.com',
@@ -50,26 +52,76 @@ final class UpsertTest extends CIUnitTestCase
         $this->seeInDatabase('user', ['name' => 'Upsert One']);
     }
 
-    public function testUpsertAndUpsertBatchWithObject()
+    public function testUpsertBatch(): void
+    {
+        $table = 'type_test';
+
+        // Prepares test data.
+        $builder = $this->db->table($table);
+        $builder->truncate();
+
+        $this->forge = Database::forge($this->DBGroup);
+        $this->forge->addKey(['type_varchar'], false, true);
+        $this->forge->processIndexes($table);
+
+        for ($i = 1; $i < 2; $i++) {
+            $builder->insert([
+                'type_varchar'  => 'test' . $i,
+                'type_char'     => 'char',
+                'type_smallint' => 32767,
+                'type_integer'  => 2_147_483_647,
+                'type_bigint'   => 9_223_372_036_854_775_807,
+                'type_numeric'  => 123.23,
+                'type_date'     => '2023-12-0' . $i,
+                'type_datetime' => '2023-12-21 12:00:00',
+            ]);
+        }
+
+        $data = [
+            // new row insert
+            [
+                'type_varchar'  => 'insert', // Key
+                'type_bigint'   => 9_999_999,
+                'type_date'     => '2024-01-01',
+                'type_datetime' => '2024-01-01 09:00:00',
+            ],
+            // update
+            [
+                'type_varchar'  => 'test1', // Key
+                'type_bigint'   => 9_999_999,
+                'type_date'     => '2024-01-01',
+                'type_datetime' => '2024-01-01 09:00:00',
+            ],
+        ];
+
+        $builder->onConstraint('type_varchar')->upsertBatch($data);
+
+        $expected = $data;
+        $this->seeInDatabase($table, $expected[0]);
+        $this->seeInDatabase($table, $expected[1]);
+        $this->assertSame(2, $builder->countAll());
+    }
+
+    public function testUpsertAndUpsertBatchWithObject(): void
     {
         $data = [];
 
         // new row insert
-        $row          = new stdclass();
+        $row          = new stdClass();
         $row->name    = 'Pedro';
         $row->email   = 'pedro@acme.com';
         $row->country = 'El Salvador';
         $data[]       = $row;
 
         // no change
-        $row          = new stdclass();
+        $row          = new stdClass();
         $row->name    = 'Ahmadinejad';
         $row->email   = 'ahmadinejad@world.com';
         $row->country = 'Iran';
         $data[]       = $row;
 
         // changed country for update
-        $row          = new stdclass();
+        $row          = new stdClass();
         $row->name    = 'Derek Jones';
         $row->email   = 'derek@world.com';
         $row->country = 'Canada';
@@ -98,11 +150,8 @@ final class UpsertTest extends CIUnitTestCase
                 break;
 
             case 'Postgre':
-
             case 'SQLite3':
-
             case 'SQLSRV':
-
             case 'OCI8':
                 // postgre, sqlite, sqlsrv, oracle - counts row with no change
                 $this->assertSame(3, $affectedRows1);
@@ -122,7 +171,7 @@ final class UpsertTest extends CIUnitTestCase
         }
     }
 
-    public function testUpsertChangePrimaryKeyOnUniqueIndex()
+    public function testUpsertChangePrimaryKeyOnUniqueIndex(): void
     {
         $userData = [
             'id'      => 5,
@@ -141,14 +190,14 @@ final class UpsertTest extends CIUnitTestCase
                 ->upsert($userData);
 
             $new = $this->db->table('user')
-                ->getwhere(['email' => 'ahmadinejad@world.com'])
+                ->getWhere(['email' => 'ahmadinejad@world.com'])
                 ->getRow();
 
             $this->assertSame(5, (int) $new->id);
         }
     }
 
-    public function testNoConstraintFound()
+    public function testNoConstraintFound(): void
     {
         $jobData = [
             'name'        => 'Programmer',
@@ -167,7 +216,7 @@ final class UpsertTest extends CIUnitTestCase
         }
     }
 
-    public function testGetCompiledUpsert()
+    public function testGetCompiledUpsert(): void
     {
         switch ($this->db->DBDriver) {
             case 'MySQLi':
@@ -249,7 +298,7 @@ final class UpsertTest extends CIUnitTestCase
             ->getCompiledUpsert());
     }
 
-    public function testGetCompiledUpsertBatch()
+    public function testGetCompiledUpsertBatch(): void
     {
         $userData = [
             [
@@ -285,7 +334,7 @@ final class UpsertTest extends CIUnitTestCase
         $this->assertStringContainsString($insertString, $sql);
     }
 
-    public function testUpsertCauseConstraintError()
+    public function testUpsertCauseConstraintError(): void
     {
         $userData = [
             'id'      => 1,
@@ -304,7 +353,7 @@ final class UpsertTest extends CIUnitTestCase
             ->upsert($userData);
     }
 
-    public function testUpsertBatchOnUniqueIndex()
+    public function testUpsertBatchOnUniqueIndex(): void
     {
         $userData = [
             [
@@ -331,7 +380,7 @@ final class UpsertTest extends CIUnitTestCase
         $this->seeInDatabase('user', ['name' => 'Upsert Three']);
     }
 
-    public function testSetDataUpsertBatch()
+    public function testSetDataUpsertBatch(): void
     {
         $userData = [
             [
@@ -358,7 +407,7 @@ final class UpsertTest extends CIUnitTestCase
         $this->seeInDatabase('user', ['name' => 'Upsert Three']);
     }
 
-    public function testUpsertBatchWithOnConflictAndUpdateFields()
+    public function testUpsertBatchWithOnConflictAndUpdateFields(): void
     {
         $userData = [
             [
@@ -399,7 +448,7 @@ final class UpsertTest extends CIUnitTestCase
         $this->assertSame('El Salvador', $data[4]->country);
     }
 
-    public function testUpsertWithMatchingDataOnUniqueIndexandPrimaryKey()
+    public function testUpsertWithMatchingDataOnUniqueIndexandPrimaryKey(): void
     {
         $data = [
             'id'      => 6,
@@ -411,7 +460,7 @@ final class UpsertTest extends CIUnitTestCase
         $this->db->table('user')->upsert($data);
 
         $original = $this->db->table('user')
-            ->getwhere(['id' => 6])
+            ->getWhere(['id' => 6])
             ->getRow();
 
         $data = [
@@ -425,14 +474,14 @@ final class UpsertTest extends CIUnitTestCase
 
         // get by id
         $row = $this->db->table('user')
-            ->getwhere(['id' => 6])
+            ->getWhere(['id' => 6])
             ->getRow();
 
         $this->assertSame('Random Name 356', $row->name);
         $this->assertNotSame($original->name, $row->name);
     }
 
-    public function testUpsertBatchOnPrimaryKey()
+    public function testUpsertBatchOnPrimaryKey(): void
     {
         $userData = [
             [
@@ -459,17 +508,17 @@ final class UpsertTest extends CIUnitTestCase
 
         // get by id
         $row1 = $this->db->table('user')
-            ->getwhere(['id' => 1])
+            ->getWhere(['id' => 1])
             ->getRow();
 
         // get by id
         $row2 = $this->db->table('user')
-            ->getwhere(['id' => 2])
+            ->getWhere(['id' => 2])
             ->getRow();
 
         // get by id
         $row3 = $this->db->table('user')
-            ->getwhere(['id' => 3])
+            ->getWhere(['id' => 3])
             ->getRow();
 
         $this->assertSame('Upsert One On Id', $row1->name);
@@ -477,7 +526,7 @@ final class UpsertTest extends CIUnitTestCase
         $this->assertSame('Upsert Three On Id', $row3->name);
     }
 
-    public function testUpsertBatchOnNullAutoIncrement()
+    public function testUpsertBatchOnNullAutoIncrement(): void
     {
         $userData = [
             [
@@ -504,17 +553,17 @@ final class UpsertTest extends CIUnitTestCase
 
         // get by id
         $row1 = $this->db->table('user')
-            ->getwhere(['email' => 'nullone@domain.com'])
+            ->getWhere(['email' => 'nullone@domain.com'])
             ->getRow();
 
         // get by id
         $row2 = $this->db->table('user')
-            ->getwhere(['email' => 'nulltwo@domain.com'])
+            ->getWhere(['email' => 'nulltwo@domain.com'])
             ->getRow();
 
         // get by id
         $row3 = $this->db->table('user')
-            ->getwhere(['email' => 'nullthree@domain.com'])
+            ->getWhere(['email' => 'nullthree@domain.com'])
             ->getRow();
 
         $this->assertSame('Null One', $row1->name);
@@ -522,7 +571,7 @@ final class UpsertTest extends CIUnitTestCase
         $this->assertSame('Null Three', $row3->name);
     }
 
-    public function testUpsertBatchMultipleConstraints()
+    public function testUpsertBatchMultipleConstraints(): void
     {
         $data = [
             [
@@ -558,7 +607,7 @@ final class UpsertTest extends CIUnitTestCase
         }
     }
 
-    public function testSetBatchOneRow()
+    public function testSetBatchOneRow(): void
     {
         $data = [
             [
@@ -595,7 +644,7 @@ final class UpsertTest extends CIUnitTestCase
             $builder->setData($moreData);
         }
 
-        $evenMoreData          = new stdclass();
+        $evenMoreData          = new stdClass();
         $evenMoreData->name    = 'New User2 users';
         $evenMoreData->email   = 'newuser2@example.com';
         $evenMoreData->country = 'Netherlands';
@@ -619,7 +668,7 @@ final class UpsertTest extends CIUnitTestCase
         }
     }
 
-    public function testUpsertNoData()
+    public function testUpsertNoData(): void
     {
         $this->expectException(DatabaseException::class);
         $this->expectExceptionMessage('upsertBatch() has no data.');
@@ -627,7 +676,7 @@ final class UpsertTest extends CIUnitTestCase
         $this->db->table('user')->onConstraint('email')->upsertBatch();
     }
 
-    public function testUpsertWithMultipleSet()
+    public function testUpsertWithMultipleSet(): void
     {
         $builder = $this->db->table('user');
 
@@ -648,7 +697,7 @@ final class UpsertTest extends CIUnitTestCase
         $this->seeInDatabase('user', ['email' => 'jarvis@example.com', 'name' => 'Jarvis', 'country' => $dt]);
     }
 
-    public function testUpsertWithTestModeAndGetCompiledUpsert()
+    public function testUpsertWithTestModeAndGetCompiledUpsert(): void
     {
         $userData = [
             'email'   => 'upsertone@test.com',
@@ -662,7 +711,7 @@ final class UpsertTest extends CIUnitTestCase
         $this->assertStringContainsString('upsertone@test.com', $sql);
     }
 
-    public function testUpsertBatchWithQuery()
+    public function testUpsertBatchWithQuery(): void
     {
         $this->forge = Database::forge($this->DBGroup);
 

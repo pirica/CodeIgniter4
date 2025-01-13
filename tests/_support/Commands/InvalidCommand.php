@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -27,7 +29,7 @@ class InvalidCommand extends BaseCommand
         throw new ReflectionException();
     }
 
-    public function run(array $params)
+    public function run(array $params): void
     {
         CLI::write('CI Version: ' . CLI::color(CodeIgniter::CI_VERSION, 'red'));
     }

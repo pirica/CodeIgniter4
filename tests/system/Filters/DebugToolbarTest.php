@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -11,26 +13,26 @@
 
 namespace CodeIgniter\Filters;
 
-use CodeIgniter\Config\Services;
 use CodeIgniter\HTTP\CLIRequest;
 use CodeIgniter\HTTP\IncomingRequest;
+use CodeIgniter\HTTP\RequestInterface;
 use CodeIgniter\HTTP\Response;
 use CodeIgniter\Test\CIUnitTestCase;
 use Config\Filters as FilterConfig;
+use PHPUnit\Framework\Attributes\BackupGlobals;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
- * @backupGlobals enabled
- *
  * @internal
- *
- * @group Others
  */
+#[BackupGlobals(true)]
+#[Group('Others')]
 final class DebugToolbarTest extends CIUnitTestCase
 {
     /**
      * @var CLIRequest|IncomingRequest
      */
-    private $request;
+    private RequestInterface $request;
 
     private Response $response;
 
@@ -38,11 +40,11 @@ final class DebugToolbarTest extends CIUnitTestCase
     {
         parent::setUp();
 
-        $this->request  = Services::request();
-        $this->response = Services::response();
+        $this->request  = service('request');
+        $this->response = service('response');
     }
 
-    public function testDebugToolbarFilter()
+    public function testDebugToolbarFilter(): void
     {
         $_SERVER['REQUEST_METHOD'] = 'GET';
 

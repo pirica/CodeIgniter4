@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -13,6 +15,7 @@ namespace CodeIgniter\Models;
 
 use CodeIgniter\Database\Exceptions\DataException;
 use CodeIgniter\I18n\Time;
+use PHPUnit\Framework\Attributes\Group;
 use Tests\Support\Models\EntityModel;
 use Tests\Support\Models\JobModel;
 use Tests\Support\Models\SimpleEntity;
@@ -20,17 +23,16 @@ use Tests\Support\Models\UserModel;
 use Tests\Support\Models\ValidModel;
 
 /**
- * @group DatabaseLive
- *
  * @internal
  */
+#[Group('DatabaseLive')]
 final class MiscellaneousModelTest extends LiveModelTestCase
 {
     public function testChunk(): void
     {
         $rowCount = 0;
 
-        $this->createModel(UserModel::class)->chunk(2, static function ($row) use (&$rowCount) {
+        $this->createModel(UserModel::class)->chunk(2, static function ($row) use (&$rowCount): void {
             $rowCount++;
         });
 
@@ -55,7 +57,7 @@ final class MiscellaneousModelTest extends LiveModelTestCase
         $result = $this->model->where('name', 'Senior Developer')->first();
         $this->assertSame(
             Time::createFromTimestamp($time)->toDateTimeString(),
-            $result->created_at->toDateTimeString()
+            $result->created_at->toDateTimeString(),
         );
     }
 

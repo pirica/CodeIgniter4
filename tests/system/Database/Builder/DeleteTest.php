@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -13,12 +15,12 @@ namespace CodeIgniter\Database\Builder;
 
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\Mock\MockConnection;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * @internal
- *
- * @group Others
  */
+#[Group('Others')]
 final class DeleteTest extends CIUnitTestCase
 {
     protected $db;
@@ -30,7 +32,7 @@ final class DeleteTest extends CIUnitTestCase
         $this->db = new MockConnection([]);
     }
 
-    public function testDelete()
+    public function testDelete(): void
     {
         $builder = $this->db->table('jobs');
 
@@ -48,7 +50,7 @@ final class DeleteTest extends CIUnitTestCase
         $this->assertSame($expectedBinds, $builder->getBinds());
     }
 
-    public function testGetCompiledDelete()
+    public function testGetCompiledDelete(): void
     {
         $builder = $this->db->table('jobs');
 
@@ -62,7 +64,7 @@ final class DeleteTest extends CIUnitTestCase
         $this->assertSame($expectedSQL, $sql);
     }
 
-    public function testGetCompiledDeleteWithTableAlias()
+    public function testGetCompiledDeleteWithTableAlias(): void
     {
         $builder = $this->db->table('jobs j');
 
@@ -76,7 +78,7 @@ final class DeleteTest extends CIUnitTestCase
         $this->assertSame($expectedSQL, $sql);
     }
 
-    public function testGetCompiledDeleteWithLimit()
+    public function testGetCompiledDeleteWithLimit(): void
     {
         $builder = $this->db->table('jobs');
 

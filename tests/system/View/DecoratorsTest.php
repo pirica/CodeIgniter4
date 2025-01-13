@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -11,22 +13,21 @@
 
 namespace CodeIgniter\View;
 
-use CodeIgniter\Autoloader\FileLocator;
+use CodeIgniter\Autoloader\FileLocatorInterface;
 use CodeIgniter\Config\Factories;
-use CodeIgniter\Config\Services;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\View\Exceptions\ViewException;
+use PHPUnit\Framework\Attributes\Group;
 use Tests\Support\View\BadDecorator;
 use Tests\Support\View\WorldDecorator;
 
 /**
  * @internal
- *
- * @group Others
  */
+#[Group('Others')]
 final class DecoratorsTest extends CIUnitTestCase
 {
-    private FileLocator $loader;
+    private FileLocatorInterface $loader;
     private string $viewsDir;
     private ?\Config\View $config = null;
 
@@ -34,12 +35,12 @@ final class DecoratorsTest extends CIUnitTestCase
     {
         parent::setUp();
 
-        $this->loader   = Services::locator();
+        $this->loader   = service('locator');
         $this->viewsDir = __DIR__ . '/Views';
         $this->config   = config('View');
     }
 
-    public function testNoDecoratorsDoesntAlter()
+    public function testNoDecoratorsDoesntAlter(): void
     {
         $config             = $this->config;
         $config->decorators = [];
@@ -53,7 +54,7 @@ final class DecoratorsTest extends CIUnitTestCase
         $this->assertStringContainsString($expected, $view->render('simple'));
     }
 
-    public function testThrowsOnInvalidClass()
+    public function testThrowsOnInvalidClass(): void
     {
         $this->expectException(ViewException::class);
         $this->expectExceptionMessage(lang('View.invalidDecoratorClass', [BadDecorator::class]));
@@ -70,7 +71,7 @@ final class DecoratorsTest extends CIUnitTestCase
         $this->assertStringContainsString($expected, $view->render('simple'));
     }
 
-    public function testDecoratorAltersOutput()
+    public function testDecoratorAltersOutput(): void
     {
         $config             = $this->config;
         $config->decorators = [WorldDecorator::class];
@@ -84,7 +85,7 @@ final class DecoratorsTest extends CIUnitTestCase
         $this->assertStringContainsString($expected, $view->render('simple'));
     }
 
-    public function testParserNoDecoratorsDoesntAlter()
+    public function testParserNoDecoratorsDoesntAlter(): void
     {
         $config             = $this->config;
         $config->decorators = [];
@@ -96,7 +97,7 @@ final class DecoratorsTest extends CIUnitTestCase
         $this->assertSame("<h1>Hello World</h1>\n", $parser->render('template1'));
     }
 
-    public function testParserDecoratorAltersOutput()
+    public function testParserDecoratorAltersOutput(): void
     {
         $config             = $this->config;
         $config->decorators = [WorldDecorator::class];

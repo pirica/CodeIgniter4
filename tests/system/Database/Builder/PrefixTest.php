@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -14,12 +16,12 @@ namespace CodeIgniter\Database\Builder;
 use CodeIgniter\Database\BaseBuilder;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\Mock\MockConnection;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * @internal
- *
- * @group Others
  */
+#[Group('Others')]
 final class PrefixTest extends CIUnitTestCase
 {
     protected $db;
@@ -31,14 +33,14 @@ final class PrefixTest extends CIUnitTestCase
         $this->db = new MockConnection(['DBPrefix' => 'ci_']);
     }
 
-    public function testPrefixesSetOnTableNames()
+    public function testPrefixesSetOnTableNames(): void
     {
         $expected = 'ci_users';
 
         $this->assertSame($expected, $this->db->prefixTable('users'));
     }
 
-    public function testPrefixesSetOnTableNamesWithWhereClause()
+    public function testPrefixesSetOnTableNamesWithWhereClause(): void
     {
         $builder = $this->db->table('users');
 

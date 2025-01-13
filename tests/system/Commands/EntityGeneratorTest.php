@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -13,12 +15,12 @@ namespace CodeIgniter\Commands;
 
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\StreamFilterTrait;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * @internal
- *
- * @group Others
  */
+#[Group('Others')]
 final class EntityGeneratorTest extends CIUnitTestCase
 {
     use StreamFilterTrait;
@@ -36,13 +38,13 @@ final class EntityGeneratorTest extends CIUnitTestCase
         }
     }
 
-    public function testGenerateEntity()
+    public function testGenerateEntity(): void
     {
         command('make:entity user');
         $this->assertFileExists(APPPATH . 'Entities/User.php');
     }
 
-    public function testGenerateEntityWithOptionSuffix()
+    public function testGenerateEntityWithOptionSuffix(): void
     {
         command('make:entity user -suffix');
         $this->assertFileExists(APPPATH . 'Entities/UserEntity.php');

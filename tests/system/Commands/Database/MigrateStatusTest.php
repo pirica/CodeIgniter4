@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -14,12 +16,13 @@ namespace CodeIgniter\Commands\Database;
 use CodeIgniter\CLI\CLI;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\StreamFilterTrait;
+use Config\Database;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
- * @group DatabaseLive
- *
  * @internal
  */
+#[Group('DatabaseLive')]
 final class MigrateStatusTest extends CIUnitTestCase
 {
     use StreamFilterTrait;
@@ -29,6 +32,9 @@ final class MigrateStatusTest extends CIUnitTestCase
 
     protected function setUp(): void
     {
+        $forge = Database::forge();
+        $forge->dropTable('foo', true);
+
         parent::setUp();
 
         if (! is_file($this->migrationFileFrom)) {
@@ -45,7 +51,7 @@ final class MigrateStatusTest extends CIUnitTestCase
         $contents = str_replace(
             'namespace Tests\Support\MigrationTestMigrations\Database\Migrations;',
             'namespace App\Database\Migrations;',
-            $contents
+            $contents,
         );
         file_put_contents($this->migrationFileTo, $contents);
 

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -12,14 +14,13 @@
 namespace CodeIgniter\Validation\StrictRules;
 
 use CodeIgniter\Validation\FormatRulesTest as TraditionalFormatRulesTest;
-use Generator;
+use PHPUnit\Framework\Attributes\Group;
 use Tests\Support\Validation\TestRules;
 
 /**
  * @internal
- *
- * @group Others
  */
+#[Group('Others')]
 final class FormatRulesTest extends TraditionalFormatRulesTest
 {
     protected array $config = [
@@ -40,7 +41,7 @@ final class FormatRulesTest extends TraditionalFormatRulesTest
         ],
     ];
 
-    public function alphaSpaceProvider(): Generator
+    public static function provideAlphaSpace(): iterable
     {
         yield from [
             [
@@ -70,7 +71,7 @@ final class FormatRulesTest extends TraditionalFormatRulesTest
         ];
     }
 
-    public function integerInvalidTypeDataProvider(): Generator
+    public static function provideInvalidIntegerType(): iterable
     {
         yield 'array with int' => [
             [555],

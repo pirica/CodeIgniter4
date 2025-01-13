@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -13,17 +15,19 @@ namespace CodeIgniter\Filters;
 
 use CodeIgniter\HTTP\CLIRequest;
 use CodeIgniter\HTTP\IncomingRequest;
-use CodeIgniter\HTTP\URI;
+use CodeIgniter\HTTP\SiteURI;
 use CodeIgniter\HTTP\UserAgent;
 use CodeIgniter\Security\Exceptions\SecurityException;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\Mock\MockAppConfig;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * @internal
- *
- * @group Others
  */
+#[Group('Others')]
 final class InvalidCharsTest extends CIUnitTestCase
 {
     private InvalidChars $invalidChars;
@@ -53,7 +57,7 @@ final class InvalidCharsTest extends CIUnitTestCase
     private function createRequest(): IncomingRequest
     {
         $config    = new MockAppConfig();
-        $uri       = new URI();
+        $uri       = new SiteURI($config);
         $userAgent = new UserAgent();
         $request   = $this->getMockBuilder(IncomingRequest::class)
             ->setConstructorArgs([$config, $uri, null, $userAgent])
@@ -64,20 +68,16 @@ final class InvalidCharsTest extends CIUnitTestCase
         return $request;
     }
 
-    /**
-     * @doesNotPerformAssertions
-     */
-    public function testBeforeDoNothingWhenCLIRequest()
+    #[DoesNotPerformAssertions]
+    public function testBeforeDoNothingWhenCLIRequest(): void
     {
         $cliRequest = new CLIRequest(new MockAppConfig());
 
         $this->invalidChars->before($cliRequest);
     }
 
-    /**
-     * @doesNotPerformAssertions
-     */
-    public function testBeforeValidString()
+    #[DoesNotPerformAssertions]
+    public function testBeforeValidString(): void
     {
         $_POST['val'] = [
             'valid string',
@@ -87,7 +87,7 @@ final class InvalidCharsTest extends CIUnitTestCase
         $this->invalidChars->before($this->request);
     }
 
-    public function testBeforeInvalidUTF8StringCausesException()
+    public function testBeforeInvalidUTF8StringCausesException(): void
     {
         $this->expectException(SecurityException::class);
         $this->expectExceptionMessage('Invalid UTF-8 characters in post:');
@@ -101,7 +101,7 @@ final class InvalidCharsTest extends CIUnitTestCase
         $this->invalidChars->before($this->request);
     }
 
-    public function testBeforeInvalidControlCharCausesException()
+    public function testBeforeInvalidControlCharCausesException(): void
     {
         $this->expectException(SecurityException::class);
         $this->expectExceptionMessage('Invalid Control characters in cookie:');
@@ -112,19 +112,16 @@ final class InvalidCharsTest extends CIUnitTestCase
         $this->invalidChars->before($this->request);
     }
 
-    /**
-     * @doesNotPerformAssertions
-     *
-     * @dataProvider stringWithLineBreakAndTabProvider
-     */
-    public function testCheckControlStringWithLineBreakAndTabReturnsTheString(string $input)
+    #[DataProvider('provideCheckControlStringWithLineBreakAndTabReturnsTheString')]
+    #[DoesNotPerformAssertions]
+    public function testCheckControlStringWithLineBreakAndTabReturnsTheString(string $input): void
     {
         $_GET['val'] = $input;
 
         $this->invalidChars->before($this->request);
     }
 
-    public function stringWithLineBreakAndTabProvider()
+    public static function provideCheckControlStringWithLineBreakAndTabReturnsTheString(): iterable
     {
         yield from [
             ["String contains \n line break."],
@@ -135,10 +132,8 @@ final class InvalidCharsTest extends CIUnitTestCase
         ];
     }
 
-    /**
-     * @dataProvider stringWithControlCharsProvider
-     */
-    public function testCheckControlStringWithControlCharsCausesException(string $input)
+    #[DataProvider('provideCheckControlStringWithControlCharsCausesException')]
+    public function testCheckControlStringWithControlCharsCausesException(string $input): void
     {
         $this->expectException(SecurityException::class);
         $this->expectExceptionMessage('Invalid Control characters in get:');
@@ -148,7 +143,7 @@ final class InvalidCharsTest extends CIUnitTestCase
         $this->invalidChars->before($this->request);
     }
 
-    public function stringWithControlCharsProvider()
+    public static function provideCheckControlStringWithControlCharsCausesException(): iterable
     {
         yield from [
             ["String contains null char.\0"],

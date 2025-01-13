@@ -30,6 +30,21 @@ Service Accessors
 
     .. literalinclude:: common_functions/001.php
 
+.. php:function:: config(string $name[, bool $getShared = true])
+
+    :param string $name: The config classname.
+    :param bool $getShared: Whether to return a shared instance.
+    :returns: The config instances.
+    :rtype: object|null
+
+    More simple way of getting config instances from Factories.
+
+    See :ref:`Configuration <configuration-config>` and
+    :ref:`Factories <factories-config>` for details.
+
+    The ``config()`` uses ``Factories::config()`` internally.
+    See :ref:`factories-loading-class` for details on the first parameter ``$name``.
+
 .. php:function:: cookie(string $name[, string $value = ''[, array $options = []]])
 
     :param string $name: Cookie name
@@ -79,7 +94,7 @@ Service Accessors
     If $data is a string, then it simply escapes and returns it.
     If $data is an array, then it loops over it, escaping each 'value' of the key/value pairs.
 
-    Valid context values: html, js, css, url, attr, raw
+    Valid context values: ``html``, ``js``, ``css``, ``url``, ``attr``, ``raw``
 
 .. php:function:: helper($filename)
 
@@ -91,13 +106,15 @@ Service Accessors
 
 .. php:function:: lang($line[, $args[, $locale]])
 
-    :param string $line: The line of text to retrieve
+    :param string $line: The language filename and the key of the text to retrieve.
     :param array  $args: An array of data to substitute for placeholders.
-    :param string $locale: Specify a different locale to be used instead of default one.
+    :param string $locale: Specify a different locale to be used instead of the current locale.
+    :returns: The text in the language file
+    :rtype: list<string>|string
 
-    Retrieves a locale-specific file based on an alias string.
+    Retrieves text from the language files.
 
-    For more information, see the :doc:`Localization </outgoing/localization>` page.
+    For more information, see the :ref:`language-localization`.
 
 .. php:function:: model($name[, $getShared = true[, &$conn = null]])
 
@@ -110,17 +127,17 @@ Service Accessors
     More simple way of getting model instances.
 
     The ``model()`` uses ``Factories::models()`` internally.
-    See :ref:`factories-example` for details on the first parameter ``$name``.
+    See :ref:`factories-loading-class` for details on the first parameter ``$name``.
 
     See also the :ref:`Using CodeIgniter's Model <accessing-models>`.
 
 .. php:function:: old($key[, $default = null,[, $escape = 'html']])
 
     :param string $key: The name of the old form data to check for.
-    :param mixed  $default: The default value to return if $key doesn't exist.
-    :param mixed  $escape: An `escape <#esc>`_ context or false to disable it.
+    :param string|null  $default: The default value to return if $key doesn't exist.
+    :param false|string  $escape: An `escape <#esc>`_ context or false to disable it.
     :returns: The value of the defined key, or the default value.
-    :rtype: mixed
+    :rtype: array|string|null
 
     Provides a simple way to access "old input data" from submitting a form.
 
@@ -128,8 +145,10 @@ Service Accessors
 
     .. literalinclude:: common_functions/002.php
 
-.. note:: If you are using the :doc:`form helper </helpers/form_helper>`, this feature is built-in. You only
-        need to use this function when not using the form helper.
+.. note:: If you are using the :php:func:`set_value()`, :php:func:`set_select()`,
+    :php:func:`set_checkbox()`, and :php:func:`set_radio()` functions in
+    :doc:`form helper </helpers/form_helper>`, this feature is built-in. You only
+    need to use this function when not using the form helper.
 
 .. php:function:: session([$key])
 
@@ -163,6 +182,7 @@ Service Accessors
     :rtype: string
 
     Grabs the current RendererInterface-compatible class
+    (:doc:`View <../outgoing/view_renderer>` class by default)
     and tells it to render the specified view. Simply provides
     a convenience method that can be used in Controllers,
     libraries, and routed closures.
@@ -180,7 +200,8 @@ Service Accessors
 
     .. literalinclude:: common_functions/004.php
 
-    For more details, see the :doc:`Views </outgoing/views>` page.
+    For more details, see the :doc:`Views <../outgoing/views>` and
+    :doc:`../outgoing/view_renderer` page.
 
 .. php:function:: view_cell($library[, $params = null[, $ttl = 0[, $cacheName = null]]])
 
@@ -209,7 +230,7 @@ Miscellaneous Functions
     :rtype: string
 
     Returns the nonce attribute for a script tag. For example: ``nonce="Eskdikejidojdk978Ad8jf"``.
-    See :ref:`content-security-policy`.
+    See :ref:`Content Security Policy <csp-using-functions>`.
 
 .. php:function:: csp_style_nonce()
 
@@ -217,7 +238,7 @@ Miscellaneous Functions
     :rtype: string
 
     Returns the nonce attribute for a style tag. For example: ``nonce="Eskdikejidojdk978Ad8jf"``.
-    See :ref:`content-security-policy`.
+    See :ref:`Content Security Policy <csp-using-functions>`.
 
 .. php:function:: csrf_token()
 
@@ -266,8 +287,11 @@ Miscellaneous Functions
 
     Checks to see if the page is currently being accessed via HTTPS. If it is, then
     nothing happens. If it is not, then the user is redirected back to the current URI
-    but through HTTPS. Will set the HTTP Strict Transport Security header, which instructs
-    modern browsers to automatically modify any HTTP requests to HTTPS requests for the $duration.
+    but through HTTPS. Will set the HTTP Strict Transport Security (HTST) header, which instructs
+    modern browsers to automatically modify any HTTP requests to HTTPS requests for the ``$duration``.
+
+    .. note:: This function is also used when you set
+        ``Config\App:$forceGlobalSecureRequests`` to true.
 
 .. php:function:: function_usable($function_name)
 
@@ -304,13 +328,17 @@ Miscellaneous Functions
     :param   string   $level: The level of severity
     :param   string   $message: The message that is to be logged.
     :param   array    $context: An associative array of tags and their values that should be replaced in $message
-    :returns: true if was logged successfully or false if there was a problem logging it
+    :returns: void
     :rtype: bool
+
+    .. note:: Since v4.5.0, the return value is fixed to be compatible with PSR
+        Log. In previous versions, it returned ``true`` if was logged successfully
+        or ``false`` if there was a problem logging it.
 
     Logs a message using the Log Handlers defined in **app/Config/Logger.php**.
 
-    Level can be one of the following values: **emergency**, **alert**, **critical**, **error**, **warning**,
-    **notice**, **info**, or **debug**.
+    Level can be one of the following values: ``emergency``, ``alert``, ``critical``, ``error``, ``warning``,
+    ``notice``, ``info``, or ``debug``.
 
     Context can be used to substitute values in the message string. For full details, see the
     :doc:`Logging Information <logging>` page.
@@ -320,45 +348,8 @@ Miscellaneous Functions
     :param  string  $route: The route name or Controller::method to redirect the user to.
     :rtype: RedirectResponse
 
-    .. important:: When you use this function, an instance of ``RedirectResponse`` must be returned
-        in the method of the :doc:`Controller <../incoming/controllers>` or
-        the :doc:`Controller Filter <../incoming/filters>`. If you forget to return it,
-        no redirection will occur.
-
     Returns a RedirectResponse instance allowing you to easily create redirects.
-
-    **Redirect to a URI path**
-
-    When you want to pass a URI path (relative to baseURL), use ``redirect()->to()``:
-
-    .. literalinclude:: common_functions/005.php
-        :lines: 2-
-
-    **Redirect to a Defined Route**
-
-    When you want to pass a :ref:`route name <using-named-routes>` or Controller::method
-    for :ref:`reverse routing <reverse-routing>`, use ``redirect()->route()``:
-
-    .. literalinclude:: common_functions/013.php
-        :lines: 2-
-
-    When passing an argument into the function, it is treated as a route name or
-    Controller::method for reverse routing, not a relative/full URI,
-    treating it the same as using ``redirect()->route()``:
-
-    .. literalinclude:: common_functions/006.php
-        :lines: 2-
-
-    **Redirect Back**
-
-    When you want to redirect back, use ``redirect()->back()``:
-
-    .. literalinclude:: common_functions/014.php
-        :lines: 2-
-
-    .. note:: ``redirect()->back()`` is not the same as browser "back" button.
-        It takes a visitor to "the last page viewed during the Session" when the Session is available.
-        If the Session hasn’t been loaded, or is otherwise unavailable, then a sanitized version of HTTP_REFERER will be used.
+    See :ref:`response-redirect` for details.
 
 .. php:function:: remove_invisible_characters($str[, $urlEncoded = true])
 
@@ -381,7 +372,7 @@ Miscellaneous Functions
     :returns:    The shared Request object.
     :rtype:    IncomingRequest|CLIRequest
 
-    This function is a wrapper for ``Services::request()``.
+    This function is a wrapper for ``Services::request()`` and ``service('request')``.
 
 .. php:function:: response()
 
@@ -390,18 +381,18 @@ Miscellaneous Functions
     :returns:    The shared Response object.
     :rtype:    Response
 
-    This function is a wrapper for ``Services::response()``.
+    This function is a wrapper for ``Services::response()`` and ``service('response')``.
 
 .. php:function:: route_to($method[, ...$params])
 
     :param   string       $method: Route name or Controller::method
     :param   int|string   ...$params: One or more parameters to be passed to the route. The last parameter allows you to set the locale.
-    :returns: a route (URI path)
+    :returns: a route path (URI path relative to baseURL)
     :rtype: string
 
-    .. note:: This function requires the controller/method to have a route defined in **app/Config/routes.php**.
+    .. note:: This function requires the controller/method to have a route defined in **app/Config/Routes.php**.
 
-    .. important:: ``route_to()`` returns a *route*, not a full URI path for your site.
+    .. important:: ``route_to()`` returns a *route* path, not a full URI path for your site.
         If your **baseURL** contains sub folders, the return value is not the same
         as the URI to link. In that case, just use :php:func:`url_to()` instead.
         See also :ref:`urls-url-structure`.

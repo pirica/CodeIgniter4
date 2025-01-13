@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -15,7 +17,7 @@ use CodeIgniter\Config\Factories;
 use CodeIgniter\Cookie\Exceptions\CookieException;
 use CodeIgniter\HTTP\IncomingRequest;
 use CodeIgniter\HTTP\Response;
-use CodeIgniter\HTTP\URI;
+use CodeIgniter\HTTP\SiteURI;
 use CodeIgniter\HTTP\UserAgent;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\Mock\MockResponse;
@@ -23,15 +25,14 @@ use Config\App;
 use Config\Cookie;
 use Config\Cookie as CookieConfig;
 use Config\Services;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * @internal
- *
- * @group Others
  */
+#[Group('Others')]
 final class CookieHelperTest extends CIUnitTestCase
 {
-    private IncomingRequest $request;
     private string $name;
     private string $value;
     private int $expire;
@@ -48,14 +49,14 @@ final class CookieHelperTest extends CIUnitTestCase
         $this->expire = 9999;
 
         Services::injectMock('response', new MockResponse(new App()));
-        $this->response = Services::response();
-        $this->request  = new IncomingRequest(new App(), new URI(), null, new UserAgent());
-        Services::injectMock('request', $this->request);
+        $this->response = service('response');
+        $request        = new IncomingRequest(new App(), new SiteURI(new App()), null, new UserAgent());
+        Services::injectMock('request', $request);
 
         helper('cookie');
     }
 
-    public function testSetCookie()
+    public function testSetCookie(): void
     {
         set_cookie($this->name, $this->value, $this->expire);
 
@@ -64,7 +65,7 @@ final class CookieHelperTest extends CIUnitTestCase
         delete_cookie($this->name);
     }
 
-    public function testHasCookie()
+    public function testHasCookie(): void
     {
         $cookieAttr = [
             'name'   => $this->name,
@@ -78,7 +79,7 @@ final class CookieHelperTest extends CIUnitTestCase
         delete_cookie($this->name);
     }
 
-    public function testSetCookieByArrayParameters()
+    public function testSetCookieByArrayParameters(): void
     {
         $cookieAttr = [
             'name'   => $this->name,
@@ -92,7 +93,7 @@ final class CookieHelperTest extends CIUnitTestCase
         delete_cookie($this->name);
     }
 
-    public function testSetCookieConfigCookieIsUsed()
+    public function testSetCookieConfigCookieIsUsed(): void
     {
         /** @var Cookie $config */
         $config           = config('Cookie');
@@ -117,7 +118,7 @@ final class CookieHelperTest extends CIUnitTestCase
         delete_cookie($this->name);
     }
 
-    public function testSetCookieSecured()
+    public function testSetCookieSecured(): void
     {
         $pre       = 'Hello, I try to';
         $pst       = 'your site';
@@ -136,7 +137,7 @@ final class CookieHelperTest extends CIUnitTestCase
         delete_cookie($secured);
     }
 
-    public function testDeleteCookie()
+    public function testDeleteCookie(): void
     {
         $this->response->setCookie($this->name, $this->value, $this->expire);
 
@@ -149,14 +150,14 @@ final class CookieHelperTest extends CIUnitTestCase
         $this->assertSame(0, $cookie->getExpiresTimestamp());
     }
 
-    public function testGetCookie()
+    public function testGetCookie(): void
     {
         $_COOKIE['TEST'] = '5';
 
         $this->assertSame('5', get_cookie('TEST'));
     }
 
-    public function testGetCookieDefaultPrefix()
+    public function testGetCookieDefaultPrefix(): void
     {
         $_COOKIE['prefix_TEST'] = '5';
 
@@ -167,7 +168,7 @@ final class CookieHelperTest extends CIUnitTestCase
         $this->assertSame('5', get_cookie('TEST', false, ''));
     }
 
-    public function testGetCookiePrefix()
+    public function testGetCookiePrefix(): void
     {
         $_COOKIE['abc_TEST'] = '5';
 
@@ -178,7 +179,7 @@ final class CookieHelperTest extends CIUnitTestCase
         $this->assertSame('5', get_cookie('TEST', false, 'abc_'));
     }
 
-    public function testGetCookieNoPrefix()
+    public function testGetCookieNoPrefix(): void
     {
         $_COOKIE['abc_TEST'] = '5';
 
@@ -189,7 +190,7 @@ final class CookieHelperTest extends CIUnitTestCase
         $this->assertSame('5', get_cookie('abc_TEST', false, null));
     }
 
-    public function testDeleteCookieAfterLastSet()
+    public function testDeleteCookieAfterLastSet(): void
     {
         delete_cookie($this->name);
 
@@ -198,7 +199,7 @@ final class CookieHelperTest extends CIUnitTestCase
         $this->assertSame('', $cookie->getValue());
     }
 
-    public function testSameSiteDefault()
+    public function testSameSiteDefault(): void
     {
         $cookieAttr = [
             'name'   => $this->name,
@@ -215,7 +216,7 @@ final class CookieHelperTest extends CIUnitTestCase
         delete_cookie($this->name);
     }
 
-    public function testSameSiteInvalid()
+    public function testSameSiteInvalid(): void
     {
         $cookieAttr = [
             'name'     => $this->name,
@@ -230,7 +231,7 @@ final class CookieHelperTest extends CIUnitTestCase
         set_cookie($cookieAttr);
     }
 
-    public function testSameSiteParamArray()
+    public function testSameSiteParamArray(): void
     {
         $cookieAttr = [
             'name'     => $this->name,
@@ -248,12 +249,14 @@ final class CookieHelperTest extends CIUnitTestCase
         delete_cookie($this->name);
     }
 
-    public function testSameSiteParam()
+    public function testSameSiteParam(): void
     {
-        set_cookie($this->name, $this->value, $this->expire, '', '', '', '', '', 'Strict');
+        set_cookie($this->name, $this->value, $this->expire, '', '', '', null, null, 'Strict');
 
         $this->assertTrue($this->response->hasCookie($this->name));
+
         $theCookie = $this->response->getCookie($this->name);
+
         $this->assertSame('Strict', $theCookie->getSameSite());
 
         delete_cookie($this->name);

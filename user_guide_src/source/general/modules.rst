@@ -3,17 +3,21 @@ Code Modules
 ############
 
 CodeIgniter supports a form of code modularization to help you create reusable code. Modules are typically
-centered around a specific subject, and can be thought of as mini-applications within your larger application. Any
+centered around a specific subject, and can be thought of as mini-applications within your larger application.
+
+Any
 of the standard file types within the framework are supported, like controllers, models, views, config files, helpers,
 language files, etc. Modules may contain as few, or as many, of these as you like.
+
+If you want to create a module as a Composer package, see also :doc:`../extending/composer_packages`.
 
 .. contents::
     :local:
     :depth: 2
 
-==========
+**********
 Namespaces
-==========
+**********
 
 The core element of the modules functionality comes from the :doc:`PSR-4 compatible autoloading <../concepts/autoloader>`
 that CodeIgniter uses. While any code can use the PSR-4 autoloader and namespaces, the primary way to take full advantage of
@@ -58,9 +62,9 @@ Of course, there is nothing forcing you to use this exact structure, and you sho
 best suits your module, leaving out directories you don't need, creating new directories for Entities, Interfaces,
 or Repositories, etc.
 
-===========================
+***************************
 Autoloading Non-class Files
-===========================
+***************************
 
 More often than not that your module will not contain only PHP classes but also others like procedural
 functions, bootstrapping files, module constants files, etc. which are not normally loaded the way classes
@@ -73,9 +77,11 @@ your classes. All we need to do is provide the list of paths to those files and 
 
 .. literalinclude:: modules/002.php
 
-==============
+.. _auto-discovery:
+
+**************
 Auto-Discovery
-==============
+**************
 
 Many times, you will need to specify the full namespace to files you want to include, but CodeIgniter can be
 configured to make integrating modules into your applications simpler by automatically discovering many different
@@ -83,21 +89,21 @@ file types, including:
 
 - :doc:`Events <../extending/events>`
 - :doc:`Filters <../incoming/filters>`
-- :doc:`Registrars <./configuration>`
+- :ref:`registrars`
 - :doc:`Route files <../incoming/routing>`
 - :doc:`Services <../concepts/services>`
 
 This is configured in the file **app/Config/Modules.php**.
 
-The auto-discovery system works by scanning for particular directories and files within psr4 namespaces that have been defined in **Config/Autoload.php**.
+The auto-discovery system works by scanning for particular directories and files within psr4 namespaces that have been defined in **Config/Autoload.php** and Composer packages.
 
-The discovery process would look for discoverable items on that path and should, for example, find the routes file at **/acme/Blog/Config/Routes.php**.
+The discovery process would look for discoverable items on that path and should, for example, find the routes file at **acme/Blog/Config/Routes.php**.
 
 Enable/Disable Discover
 =======================
 
 You can turn on or off all auto-discovery in the system with the ``$enabled`` class variable. False will disable
-all discovery, optimizing performance, but negating the special capabilities of your modules.
+all discovery, optimizing performance, but negating the special capabilities of your modules and Composer packages.
 
 Specify Discovery Items
 =======================
@@ -134,9 +140,9 @@ by editing the ``$discoverInComposer`` variable in **app/Config/Modules.php**:
 
 .. literalinclude:: modules/004.php
 
-==================
+******************
 Working with Files
-==================
+******************
 
 This section will take a look at each of the file types (controllers, views, language files, etc) and how they can
 be used within the module. Some of this information is described in more detail in the relevant location of the user
@@ -154,8 +160,17 @@ the **Modules** config file, described above.
 When working with modules, it can be a problem if the routes in the application contain wildcards.
 In that case, see :ref:`routing-priority`.
 
+.. _modules-filters:
+
 Filters
 =======
+
+.. deprecated:: 4.4.2
+
+.. note:: This feature is deprecated. Use :ref:`registrars` instead like the
+    following:
+
+    .. literalinclude:: modules/015.php
 
 By default, :doc:`filters <../incoming/filters>` are automatically scanned for within modules.
 It can be turned off in the **Modules** config file, described above.
@@ -187,14 +202,15 @@ with the ``new`` command:
 
 .. literalinclude:: modules/008.php
 
-Config files are automatically discovered whenever using the ``config()`` function that is always available.
+Config files are automatically discovered whenever using the :php:func:`config()` function that is always available, and you pass a short classname to it.
 
 .. note:: We don't recommend you use the same short classname in modules.
-    Modules that need to override or add to known configurations in **app/Config/** should use :ref:`registrars`.
+    Modules that need to override or add to known configurations in **app/Config/** should use :ref:`Implicit Registrars <registrars>`.
 
-.. note:: ``config()`` finds the file in **app/Config/** when there is a class with the same shortname,
+.. note:: Prior to v4.4.0, ``config()`` finds the file in **app/Config/** when there
+    is a class with the same shortname,
     even if you specify a fully qualified class name like ``config(\Acme\Blog\Config\Blog::class)``.
-    This is because ``config()`` is a wrapper for the ``Factories`` class which uses ``preferApp`` by default. See :ref:`Factories Example <factories-example>` for more information.
+    This behavior has been fixed in v4.4.0, and returns the specified instance.
 
 Migrations
 ==========
@@ -206,24 +222,37 @@ Seeds
 =====
 
 Seed files can be used from both the CLI and called from within other seed files as long as the full namespace
-is provided. If calling on the CLI, you will need to provide double backslashes::
+is provided. If calling on the CLI, you will need to provide double backslashes:
 
-    > php spark db:seed Acme\\Blog\\Database\\Seeds\\TestPostSeeder
+
+For Unix:
+
+.. code-block:: console
+
+    php spark db:seed Acme\\Blog\\Database\\Seeds\\TestPostSeeder
+
+For Windows:
+
+.. code-block:: console
+
+    php spark db:seed Acme\Blog\Database\Seeds\TestPostSeeder
 
 Helpers
 =======
 
-Helpers will be automatically discovered within defined namespaces when using the ``helper()`` function, as long as it
-is within the namespaces **Helpers** directory:
+Helpers will be automatically discovered within defined namespaces when using the
+:php:func:`helper()` function, as long as it is within the namespaces **Helpers**
+directory:
 
 .. literalinclude:: modules/009.php
 
-You can specify namespaces. See :ref:`helpers-loading-from-non-standard-locations` for details.
+You can specify namespaces. See :ref:`helpers-loading-from-specified-namespace` for details.
 
 Language Files
 ==============
 
-Language files are located automatically from defined namespaces when using the ``lang()`` method, as long as the
+Language files are located automatically from defined namespaces when using the
+:php:func:`lang()` function, as long as the
 file follows the same directory structures as the main application directory.
 
 Libraries
@@ -244,13 +273,15 @@ Model files are automatically discovered whenever using the :php:func:`model()` 
 
 .. note:: We don't recommend you use the same short classname in modules.
 
-.. note:: ``model()`` finds the file in **app/Models/** when there is a class with the same shortname,
-    even if you specify a fully qualified class name like ``model(\Acme\Blog\Model\PostModel::class)``.
-    This is because ``model()`` is a wrapper for the ``Factories`` class which uses ``preferApp`` by default. See :ref:`Factories Example <factories-example>` for more information.
+.. note:: Prior to v4.4.0, ``model()`` finds the file in **app/Models/** when
+    there is a class with the same shortname, even if you specify a fully qualified
+    class name like ``model(\Acme\Blog\Model\PostModel::class)``.
+    See the Note in :ref:`factories-passing-fully-qualified-classname` for more
+    information.
 
 Views
 =====
 
-Views can be loaded using the class namespace as described in the :doc:`views </outgoing/views>` documentation:
+Views can be loaded using the class namespace as described in the :ref:`views <namespaced-views>` documentation:
 
 .. literalinclude:: modules/012.php

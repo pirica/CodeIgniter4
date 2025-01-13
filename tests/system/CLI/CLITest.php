@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -14,33 +16,34 @@ namespace CodeIgniter\CLI;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\PhpStreamWrapper;
 use CodeIgniter\Test\StreamFilterTrait;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use ReflectionProperty;
 use RuntimeException;
 
 /**
  * @internal
- *
- * @group Others
  */
+#[Group('Others')]
 final class CLITest extends CIUnitTestCase
 {
     use StreamFilterTrait;
 
-    public function testNew()
+    public function testNew(): void
     {
         $actual = new CLI();
 
         $this->assertInstanceOf(CLI::class, $actual);
     }
 
-    public function testBeep()
+    public function testBeep(): void
     {
         $this->expectOutputString("\x07");
 
         CLI::beep();
     }
 
-    public function testBeep4()
+    public function testBeep4(): void
     {
         $this->expectOutputString("\x07\x07\x07\x07");
 
@@ -53,7 +56,7 @@ final class CLITest extends CIUnitTestCase
      *
      * @timeLimit 2.5
      */
-    public function testWait()
+    public function testWait(): void
     {
         $time = time();
         CLI::wait(1, true);
@@ -64,7 +67,7 @@ final class CLITest extends CIUnitTestCase
         $this->assertCloseEnough(1, time() - $time);
     }
 
-    public function testWaitZero()
+    public function testWaitZero(): void
     {
         PhpStreamWrapper::register();
         PhpStreamWrapper::setContent(' ');
@@ -73,12 +76,12 @@ final class CLITest extends CIUnitTestCase
         $time = time();
         CLI::wait(0);
 
-        $this->assertSame(0, time() - $time);
-
         PhpStreamWrapper::restore();
+
+        $this->assertCloseEnough(0, time() - $time);
     }
 
-    public function testPrompt()
+    public function testPrompt(): void
     {
         PhpStreamWrapper::register();
 
@@ -87,12 +90,86 @@ final class CLITest extends CIUnitTestCase
 
         $output = CLI::prompt('What is your favorite color?');
 
-        $this->assertSame($expected, $output);
-
         PhpStreamWrapper::restore();
+
+        $this->assertSame($expected, $output);
     }
 
-    public function testPromptByMultipleKeys()
+    public function testPromptInputNothing(): void
+    {
+        PhpStreamWrapper::register();
+
+        $input = '';
+        PhpStreamWrapper::setContent($input);
+
+        $output = CLI::prompt('What is your favorite color?', 'red');
+
+        PhpStreamWrapper::restore();
+
+        $this->assertSame('red', $output);
+    }
+
+    public function testPromptInputZero(): void
+    {
+        PhpStreamWrapper::register();
+
+        $input = '0';
+        PhpStreamWrapper::setContent($input);
+
+        $output = CLI::prompt('What is your favorite number?', '7');
+
+        PhpStreamWrapper::restore();
+
+        $this->assertSame('0', $output);
+    }
+
+    public function testPromptByKey(): void
+    {
+        PhpStreamWrapper::register();
+
+        $input = '1';
+        PhpStreamWrapper::setContent($input);
+
+        $options = ['Playing game', 'Sleep', 'Badminton'];
+        $output  = CLI::promptByKey('Select your hobbies:', $options);
+
+        PhpStreamWrapper::restore();
+
+        $this->assertSame($input, $output);
+    }
+
+    public function testPromptByKeyInputNothing(): void
+    {
+        PhpStreamWrapper::register();
+
+        $input = ''; // This is when you press the Enter key.
+        PhpStreamWrapper::setContent($input);
+
+        $options = ['Playing game', 'Sleep', 'Badminton'];
+        $output  = CLI::promptByKey('Select your hobbies:', $options);
+
+        PhpStreamWrapper::restore();
+
+        $expected = '0';
+        $this->assertSame($expected, $output);
+    }
+
+    public function testPromptByKeyInputZero(): void
+    {
+        PhpStreamWrapper::register();
+
+        $input = '0';
+        PhpStreamWrapper::setContent($input);
+
+        $options = ['Playing game', 'Sleep', 'Badminton'];
+        $output  = CLI::promptByKey('Select your hobbies:', $options);
+
+        PhpStreamWrapper::restore();
+
+        $this->assertSame($input, $output);
+    }
+
+    public function testPromptByMultipleKeys(): void
     {
         PhpStreamWrapper::register();
 
@@ -102,24 +179,59 @@ final class CLITest extends CIUnitTestCase
         $options = ['Playing game', 'Sleep', 'Badminton'];
         $output  = CLI::promptByMultipleKeys('Select your hobbies:', $options);
 
+        PhpStreamWrapper::restore();
+
         $expected = [
             0 => 'Playing game',
             1 => 'Sleep',
         ];
-
         $this->assertSame($expected, $output);
-
-        PhpStreamWrapper::restore();
     }
 
-    public function testNewLine()
+    public function testPromptByMultipleKeysInputNothing(): void
+    {
+        PhpStreamWrapper::register();
+
+        $input = ''; // This is when you press the Enter key.
+        PhpStreamWrapper::setContent($input);
+
+        $options = ['Playing game', 'Sleep', 'Badminton'];
+        $output  = CLI::promptByMultipleKeys('Select your hobbies:', $options);
+
+        PhpStreamWrapper::restore();
+
+        $expected = [
+            0 => 'Playing game',
+        ];
+        $this->assertSame($expected, $output);
+    }
+
+    public function testPromptByMultipleKeysInputZero(): void
+    {
+        PhpStreamWrapper::register();
+
+        $input = '0';
+        PhpStreamWrapper::setContent($input);
+
+        $options = ['Playing game', 'Sleep', 'Badminton'];
+        $output  = CLI::promptByMultipleKeys('Select your hobbies:', $options);
+
+        PhpStreamWrapper::restore();
+
+        $expected = [
+            0 => 'Playing game',
+        ];
+        $this->assertSame($expected, $output);
+    }
+
+    public function testNewLine(): void
     {
         $this->expectOutputString('');
 
         CLI::newLine();
     }
 
-    public function testColorExceptionForeground()
+    public function testColorExceptionForeground(): void
     {
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('Invalid "foreground" color: "Foreground"');
@@ -127,7 +239,7 @@ final class CLITest extends CIUnitTestCase
         CLI::color('test', 'Foreground');
     }
 
-    public function testColorExceptionBackground()
+    public function testColorExceptionBackground(): void
     {
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('Invalid "background" color: "Background"');
@@ -135,7 +247,7 @@ final class CLITest extends CIUnitTestCase
         CLI::color('test', 'white', 'Background');
     }
 
-    public function testColorSupportOnNoColor()
+    public function testColorSupportOnNoColor(): void
     {
         $nocolor = getenv('NO_COLOR');
         putenv('NO_COLOR=1');
@@ -146,7 +258,7 @@ final class CLITest extends CIUnitTestCase
         putenv($nocolor ? "NO_COLOR={$nocolor}" : 'NO_COLOR');
     }
 
-    public function testColorSupportOnHyperTerminals()
+    public function testColorSupportOnHyperTerminals(): void
     {
         $termProgram = getenv('TERM_PROGRAM');
         putenv('TERM_PROGRAM=Hyper');
@@ -157,13 +269,13 @@ final class CLITest extends CIUnitTestCase
         putenv($termProgram ? "TERM_PROGRAM={$termProgram}" : 'TERM_PROGRAM');
     }
 
-    public function testStreamSupports()
+    public function testStreamSupports(): void
     {
         $this->assertTrue(CLI::streamSupports('stream_isatty', STDOUT));
         $this->assertIsBool(CLI::streamSupports('sapi_windows_vt100_support', STDOUT));
     }
 
-    public function testColor()
+    public function testColor(): void
     {
         // After the tests on NO_COLOR and TERM_PROGRAM above,
         // the $isColored variable is rigged. So we reset this.
@@ -171,19 +283,19 @@ final class CLITest extends CIUnitTestCase
 
         $this->assertSame(
             "\033[1;37m\033[42m\033[4mtest\033[0m",
-            CLI::color('test', 'white', 'green', 'underline')
+            CLI::color('test', 'white', 'green', 'underline'),
         );
     }
 
-    public function testColorEmtpyString()
+    public function testColorEmtpyString(): void
     {
         $this->assertSame(
             '',
-            CLI::color('', 'white', 'green', 'underline')
+            CLI::color('', 'white', 'green', 'underline'),
         );
     }
 
-    public function testPrint()
+    public function testPrint(): void
     {
         CLI::print('test');
 
@@ -191,7 +303,7 @@ final class CLITest extends CIUnitTestCase
         $this->assertSame($expected, $this->getStreamFilterBuffer());
     }
 
-    public function testPrintForeground()
+    public function testPrintForeground(): void
     {
         CLI::print('test', 'red');
 
@@ -199,7 +311,7 @@ final class CLITest extends CIUnitTestCase
         $this->assertSame($expected, $this->getStreamFilterBuffer());
     }
 
-    public function testPrintBackground()
+    public function testPrintBackground(): void
     {
         CLI::print('test', 'red', 'green');
 
@@ -207,7 +319,7 @@ final class CLITest extends CIUnitTestCase
         $this->assertSame($expected, $this->getStreamFilterBuffer());
     }
 
-    public function testWrite()
+    public function testWrite(): void
     {
         CLI::write('test');
 
@@ -215,7 +327,7 @@ final class CLITest extends CIUnitTestCase
         $this->assertSame($expected, $this->getStreamFilterBuffer());
     }
 
-    public function testWriteForeground()
+    public function testWriteForeground(): void
     {
         CLI::write('test', 'red');
 
@@ -223,7 +335,7 @@ final class CLITest extends CIUnitTestCase
         $this->assertSame($expected, $this->getStreamFilterBuffer());
     }
 
-    public function testWriteForegroundWithColorBefore()
+    public function testWriteForegroundWithColorBefore(): void
     {
         CLI::write(CLI::color('green', 'green') . ' red', 'red');
 
@@ -231,7 +343,7 @@ final class CLITest extends CIUnitTestCase
         $this->assertSame($expected, $this->getStreamFilterBuffer());
     }
 
-    public function testWriteForegroundWithColorAfter()
+    public function testWriteForegroundWithColorAfter(): void
     {
         CLI::write('red ' . CLI::color('green', 'green'), 'red');
 
@@ -242,18 +354,18 @@ final class CLITest extends CIUnitTestCase
     /**
      * @see https://github.com/codeigniter4/CodeIgniter4/issues/5892
      */
-    public function testWriteForegroundWithColorTwice()
+    public function testWriteForegroundWithColorTwice(): void
     {
         CLI::write(
             CLI::color('green', 'green') . ' red ' . CLI::color('green', 'green'),
-            'red'
+            'red',
         );
 
         $expected = "\033[0;32mgreen\033[0m\033[0;31m red \033[0m\033[0;32mgreen\033[0m" . PHP_EOL;
         $this->assertSame($expected, $this->getStreamFilterBuffer());
     }
 
-    public function testWriteBackground()
+    public function testWriteBackground(): void
     {
         CLI::write('test', 'red', 'green');
 
@@ -261,7 +373,7 @@ final class CLITest extends CIUnitTestCase
         $this->assertSame($expected, $this->getStreamFilterBuffer());
     }
 
-    public function testError()
+    public function testError(): void
     {
         CLI::error('test');
 
@@ -270,7 +382,7 @@ final class CLITest extends CIUnitTestCase
         $this->assertSame($expected, $this->getStreamFilterBuffer());
     }
 
-    public function testErrorForeground()
+    public function testErrorForeground(): void
     {
         CLI::error('test', 'purple');
 
@@ -278,7 +390,7 @@ final class CLITest extends CIUnitTestCase
         $this->assertSame($expected, $this->getStreamFilterBuffer());
     }
 
-    public function testErrorBackground()
+    public function testErrorBackground(): void
     {
         CLI::error('test', 'purple', 'green');
 
@@ -286,7 +398,7 @@ final class CLITest extends CIUnitTestCase
         $this->assertSame($expected, $this->getStreamFilterBuffer());
     }
 
-    public function testShowProgress()
+    public function testShowProgress(): void
     {
         CLI::write('first.');
         CLI::showProgress(1, 20);
@@ -312,7 +424,7 @@ final class CLITest extends CIUnitTestCase
         $this->assertSame($expected, $this->getStreamFilterBuffer());
     }
 
-    public function testShowProgressWithoutBar()
+    public function testShowProgressWithoutBar(): void
     {
         CLI::write('first.');
         CLI::showProgress(false, 20);
@@ -323,24 +435,24 @@ final class CLITest extends CIUnitTestCase
         $this->assertSame($expected, $this->getStreamFilterBuffer());
     }
 
-    public function testWrap()
+    public function testWrap(): void
     {
         $this->assertSame('', CLI::wrap(''));
         $this->assertSame(
             '1234' . PHP_EOL . ' 5678' . PHP_EOL . ' 90' . PHP_EOL . ' abc' . PHP_EOL . ' de' . PHP_EOL . ' fghij' . PHP_EOL . ' 0987654321',
-            CLI::wrap('1234 5678 90' . PHP_EOL . 'abc de fghij' . PHP_EOL . '0987654321', 5, 1)
+            CLI::wrap('1234 5678 90' . PHP_EOL . 'abc de fghij' . PHP_EOL . '0987654321', 5, 1),
         );
         $this->assertSame(
             '1234 5678 90' . PHP_EOL . '  abc de fghij' . PHP_EOL . '  0987654321',
-            CLI::wrap('1234 5678 90' . PHP_EOL . 'abc de fghij' . PHP_EOL . '0987654321', 999, 2)
+            CLI::wrap('1234 5678 90' . PHP_EOL . 'abc de fghij' . PHP_EOL . '0987654321', 999, 2),
         );
         $this->assertSame(
             '1234 5678 90' . PHP_EOL . 'abc de fghij' . PHP_EOL . '0987654321',
-            CLI::wrap('1234 5678 90' . PHP_EOL . 'abc de fghij' . PHP_EOL . '0987654321')
+            CLI::wrap('1234 5678 90' . PHP_EOL . 'abc de fghij' . PHP_EOL . '0987654321'),
         );
     }
 
-    public function testParseCommand()
+    public function testParseCommand(): void
     {
         $_SERVER['argv'] = [
             'ignored',
@@ -359,7 +471,7 @@ final class CLITest extends CIUnitTestCase
         $this->assertSame(['b', 'c'], CLI::getSegments());
     }
 
-    public function testParseCommandMixed()
+    public function testParseCommandMixed(): void
     {
         $_SERVER['argv'] = [
             'ignored',
@@ -388,7 +500,7 @@ final class CLITest extends CIUnitTestCase
         $this->assertSame('--parm pvalue --fix --opt-in sure', CLI::getOptionString(true, true));
     }
 
-    public function testParseCommandOption()
+    public function testParseCommandOption(): void
     {
         $_SERVER['argv'] = [
             'ignored',
@@ -410,7 +522,7 @@ final class CLITest extends CIUnitTestCase
         $this->assertSame(['b', 'c', 'd'], CLI::getSegments());
     }
 
-    public function testParseCommandMultipleOptions()
+    public function testParseCommandMultipleOptions(): void
     {
         $_SERVER['argv'] = [
             'ignored',
@@ -434,36 +546,33 @@ final class CLITest extends CIUnitTestCase
         $this->assertSame(['b', 'c', 'd'], CLI::getSegments());
     }
 
-    public function testWindow()
+    public function testWindow(): void
     {
         $height = new ReflectionProperty(CLI::class, 'height');
-        $height->setAccessible(true);
-        $height->setValue(null);
+        $height->setValue(null, null);
 
         $this->assertIsInt(CLI::getHeight());
 
         $width = new ReflectionProperty(CLI::class, 'width');
-        $width->setAccessible(true);
-        $width->setValue(null);
+        $width->setValue(null, null);
 
         $this->assertIsInt(CLI::getWidth());
     }
 
     /**
-     * @dataProvider tableProvider
-     *
      * @param array $tbody
      * @param array $thead
      * @param array $expected
      */
-    public function testTable($tbody, $thead, $expected)
+    #[DataProvider('provideTable')]
+    public function testTable($tbody, $thead, $expected): void
     {
         CLI::table($tbody, $thead);
 
         $this->assertSame($this->getStreamFilterBuffer(), $expected);
     }
 
-    public function tableProvider()
+    public static function provideTable(): iterable
     {
         $head = [
             'ID',
@@ -548,7 +657,7 @@ final class CLITest extends CIUnitTestCase
         ];
     }
 
-    public function testStrlen()
+    public function testStrlen(): void
     {
         $this->assertSame(18, mb_strlen(CLI::color('success', 'green')));
         $this->assertSame(7, CLI::strlen(CLI::color('success', 'green')));

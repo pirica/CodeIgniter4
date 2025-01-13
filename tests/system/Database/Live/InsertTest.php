@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -11,18 +13,19 @@
 
 namespace CodeIgniter\Database\Live;
 
+use CodeIgniter\Database\Exceptions\DatabaseException;
 use CodeIgniter\Database\Forge;
 use CodeIgniter\Database\RawSql;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\DatabaseTestTrait;
 use Config\Database;
+use PHPUnit\Framework\Attributes\Group;
 use Tests\Support\Database\Seeds\CITestSeeder;
 
 /**
- * @group DatabaseLive
- *
  * @internal
  */
+#[Group('DatabaseLive')]
 final class InsertTest extends CIUnitTestCase
 {
     use DatabaseTestTrait;
@@ -35,7 +38,7 @@ final class InsertTest extends CIUnitTestCase
     protected $refresh = true;
     protected $seed    = CITestSeeder::class;
 
-    public function testInsert()
+    public function testInsert(): void
     {
         $jobData = [
             'name'        => 'Grocery Sales',
@@ -47,26 +50,72 @@ final class InsertTest extends CIUnitTestCase
         $this->seeInDatabase('job', ['name' => 'Grocery Sales']);
     }
 
-    public function testInsertBatch()
+    public function testInsertBatch(): void
     {
-        $jobData = [
+        $table = 'type_test';
+
+        $builder = $this->db->table($table);
+        $builder->truncate();
+
+        $data = [
             [
-                'name'        => 'Comedian',
-                'description' => 'Theres something in your teeth',
+                'type_varchar'  => 'test1',
+                'type_char'     => 'char',
+                'type_smallint' => 32767,
+                'type_integer'  => 2_147_483_647,
+                'type_bigint'   => 9_223_372_036_854_775_807,
+                'type_numeric'  => 123.23,
+                'type_date'     => '2023-12-01',
+                'type_datetime' => '2023-12-21 12:00:00',
             ],
             [
-                'name'        => 'Cab Driver',
-                'description' => 'Iam yellow',
+                'type_varchar'  => 'test2',
+                'type_char'     => 'char',
+                'type_smallint' => 32767,
+                'type_integer'  => 2_147_483_647,
+                'type_bigint'   => 9_223_372_036_854_775_807,
+                'type_numeric'  => 123.23,
+                'type_date'     => '2023-12-02',
+                'type_datetime' => '2023-12-21 12:00:00',
             ],
         ];
 
-        $this->db->table('job')->insertBatch($jobData);
+        $count = $this->db->table($table)->insertBatch($data);
 
-        $this->seeInDatabase('job', ['name' => 'Comedian']);
-        $this->seeInDatabase('job', ['name' => 'Cab Driver']);
+        $this->assertSame(2, $count);
+
+        $expected = $data;
+        $this->seeInDatabase($table, $expected[0]);
+        $this->seeInDatabase($table, $expected[1]);
     }
 
-    public function testReplaceWithNoMatchingData()
+    public function testInsertBatchFailed(): void
+    {
+        $this->expectException(DatabaseException::class);
+
+        $data = [
+            [
+                'name' => 'Grocery Sales',
+            ],
+            [
+                'name' => null,
+            ],
+        ];
+
+        $db = $this->db;
+
+        if ($this->db->DBDriver === 'MySQLi') {
+            // strict mode is required for MySQLi to throw an exception here
+            $config                    = config('Database');
+            $config->tests['strictOn'] = true;
+
+            $db = Database::connect($config->tests);
+        }
+
+        $db->table('job')->insertBatch($data);
+    }
+
+    public function testReplaceWithNoMatchingData(): void
     {
         $data = [
             'id'          => 5,
@@ -77,13 +126,13 @@ final class InsertTest extends CIUnitTestCase
         $this->db->table('job')->replace($data);
 
         $row = $this->db->table('job')
-            ->getwhere(['id' => 5])
+            ->getWhere(['id' => 5])
             ->getRow();
 
         $this->assertSame('Cab Driver', $row->name);
     }
 
-    public function testReplaceWithMatchingData()
+    public function testReplaceWithMatchingData(): void
     {
         $data = [
             'id'          => 1,
@@ -94,7 +143,7 @@ final class InsertTest extends CIUnitTestCase
         $this->db->table('job')->replace($data);
 
         $row = $this->db->table('job')
-            ->getwhere(['id' => 1])
+            ->getWhere(['id' => 1])
             ->getRow();
 
         $this->assertSame('Cab Driver', $row->name);
@@ -103,7 +152,7 @@ final class InsertTest extends CIUnitTestCase
     /**
      * @see https://github.com/codeigniter4/CodeIgniter4/issues/6726
      */
-    public function testReplaceTwice()
+    public function testReplaceTwice(): void
     {
         $builder = $this->db->table('job');
 
@@ -115,7 +164,7 @@ final class InsertTest extends CIUnitTestCase
         $builder->replace($data);
 
         $row = $this->db->table('job')
-            ->getwhere(['id' => 1])
+            ->getWhere(['id' => 1])
             ->getRow();
         $this->assertSame('John Smith', $row->name);
 
@@ -127,12 +176,12 @@ final class InsertTest extends CIUnitTestCase
         $builder->replace($data);
 
         $row = $this->db->table('job')
-            ->getwhere(['id' => 2])
+            ->getWhere(['id' => 2])
             ->getRow();
         $this->assertSame('Hans Schmidt', $row->name);
     }
 
-    public function testBug302()
+    public function testBug302(): void
     {
         $code = "my code \\'CodeIgniter\\Autoloader\\'";
 
@@ -145,7 +194,7 @@ final class InsertTest extends CIUnitTestCase
         $this->seeInDatabase('misc', ['value' => $code]);
     }
 
-    public function testInsertPasswordHash()
+    public function testInsertPasswordHash(): void
     {
         $hash = '$2y$10$tNevVVMwW52V2neE3H79a.wp8ZoItrwosk54.Siz5Fbw55X9YIBsW';
 
@@ -157,7 +206,7 @@ final class InsertTest extends CIUnitTestCase
         $this->seeInDatabase('misc', ['value' => $hash]);
     }
 
-    public function setupUser2()
+    public function setupUser2(): void
     {
         $this->forge->dropTable('user2', true);
 
@@ -207,7 +256,7 @@ final class InsertTest extends CIUnitTestCase
         $this->db->table('user2')->insertBatch($data);
     }
 
-    public function testInsertBatchWithQuery()
+    public function testInsertBatchWithQuery(): void
     {
         $this->forge = Database::forge($this->DBGroup);
 
@@ -226,7 +275,7 @@ final class InsertTest extends CIUnitTestCase
         $this->forge->dropTable('user2', true);
     }
 
-    public function testInsertBatchWithQueryAndRawSqlAndManualColumns()
+    public function testInsertBatchWithQueryAndRawSqlAndManualColumns(): void
     {
         $this->forge = Database::forge($this->DBGroup);
 

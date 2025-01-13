@@ -10,9 +10,11 @@ on:
     paths:
       - 'app/**.php'
       - 'system/**.php'
+      - 'tests/**.php'
       - 'utils/**.php'
       - composer.json
-      - '**.neon.dist'
+      - phpstan.neon.dist
+      - phpstan-baseline.php
       - '.github/workflows/test-phpstan.yml'
 
   push:
@@ -22,9 +24,11 @@ on:
     paths:
       - 'app/**.php'
       - 'system/**.php'
+      - 'tests/**.php'
       - 'utils/**.php'
       - composer.json
-      - '**.neon.dist'
+      - phpstan.neon.dist
+      - phpstan-baseline.php
       - '.github/workflows/test-phpstan.yml'
 
 concurrency:
@@ -41,8 +45,14 @@ jobs:
     strategy:
       fail-fast: false
     steps:
+      - name: Checkout base branch for PR
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.base_ref }}
+
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -61,7 +71,7 @@ jobs:
         run: echo "COMPOSER_CACHE_FILES_DIR=$(composer config cache-files-dir)" >> $GITHUB_ENV
 
       - name: Cache dependencies
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ${{ env.COMPOSER_CACHE_FILES_DIR }}
           key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.json') }}
@@ -71,7 +81,7 @@ jobs:
         run: mkdir -p build/phpstan
 
       - name: Cache PHPStan result cache directory
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: build/phpstan
           key: ${{ runner.os }}-phpstan-${{ github.sha }}
@@ -81,4 +91,4 @@ jobs:
         run: composer update --ansi --no-interaction
 
       - name: Run static analysis
-        run: vendor/bin/phpstan analyse
+        run: composer phpstan:check

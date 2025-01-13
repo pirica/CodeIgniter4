@@ -71,6 +71,12 @@ Config for CSRF
 CSRF Protection Methods
 -----------------------
 
+.. warning:: If you use :doc:`Session <./sessions>`, be sure to use Session based
+    CSRF protection. Cookie based CSRF protection will not prevent Same-site attacks.
+    See
+    `GHSA-5hm8-vh6r-2cjq <https://github.com/codeigniter4/shield/security/advisories/GHSA-5hm8-vh6r-2cjq>`_
+    for details.
+
 By default, the Cookie based CSRF Protection is used. It is
 `Double Submit Cookie <https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html#double-submit-cookie>`_
 on OWASP Cross-Site Request Forgery Prevention Cheat Sheet.
@@ -101,7 +107,9 @@ Token Regeneration
 ------------------
 
 Tokens may be either regenerated on every submission (default) or
-kept the same throughout the life of the CSRF cookie. The default
+kept the same throughout the life of the Session or CSRF cookie.
+
+The default
 regeneration of tokens provides stricter security, but may result
 in usability concerns as other tokens become invalid (back/forward
 navigation, multiple tabs/windows, asynchronous actions, etc). You
@@ -109,6 +117,10 @@ may alter this behavior by editing the following config parameter value in
 **app/Config/Security.php**:
 
 .. literalinclude:: security/004.php
+
+.. warning:: If you use Cookie based CSRF protection, and :php:func:`redirect()`
+    after the submission, you must call ``withCookie()`` to send the regenerated
+    CSRF cookie. See :ref:`response-redirect` for details.
 
 .. note:: Since v4.2.3, you can regenerate CSRF token manually with the
     ``Security::generateHash()`` method.
@@ -118,12 +130,17 @@ may alter this behavior by editing the following config parameter value in
 Redirection on Failure
 ----------------------
 
-Since v4.3.0, when a request fails the CSRF validation check,
-it will throw a SecurityException by default,
+Starting with v4.5.0, when a request fails the CSRF validation check, by default,
+the user is redirected to the previous page in production environment, or a
+SecurityException is thrown in other environments.
 
-If you want to make it redirect to the previous page,
-change the following config parameter value in
-**app/Config/Security.php**:
+.. note:: In production environment, when you use HTML forms, it is recommended
+    to enable this redirection for a better user experience.
+
+    Upgrade users should check their configuration files.
+
+If you want to make it redirect to the previous page, set the following config
+parameter value to ``true`` in **app/Config/Security.php**:
 
 .. literalinclude:: security/005.php
 
@@ -134,6 +151,8 @@ When redirected, an ``error`` flash message is set and can be displayed to the e
 This provides a nicer experience than simply crashing.
 
 Even when the redirect value is ``true``, AJAX calls will not redirect, but will throw a SecurityException.
+
+.. _enable-csrf-protection:
 
 Enable CSRF Protection
 ======================
@@ -201,6 +220,9 @@ The order of checking the availability of the CSRF token is as follows:
 1. ``$_POST`` array
 2. HTTP header
 3. ``php://input`` (JSON request) - bear in mind that this approach is the slowest one since we have to decode JSON and then re-encode it
+4. ``php://input`` (raw body) - for PUT, PATCH, and DELETE type of requests
+
+.. note:: ``php://input`` (raw body) is checked since v4.4.2.
 
 *********************
 Other Helpful Methods

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -13,12 +15,12 @@ namespace CodeIgniter\Commands\Utilities;
 
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\StreamFilterTrait;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * @internal
- *
- * @group Others
  */
+#[Group('Others')]
 final class NamespacesTest extends CIUnitTestCase
 {
     use StreamFilterTrait;
@@ -35,12 +37,19 @@ final class NamespacesTest extends CIUnitTestCase
         $this->resetServices();
     }
 
+    /**
+     * @see https://regex101.com/r/l3lHfR/1
+     */
     protected function getBuffer()
     {
-        return $this->getStreamFilterBuffer();
+        return preg_replace_callback('/(\|\s*[^|]+\s*\|\s*)(.*?)(\s*\|\s*[^|]+\s*\|)/', static function (array $matches): string {
+            $matches[2] = str_replace(DIRECTORY_SEPARATOR, '/', $matches[2]);
+
+            return $matches[1] . $matches[2] . $matches[3];
+        }, str_replace(PHP_EOL, "\n", $this->getStreamFilterBuffer()));
     }
 
-    public function testNamespacesCommandCodeIgniterOnly()
+    public function testNamespacesCommandCodeIgniterOnly(): void
     {
         command('namespaces -c');
 
@@ -49,8 +58,8 @@ final class NamespacesTest extends CIUnitTestCase
             | Namespace     | Path                    | Found? |
             +---------------+-------------------------+--------+
             | CodeIgniter   | ROOTPATH/system         | Yes    |
-            | App           | ROOTPATH/app            | Yes    |
             | Config        | APPPATH/Config          | Yes    |
+            | App           | ROOTPATH/app            | Yes    |
             | Tests\Support | ROOTPATH/tests/_support | Yes    |
             +---------------+-------------------------+--------+
             EOL;
@@ -58,21 +67,21 @@ final class NamespacesTest extends CIUnitTestCase
         $this->assertStringContainsString($expected, $this->getBuffer());
     }
 
-    public function testNamespacesCommandAllNamespaces()
+    public function testNamespacesCommandAllNamespaces(): void
     {
         command('namespaces');
 
         $this->assertStringContainsString(
             '|CodeIgniter|ROOTPATH/system|Yes|',
-            str_replace(' ', '', $this->getBuffer())
+            str_replace(' ', '', $this->getBuffer()),
         );
         $this->assertStringContainsString(
             '|App|ROOTPATH/app|Yes|',
-            str_replace(' ', '', $this->getBuffer())
+            str_replace(' ', '', $this->getBuffer()),
         );
         $this->assertStringContainsString(
             '|Config|APPPATH/Config|Yes|',
-            str_replace(' ', '', $this->getBuffer())
+            str_replace(' ', '', $this->getBuffer()),
         );
     }
 }

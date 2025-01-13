@@ -21,7 +21,6 @@ $finder = Finder::create()
     ->files()
     ->in([
         __DIR__ . '/system',
-        __DIR__ . '/tests',
         __DIR__ . '/utils',
     ])
     ->exclude([
@@ -33,17 +32,31 @@ $finder = Finder::create()
     ->append([
         __FILE__,
         __DIR__ . '/.php-cs-fixer.no-header.php',
+        __DIR__ . '/.php-cs-fixer.tests.php',
         __DIR__ . '/.php-cs-fixer.user-guide.php',
+        __DIR__ . '/preload.php',
         __DIR__ . '/rector.php',
         __DIR__ . '/spark',
     ]);
 
-$overrides = [];
+$overrides = [
+    'get_class_to_class_keyword'  => true,
+    'trailing_comma_in_multiline' => [
+        'after_heredoc' => true,
+        'elements'      => [
+            'arguments',
+            'array_destructuring',
+            'arrays',
+            'match',
+            'parameters',
+        ],
+    ],
+];
 
 $options = [
     'cacheFile'    => 'build/.php-cs-fixer.cache',
     'finder'       => $finder,
-    'customFixers' => FixerGenerator::create('vendor/nexusphp/cs-config/src/Fixer', 'Nexus\\CsConfig\\Fixer'),
+    'customFixers' => FixerGenerator::create('utils/vendor/nexusphp/cs-config/src/Fixer', 'Nexus\\CsConfig\\Fixer'),
     'customRules'  => [
         NoCodeSeparatorCommentFixer::name() => true,
     ],
@@ -52,5 +65,5 @@ $options = [
 return Factory::create(new CodeIgniter4(), $overrides, $options)->forLibrary(
     'CodeIgniter 4 framework',
     'CodeIgniter Foundation',
-    'admin@codeigniter.com'
+    'admin@codeigniter.com',
 );

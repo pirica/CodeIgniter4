@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -11,32 +13,31 @@
 
 namespace CodeIgniter\Commands\Utilities\Routes;
 
+use CodeIgniter\HTTP\Method;
 use CodeIgniter\Test\CIUnitTestCase;
-use Config\Services;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * @internal
- *
- * @group Others
  */
+#[Group('Others')]
 final class FilterCollectorTest extends CIUnitTestCase
 {
-    public function testGet()
+    public function testGet(): void
     {
-        $routes = Services::routes();
+        $routes = service('routes');
         $routes->resetRoutes();
         $routes->setDefaultNamespace('App\Controllers');
         $routes->get('/', 'Home::index');
 
         $collector = new FilterCollector();
 
-        $filters = $collector->get('get', '/');
+        $filters = $collector->get(Method::GET, '/');
 
         $expected = [
             'before' => [
             ],
             'after' => [
-                'toolbar',
             ],
         ];
         $this->assertSame($expected, $filters);

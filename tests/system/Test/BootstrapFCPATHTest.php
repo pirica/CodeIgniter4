@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -10,6 +12,8 @@
  */
 
 namespace CodeIgniter\Test;
+
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * Class BootstrapFCPATHTest
@@ -22,9 +26,8 @@ namespace CodeIgniter\Test;
  * from correctFCPATH();
  *
  * @internal
- *
- * @group Others
  */
+#[Group('Others')]
 final class BootstrapFCPATHTest extends CIUnitTestCase
 {
     private string $currentDir = __DIR__;
@@ -47,7 +50,7 @@ final class BootstrapFCPATHTest extends CIUnitTestCase
         $this->deleteDirectories();
     }
 
-    public function testSetFCPATH()
+    public function testSetFCPATH(): void
     {
         $result1     = $this->readOutput($this->file1);
         $correctPath = $this->correctFCPATH();
@@ -99,7 +102,7 @@ final class BootstrapFCPATHTest extends CIUnitTestCase
         return $fileContents . ('echo FCPATH;' . PHP_EOL);
     }
 
-    private function readOutput($file)
+    private function readOutput(string $file)
     {
         ob_start();
         system('php -f ' . $file);

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -11,20 +13,22 @@
 
 namespace CodeIgniter;
 
+use CodeIgniter\Autoloader\Autoloader;
 use CodeIgniter\Autoloader\FileLocator;
+use CodeIgniter\Files\Exceptions\FileNotFoundException;
 use CodeIgniter\Test\CIUnitTestCase;
 use Config\Services;
+use PHPUnit\Framework\Attributes\CoversFunction;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\MockObject\MockObject;
 use RuntimeException;
 use Tests\Support\Autoloader\FatalLocator;
 
 /**
  * @internal
- *
- * @group Others
- *
- * @covers ::helper
  */
+#[CoversFunction('helper')]
+#[Group('Others')]
 final class CommonHelperTest extends CIUnitTestCase
 {
     private array $dummyHelpers = [
@@ -80,40 +84,40 @@ final class CommonHelperTest extends CIUnitTestCase
     private function getMockLocator()
     {
         return $this->getMockBuilder(FileLocator::class)
-            ->setConstructorArgs([Services::autoloader()])
+            ->setConstructorArgs([service('autoloader')])
             ->onlyMethods(['search'])
             ->getMock();
     }
 
-    public function testHelperWithFatalLocatorThrowsException()
+    public function testHelperWithFatalLocatorThrowsException(): void
     {
         // Replace the locator with one that will fail if it is called
-        $locator = new FatalLocator(Services::autoloader());
+        $locator = new FatalLocator(service('autoloader'));
         Services::injectMock('locator', $locator);
 
         try {
             helper('baguette');
             $exception = false;
-        } catch (RuntimeException $e) {
+        } catch (RuntimeException) {
             $exception = true;
         }
 
         $this->assertTrue($exception);
     }
 
-    public function testHelperLoadsOnce()
+    public function testHelperLoadsOnce(): void
     {
         // Load it the first time
         helper('baguette');
 
         // Replace the locator with one that will fail if it is called
-        $locator = new FatalLocator(Services::autoloader());
+        $locator = new FatalLocator(service('autoloader'));
         Services::injectMock('locator', $locator);
 
         try {
             helper('baguette');
             $exception = false;
-        } catch (RuntimeException $e) {
+        } catch (RuntimeException) {
             $exception = true;
         }
 
@@ -125,7 +129,7 @@ final class CommonHelperTest extends CIUnitTestCase
         foreach ($this->dummyHelpers as $helper) {
             $this->assertFileDoesNotExist($helper, sprintf(
                 'The dummy helper file "%s" should not be existing before it is tested.',
-                $helper
+                $helper,
             ));
         }
 
@@ -138,12 +142,41 @@ final class CommonHelperTest extends CIUnitTestCase
 
         // this chunk is not needed really; just added so that IDEs will be happy
         if (! function_exists('foo_bar_baz')) {
-            function foo_bar_baz(): string
+            function foo_bar_baz(): string // @phpstan-ignore function.inner
             {
                 return __FILE__;
             }
         }
 
-        $this->assertSame($this->dummyHelpers[0], foo_bar_baz());
+        $this->assertSame($this->dummyHelpers[0], foo_bar_baz()); // @phpstan-ignore function.notFound
+    }
+
+    public function testNamespacedHelperNotFound(): void
+    {
+        $this->expectException(FileNotFoundException::class);
+
+        $locator = $this->getMockLocator();
+        Services::injectMock('locator', $locator);
+
+        helper('foo\barbaz');
+    }
+
+    public function testNamespacedHelperFound(): void
+    {
+        $autoloader = new Autoloader();
+        $autoloader->addNamespace('Tests\Support\Helpers', TESTPATH . '_support/Helpers');
+        $locator = new FileLocator($autoloader);
+
+        Services::injectMock('locator', $locator);
+
+        $found = true;
+
+        try {
+            helper('Tests\Support\Helpers\baguette');
+        } catch (FileNotFoundException) {
+            $found = false;
+        }
+
+        $this->assertTrue($found);
     }
 }

@@ -1,47 +1,42 @@
-conditionalTags:
-	PhpParser\NodeVisitor\NodeConnectingVisitor:
-		phpstan.parser.richParserNodeVisitor: true
-
-services:
-	-
-		class: Utils\PHPStan\CheckUseStatementsAfterLicenseRule
-		tags:
-			- phpstan.rules.rule
-	-
-		class: Utils\PHPStan\CheckFrameworkExceptionInstantiationViaNamedConstructorRule
-		tags:
-			- phpstan.rules.rule
-
 includes:
-	- phpstan-baseline.neon.dist
+	- utils/phpstan-baseline/loader.neon
 
 parameters:
 	phpVersion: 80100
 	tmpDir: build/phpstan
-	level: 5
-	paths:
-		- app
-		- system
-		- utils/PHPStan
-	treatPhpDocTypesAsCertain: false
+	level: 6
 	bootstrapFiles:
 		- phpstan-bootstrap.php
+	paths:
+		- admin/starter/tests
+		- app
+		- system
+		- tests
 	excludePaths:
 		- app/Views/errors/cli/*
 		- app/Views/errors/html/*
 		- system/Commands/Generators/Views/*
-		- system/Config/Routes.php
 		- system/Debug/Toolbar/Views/toolbar.tpl.php
 		- system/Images/Handlers/GDHandler.php
 		- system/Test/Filters/CITestStreamFilter.php
 		- system/ThirdParty/*
 		- system/Validation/Views/single.php
-	parallel:
-		processTimeout: 300.0
+		- tests/system/View/Views/*
 	scanDirectories:
 		- system/Helpers
-	dynamicConstantNames:
-		- APP_NAMESPACE
-		- CI_DEBUG
-		- ENVIRONMENT
-		- SODIUM_LIBRARY_VERSION
+	ignoreErrors:
+		-
+			identifier: missingType.generics
+	checkMissingCallableSignature: true
+	treatPhpDocTypesAsCertain: false
+	strictRules:
+		allRules: false
+		disallowedLooseComparison: true
+		booleansInConditions: true
+		disallowedBacktick: true
+		disallowedEmpty: true
+		disallowedImplicitArrayCreation: true
+		disallowedShortTernary: true
+		matchingInheritedMethodNames: true
+	shipmonkBaselinePerIdentifier:
+		directory: %currentWorkingDirectory%

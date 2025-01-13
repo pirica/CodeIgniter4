@@ -28,12 +28,18 @@ jobs:
       fail-fast: false
       matrix:
         php-version:
-          - '7.4'
-          - '8.0'
+          - '8.1'
+          - '8.3'
 
     steps:
+      - name: Checkout base branch for PR
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.base_ref }}
+
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -46,7 +52,7 @@ jobs:
         run: echo "COMPOSER_CACHE_FILES_DIR=$(composer config cache-files-dir)" >> $GITHUB_ENV
 
       - name: Cache dependencies
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ${{ env.COMPOSER_CACHE_FILES_DIR }}
           key: ${{ runner.os }}-${{ matrix.php-version }}-${{ hashFiles('**/composer.lock') }}
@@ -57,11 +63,5 @@ jobs:
       - name: Install dependencies
         run: composer update --ansi --no-interaction
 
-      - name: Run lint on `app/`, `admin/`, `public/`
-        run: vendor/bin/php-cs-fixer fix --verbose --ansi --dry-run --config=.php-cs-fixer.no-header.php --using-cache=no --diff
-
-      - name: Run lint on `system/`, `tests`, `utils/`, and root PHP files
-        run: vendor/bin/php-cs-fixer fix --verbose --ansi --dry-run --using-cache=no --diff
-
-      - name: Run lint on `user_guide_src/source/`
-        run: vendor/bin/php-cs-fixer fix --verbose --ansi --dry-run --config=.php-cs-fixer.user-guide.php --using-cache=no --diff
+      - name: Run lint
+        run: composer cs
